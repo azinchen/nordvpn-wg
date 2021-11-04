@@ -39,8 +39,7 @@ FROM alpine:3.14
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
-ENV TECHNOLOGY=openvpn_udp \
-    RANDOM_TOP=0 \
+ENV RANDOM_TOP=0 \
     CHECK_CONNECTION_ATTEMPTS=5 \
     CHECK_CONNECTION_ATTEMPT_INTERVAL=10
 
@@ -53,7 +52,7 @@ RUN echo "**** upgrade packages ****" && \
         ip6tables=1.8.7-r1 \
         jq=1.6-r1 \
         shadow=4.8.1-r0 \
-        openvpn=2.5.2-r0 && \
+        wireguard-tools=1.0.20210424-r0 && \
     echo "**** create process user ****" && \
     addgroup --system --gid 912 nordvpn && \
     adduser --system --uid 912 --disabled-password --no-create-home --ingroup nordvpn nordvpn && \

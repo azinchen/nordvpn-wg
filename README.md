@@ -32,7 +32,7 @@ docker run -ti --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
            -e USER=user@email.com -e PASS=password \
            -e RANDOM_TOP=n -e RECREATE_VPN_CRON=string \
            -e COUNTRY=country1;country2 -e GROUP=group \
-           -e TECHNOLOGY=technology -d azinchen/nordvpn
+           -d azinchen/nordvpn
 ```
 
 Once it's up other containers can be started using it's network connection:
@@ -72,7 +72,7 @@ services:
 
 ### Filter NordVPN servers
 
-This container selects recommended. The list of recommended servers can be filtered by setting `COUNTRY`, `GROUP` and/or `TECHNOLOGY` environment variables.
+This container selects recommended. The list of recommended servers can be filtered by setting `COUNTRY` and/or `GROUP` environment variables.
 
 ### Reconnect by cron
 
@@ -157,7 +157,6 @@ Container images are configured using environment variables passed at runtime.
 
 * `COUNTRY`           - Use servers from countries in the list (IE Australia;New Zeland). Several countries can be selected using semicolon. Country can be defined by Country name, Code or ID [full list][nordvpn-countries].
 * `GROUP`             - Use servers from specific group. Only one group can be selected. Group can be defined by Name, Identifier or ID [full list][nordvpn-groups].
-* `TECHNOLOGY`        - User servers with specific technology supported. Only one technololgy can be selected. Technology can be defined by Name, Identifier or ID [full list][nordvpn-technologies]. NOTE: Only OpenVPN servers are supported by this container.
 * `RANDOM_TOP`        - Place n servers from filtered list in random order. Useful with `RECREATE_VPN_CRON`.
 * `RECREATE_VPN_CRON` - Set period of selecting new server in format for crontab file. Disabled by default.
 * `CHECK_CONNECTION_CRON` - Set period of checking Internet connection in format for crontab file. Disabled by default.
