@@ -8,6 +8,8 @@ nvtechnologies=$(cat /etc/nordvpn/technologies.json | jq -c '.[]')
 
 numericregex="^[0-9]+$"
 
+wgfile="/etc/wireguard/wg0.conf"
+
 getcountryid()
 {
     input=$1
@@ -157,5 +159,14 @@ hostname=$(echo $server | jq -r '.hostname')
 publickey=$(echo $server |  jq -r '.technologies | .[] | select(.id == 35) | .metadata | .[].value')
 
 echo "Select server \""$name"\" hostname=\""$hostname"\" ip="$serverip" protocol=\"Wireguard\" public key=\""$publickey"\""
+
+echo "[Interface]" > "$wgfile"
+echo "PrivateKey = "$PRIVATE_KEY"" >> "$wgfile"
+echo "" >> "$wgfile"
+echo "[Peer]" >> "$wgfile"
+echo "PublicKey = "$publickey"" >> "$wgfile"
+echo "AllowedIPs = 0.0.0.0/0, ::/0" >> "$wgfile"
+echo "Endpoint = "$serverip":51820" >> "$wgfile"
+echo "PersistentKeepalive = 25" >> "$wgfile"
 
 exit 0

@@ -46,14 +46,14 @@ if [[ -n ${docker_network} ]]; then
     iptables -A OUTPUT -m owner --gid-owner nordvpn -j ACCEPT || {
         echo "group match failed, fallback to open necessary ports"
         iptables -A OUTPUT -p udp -m udp --dport 53 -j ACCEPT
-        iptables -A OUTPUT -p udp -m udp --dport 51280 -j ACCEPT
+        iptables -A OUTPUT -p udp -m udp --dport 51820 -j ACCEPT
     }
 fi
 if [[ -n ${docker6_network} ]]; then
     ip6tables -A OUTPUT -m owner --gid-owner nordvpn -j ACCEPT || {
         echo "ip6 group match failed, fallback to open necessary ports"
         ip6tables -A OUTPUT -p udp -m udp --dport 53 -j ACCEPT
-        ip6tables -A OUTPUT -p udp -m udp --dport 51280 -j ACCEPT
+        ip6tables -A OUTPUT -p udp -m udp --dport 51820 -j ACCEPT
     }
 fi
 
