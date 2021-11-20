@@ -160,12 +160,16 @@ getopenvpnprotocol()
 
     if [[ $ident != *"openvpn"* ]]; then
         printf ""
+        return 1
     elif [[ $ident == *"udp"* ]]; then
         printf "udp"
+        return 0
     elif [[ $ident == *"tcp"* ]]; then
         printf "tcp"
+        return 0
     else
         printf ""
+        return 1
     fi
 }
 
