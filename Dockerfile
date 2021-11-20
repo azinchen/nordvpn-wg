@@ -50,7 +50,7 @@ RUN echo "**** upgrade packages ****" && \
     apk --no-cache --no-progress add bash=5.1.4-r0 \
         curl=7.79.1-r0 \
         iptables=1.8.7-r1 \
-        ip6tables=1.8.7-r1 \
+        ip6tables=1.8.6-r1 \
         jq=1.6-r1 \
         shadow=4.8.1-r0 \
         openvpn=2.5.2-r0 && \
