@@ -35,7 +35,7 @@ RUN chmod +x /rootfs/usr/bin/*
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.14
+FROM alpine:3.13
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
