@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.14 AS s6-builder
+FROM alpine:3.15.0 AS s6-builder
 
 ENV PACKAGE="just-containers/s6-overlay"
 ENV PACKAGEVERSION="2.2.0.3"
@@ -25,7 +25,7 @@ RUN echo "**** upgrade packages ****" && \
     tar xfz /tmp/s6-overlay.tar.gz -C /s6/
 
 # rootfs builder
-FROM alpine:3.14 AS rootfs-builder
+FROM alpine:3.15.0 AS rootfs-builder
 
 RUN echo "**** upgrade packages ****" && \
     apk --no-cache --no-progress add openssl=1.1.1l-r0
@@ -35,7 +35,7 @@ RUN chmod +x /rootfs/usr/bin/*
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.14
+FROM alpine:3.15.0
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
