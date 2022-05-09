@@ -38,7 +38,7 @@ jobs:
           echo "Base date=${DATE}"
 
       - name: Create Pull Request, update ${{ steps.file.outputs.name }}.json, date ${{ steps.getjson.outputs.date }}
-        uses: peter-evans/create-pull-request@v3.11.0
+        uses: peter-evans/create-pull-request@v4.0.3
         with:
           branch: updaterbot/${{ steps.file.outputs.name }}json
           commit-message: Update ${{ steps.file.outputs.name }}.json, date ${{ steps.getjson.outputs.date }}
