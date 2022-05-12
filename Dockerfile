@@ -29,6 +29,9 @@ FROM alpine:3.15.4 AS rootfs-builder
 
 COPY root/ /rootfs/
 RUN chmod +x /rootfs/usr/bin/*
+RUN chmod +x /rootfs/etc/cont-init.d/*
+RUN chmod +x /rootfs/etc/services.d/crond/run
+RUN chmod +x /rootfs/etc/services.d/nordvpnd/run
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
