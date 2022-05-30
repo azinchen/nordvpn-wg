@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.15.4 AS s6-builder
+FROM alpine:3.16.0 AS s6-builder
 
 ENV PACKAGE="just-containers/s6-overlay"
 ENV PACKAGEVERSION="3.1.0.1"
@@ -25,7 +25,7 @@ RUN echo "**** install mandatory packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-binaries.tar.xz
 
 # rootfs builder
-FROM alpine:3.15.4 AS rootfs-builder
+FROM alpine:3.16.0 AS rootfs-builder
 
 COPY root/ /rootfs/
 RUN chmod +x /rootfs/usr/bin/*
@@ -35,7 +35,7 @@ RUN chmod +x /rootfs/etc/services.d/nordvpnd/run
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.15.4
+FROM alpine:3.16.0
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
@@ -45,13 +45,13 @@ ENV TECHNOLOGY=openvpn_udp \
     CHECK_CONNECTION_ATTEMPT_INTERVAL=10
 
 RUN echo "**** install mandatory packages ****" && \
-    apk --no-cache --no-progress add bash=5.1.16-r0 \
-        curl=7.80.0-r1 \
-        iptables=1.8.7-r1 \
-        ip6tables=1.8.7-r1 \
+    apk --no-cache --no-progress add bash=5.1.16-r2 \
+        curl=7.83.1-r1 \
+        iptables=1.8.8-r1 \
+        ip6tables=1.8.8-r1 \
         jq=1.6-r1 \
-        shadow=4.8.1-r1 \
-        openvpn=2.5.6-r0 && \
+        shadow=4.10-r3 \
+        openvpn=2.5.6-r1 && \
     echo "**** create process user ****" && \
     addgroup --system --gid 912 nordvpn && \
     adduser --system --uid 912 --disabled-password --no-create-home --ingroup nordvpn nordvpn && \
