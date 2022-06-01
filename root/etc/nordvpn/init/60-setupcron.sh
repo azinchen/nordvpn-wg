@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/command/with-contenv bash
 
 [[ "${DEBUG,,}" == trace* ]] && set -x
+
+echo "Setup crond service"
 
 cron_dir="/var/spool/cron/crontabs"
 cron_file="$cron_dir/root"

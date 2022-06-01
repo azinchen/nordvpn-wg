@@ -29,9 +29,7 @@ FROM alpine:3.16.0 AS rootfs-builder
 
 COPY root/ /rootfs/
 RUN chmod +x /rootfs/usr/bin/*
-RUN chmod +x /rootfs/etc/cont-init.d/*
-RUN chmod +x /rootfs/etc/services.d/crond/run
-RUN chmod +x /rootfs/etc/services.d/nordvpnd/run
+RUN chmod +x /rootfs/etc/nordvpn/init/*
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
@@ -51,6 +49,7 @@ RUN echo "**** install mandatory packages ****" && \
         ip6tables=1.8.8-r1 \
         jq=1.6-r1 \
         shadow=4.10-r3 \
+        shadow-login=4.10-r3 \
         openvpn=2.5.6-r1 && \
     echo "**** create process user ****" && \
     addgroup --system --gid 912 nordvpn && \
