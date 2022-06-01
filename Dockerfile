@@ -40,7 +40,8 @@ LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 ENV TECHNOLOGY=openvpn_udp \
     RANDOM_TOP=0 \
     CHECK_CONNECTION_ATTEMPTS=5 \
-    CHECK_CONNECTION_ATTEMPT_INTERVAL=10
+    CHECK_CONNECTION_ATTEMPT_INTERVAL=10 \
+    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add bash=5.1.16-r2 \
