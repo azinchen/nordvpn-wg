@@ -127,11 +127,11 @@
     "code": "BR",
     "cities": [
       {
-        "id": 943973,
-        "name": "San Paulo",
+        "id": 890249,
+        "name": "Sao Paulo",
         "latitude": -23.533333,
         "longitude": -46.616667,
-        "dns_name": "san-paulo",
+        "dns_name": "sao-paulo",
         "hub_score": null
       }
     ]
@@ -419,21 +419,6 @@
         "latitude": 64.15,
         "longitude": -21.95,
         "dns_name": "reykjavik",
-        "hub_score": null
-      }
-    ]
-  },
-  {
-    "id": 100,
-    "name": "India",
-    "code": "IN",
-    "cities": [
-      {
-        "id": 4041548,
-        "name": "Mumbai",
-        "latitude": 18.975,
-        "longitude": 72.825833,
-        "dns_name": "mumbai",
         "hub_score": null
       }
     ]
@@ -894,11 +879,11 @@
     "code": "UA",
     "cities": [
       {
-        "id": 8615126,
-        "name": "Kiev",
+        "id": 8626766,
+        "name": "Kyiv",
         "latitude": 50.433333,
         "longitude": 30.516667,
-        "dns_name": "kiev",
+        "dns_name": "kyiv",
         "hub_score": null
       }
     ]
@@ -924,11 +909,35 @@
     "code": "GB",
     "cities": [
       {
+        "id": 2975852,
+        "name": "Edinburgh",
+        "latitude": 55.95,
+        "longitude": -3.2,
+        "dns_name": "edinburgh",
+        "hub_score": null
+      },
+      {
+        "id": 2978888,
+        "name": "Glasgow",
+        "latitude": 55.833333,
+        "longitude": -4.25,
+        "dns_name": "glasgow",
+        "hub_score": null
+      },
+      {
         "id": 2989907,
         "name": "London",
         "latitude": 51.514125,
         "longitude": -0.093689,
         "dns_name": "london",
+        "hub_score": null
+      },
+      {
+        "id": 2991110,
+        "name": "Manchester",
+        "latitude": 53.5,
+        "longitude": -2.216667,
+        "dns_name": "manchester",
         "hub_score": null
       }
     ]
@@ -984,6 +993,14 @@
         "latitude": 39.7391667,
         "longitude": -104.9841667,
         "dns_name": "denver",
+        "hub_score": null
+      },
+      {
+        "id": 8930717,
+        "name": "Kansas City",
+        "latitude": 39.0997222,
+        "longitude": -94.5783333,
+        "dns_name": "kansas-city",
         "hub_score": null
       },
       {
