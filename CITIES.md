@@ -12,7 +12,7 @@ Australia | AU | 13 | Sydney | 479570
 Austria | AT | 14 | Vienna | 448799
 Belgium | BE | 21 | Brussels | 654293
 Bosnia and Herzegovina | BA | 27 | Sarajevo | 556823
-Brazil | BR | 30 | San Paulo | 943973
+Brazil | BR | 30 | Sao Paulo | 890249
 Bulgaria | BG | 33 | Sofia | 777368
 Canada | CA | 38 | Montreal | 1048463
 Canada | CA | 38 | Toronto | 1054250
@@ -34,7 +34,6 @@ Greece | GR | 84 | Athens | 3131903
 Hong Kong | HK | 97 | Hong Kong | 3232931
 Hungary | HU | 98 | Budapest | 3348344
 Iceland | IS | 99 | Reykjavik | 4509791
-India | IN | 100 | Mumbai | 4041548
 Indonesia | ID | 101 | Jakarta | 3560288
 Ireland | IE | 104 | Dublin | 3939200
 Israel | IL | 105 | Tel Aviv | 3964220
@@ -65,15 +64,19 @@ Switzerland | CH | 209 | Zurich | 1171814
 Taiwan | TW | 211 | Taipei | 8544365
 Thailand | TH | 214 | Bangkok | 8121638
 Turkey | TR | 220 | Istanbul | 8401790
-Ukraine | UA | 225 | Kiev | 8615126
+Ukraine | UA | 225 | Kyiv | 8626766
 United Arab Emirates | AE | 226 | Dubai | 728
+United Kingdom | GB | 227 | Edinburgh | 2975852
+United Kingdom | GB | 227 | Glasgow | 2978888
 United Kingdom | GB | 227 | London | 2989907
+United Kingdom | GB | 227 | Manchester | 2991110
 United States | US | 228 | Atlanta | 8792429
 United States | US | 228 | Buffalo | 8963153
 United States | US | 228 | Charlotte | 8980922
 United States | US | 228 | Chicago | 8815352
 United States | US | 228 | Dallas | 9080300
 United States | US | 228 | Denver | 8770934
+United States | US | 228 | Kansas City | 8930717
 United States | US | 228 | Los Angeles | 8761958
 United States | US | 228 | Manassas | 9113744
 United States | US | 228 | Miami | 8787782
