@@ -9,7 +9,7 @@ RUN echo "**** install security fix packages ****" && \
     apk --no-cache --no-progress add \
         zlib=1.2.12-r3 \
         busybox=1.35.0-r17 \
-        openssl=1.1.1q-r0 \
+        openssl=1.1.1s-r0 \
         && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
@@ -39,7 +39,7 @@ RUN echo "**** install security fix packages ****" && \
     apk --no-cache --no-progress add \
         zlib=1.2.12-r3 \
         busybox=1.35.0-r17 \
-        openssl=1.1.1q-r0 \
+        openssl=1.1.1s-r0 \
         && \
     echo "**** end run statement ****"
 
@@ -63,7 +63,7 @@ RUN echo "**** install security fix packages ****" && \
     apk --no-cache --no-progress add \
         zlib=1.2.12-r3 \
         busybox=1.35.0-r17 \
-        openssl=1.1.1q-r0 \
+        openssl=1.1.1s-r0 \
         && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
