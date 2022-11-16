@@ -1,16 +1,11 @@
 # s6 overlay builder
-FROM alpine:3.16.2 AS s6-builder
+FROM alpine:3.16.3 AS s6-builder
 
 ENV PACKAGE="just-containers/s6-overlay"
 ENV PACKAGEVERSION="3.1.2.1"
 ARG TARGETPLATFORM
 
 RUN echo "**** install security fix packages ****" && \
-    apk --no-cache --no-progress add \
-        zlib=1.2.12-r3 \
-        busybox=1.35.0-r17 \
-        openssl=1.1.1s-r0 \
-        && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
         tar=1.34-r0 \
@@ -33,14 +28,9 @@ RUN echo "**** install security fix packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-binaries.tar.xz
 
 # rootfs builder
-FROM alpine:3.16.2 AS rootfs-builder
+FROM alpine:3.16.3 AS rootfs-builder
 
 RUN echo "**** install security fix packages ****" && \
-    apk --no-cache --no-progress add \
-        zlib=1.2.12-r3 \
-        busybox=1.35.0-r17 \
-        openssl=1.1.1s-r0 \
-        && \
     echo "**** end run statement ****"
 
 COPY root/ /rootfs/
@@ -49,7 +39,7 @@ RUN chmod +x /rootfs/etc/nordvpn/init/*
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.16.2
+FROM alpine:3.16.3
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
@@ -60,11 +50,6 @@ ENV TECHNOLOGY=openvpn_udp \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install security fix packages ****" && \
-    apk --no-cache --no-progress add \
-        zlib=1.2.12-r3 \
-        busybox=1.35.0-r17 \
-        openssl=1.1.1s-r0 \
-        && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
         bash=5.1.16-r2 \
