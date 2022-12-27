@@ -4,8 +4,8 @@
 
 [![Docker pulls][dockerhub-pulls]][dockerhub-link]
 [![Docker image size][dockerhub-size]][dockerhub-link]
+[![GitHub build][github-releasedate]][github-link]
 [![GitHub build][github-build]][github-link]
-[![GitHub release date][github-releasedate]][github-link]
 [![GitHub last commit][github-lastcommit]][github-link]
 
 This is an OpenVPN client docker container that uses recommended NordVPN server. It makes routing containers traffic through OpenVPN easy.
