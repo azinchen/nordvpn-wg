@@ -183,7 +183,7 @@ If you have any problems with or questions about this image, please contact me t
 [github-lastcommit]: https://img.shields.io/github/last-commit/azinchen/nordvpn
 [github-link]: https://github.com/azinchen/nordvpn
 [github-issues]: https://github.com/azinchen/nordvpn/issues
-[github-build]: https://img.shields.io/github/workflow/status/azinchen/nordvpn/CI_CD_Task
+[github-build]: https://img.shields.io/github/actions/workflow/status/azinchen/nordvpn/deploy.yml?branch=master
 [nordvpn-cities]: https://github.com/azinchen/nordvpn/blob/master/CITIES.md
 [nordvpn-countries]: https://github.com/azinchen/nordvpn/blob/master/COUNTRIES.md
 [nordvpn-groups]: https://github.com/azinchen/nordvpn/blob/master/GROUPS.md
