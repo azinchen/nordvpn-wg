@@ -2,11 +2,11 @@
 
 # NordVPN
 
-[![Docker Pulls][dockerhub-pulls]][dockerhub-link]
-[![GitHub build][github-build]][github-link]
-[![GitHub release date][github-release-date]][github-link]
+[![Docker pulls][dockerhub-pulls]][dockerhub-link]
 [![Docker image size][dockerhub-size]][dockerhub-link]
-[![GitHub Last Commit][github-lastcommit]][github-link]
+[![GitHub build][github-build]][github-link]
+[![GitHub release date][github-releasedate]][github-link]
+[![GitHub last commit][github-lastcommit]][github-link]
 
 This is an OpenVPN client docker container that uses recommended NordVPN server. It makes routing containers traffic through OpenVPN easy.
 
@@ -185,7 +185,7 @@ If you have any problems with or questions about this image, please contact me t
 [github-link]: https://github.com/azinchen/nordvpn
 [github-issues]: https://github.com/azinchen/nordvpn/issues
 [github-build]: https://img.shields.io/github/actions/workflow/status/azinchen/nordvpn/deploy.yml?branch=master
-[github-release-date]: https://img.shields.io/github/release-date/azinchen/nordvpn
+[github-releasedate]: https://img.shields.io/github/release-date/azinchen/nordvpn
 [nordvpn-cities]: https://github.com/azinchen/nordvpn/blob/master/CITIES.md
 [nordvpn-countries]: https://github.com/azinchen/nordvpn/blob/master/COUNTRIES.md
 [nordvpn-groups]: https://github.com/azinchen/nordvpn/blob/master/GROUPS.md
