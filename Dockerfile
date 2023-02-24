@@ -8,7 +8,7 @@ ARG TARGETPLATFORM
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        tar=1.34-r1 \
+        tar=1.34-r2 \
         xz=5.2.9-r0 \
         && \
     echo "**** create folders ****" && \
@@ -53,7 +53,7 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
         bash=5.2.15-r0 \
-        curl=7.87.0-r1 \
+        curl=7.87.0-r2 \
         iptables=1.8.8-r2 \
         ip6tables=1.8.8-r2 \
         jq=1.6-r2 \
