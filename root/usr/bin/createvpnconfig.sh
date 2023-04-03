@@ -9,7 +9,6 @@ nvtechnologies=$(cat /etc/nordvpn/technologies.json | jq -c '.[]')
 numericregex="^[0-9]+$"
 
 ovpntemplatefile="/etc/nordvpn/template.ovpn"
-authfile="/tmp/auth"
 ovpnfile="/tmp/nordvpn.ovpn"
 
 getcountryid()
