@@ -59,7 +59,7 @@ RUN echo "**** install security fix packages ****" && \
         jq=1.6-r3 \
         shadow=4.13-r4 \
         shadow-login=4.13-r4 \
-        openvpn=2.6.5-r0 \
+        openvpn=2.6.7-r0 \
         bind-tools=9.18.19-r0 \
         && \
     echo "**** create process user ****" && \
