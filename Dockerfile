@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.18.5 AS s6-builder
+FROM alpine:3.19.0 AS s6-builder
 
 ENV PACKAGE="just-containers/s6-overlay"
 ENV PACKAGEVERSION="3.1.6.2"
@@ -8,8 +8,8 @@ ARG TARGETPLATFORM
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        tar=1.34-r3 \
-        xz=5.4.3-r0 \
+        tar=1.35-r2 \
+        xz=5.4.5-r0 \
         && \
     echo "**** create folders ****" && \
     mkdir -p /s6 && \
@@ -28,7 +28,7 @@ RUN echo "**** install security fix packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-binaries.tar.xz
 
 # rootfs builder
-FROM alpine:3.18.5 AS rootfs-builder
+FROM alpine:3.19.0 AS rootfs-builder
 
 RUN echo "**** install security fix packages ****" && \
     echo "**** end run statement ****"
@@ -39,7 +39,7 @@ RUN chmod +x /rootfs/etc/nordvpn/init/*
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.18.5
+FROM alpine:3.19.0
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
@@ -52,15 +52,15 @@ ENV TECHNOLOGY=openvpn_udp \
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        bash=5.2.15-r5 \
-        curl=8.4.0-r0 \
-        iptables=1.8.9-r2 \
-        ip6tables=1.8.9-r2 \
-        jq=1.6-r3 \
-        shadow=4.13-r4 \
-        shadow-login=4.13-r4 \
-        openvpn=2.6.7-r0 \
-        bind-tools=9.18.19-r0 \
+        bash=5.2.21-r0 \
+        curl=8.5.0-r0 \
+        iptables=1.8.10-r1 \
+        ip6tables=1.8.10-r1 \
+        jq=1.7-r2 \
+        shadow=4.14.2-r0 \
+        shadow-login=4.14.2-r0 \
+        openvpn=2.6.8-r0 \
+        bind-tools=9.18.19-r1 \
         && \
     echo "**** create process user ****" && \
     addgroup --system --gid 912 nordvpn && \
