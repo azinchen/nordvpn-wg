@@ -60,7 +60,7 @@ RUN echo "**** install security fix packages ****" && \
         shadow=4.14.2-r0 \
         shadow-login=4.14.2-r0 \
         openvpn=2.6.8-r0 \
-        bind-tools=9.18.19-r1 \
+        bind-tools=9.18.24-r1 \
         && \
     echo "**** create process user ****" && \
     addgroup --system --gid 912 nordvpn && \
