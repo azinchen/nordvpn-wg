@@ -6,12 +6,15 @@ Argentina | AR | 10
 Australia | AU | 13
 Austria | AT | 14
 Belgium | BE | 21
+Belize | BZ | 22
+Bermuda | BM | 24
+Bhutan | BT | 25
+Bolivia | BO | 26
 Bosnia and Herzegovina | BA | 27
 Brazil | BR | 30
 Bulgaria | BG | 33
 Canada | CA | 38
 Costa Rica | CR | 52
-Croatia | HR | 54
 Cyprus | CY | 56
 Czech Republic | CZ | 57
 Denmark | DK | 58
@@ -27,6 +30,15 @@ Italy | IT | 106
 Japan | JP | 108
 Latvia | LV | 119
 Lithuania | LT | 125
+Malaysia | MY | 131
+Malta | MT | 134
+Mexico | MX | 140
+Monaco | MC | 143
+Mongolia | MN | 144
+Montenegro | ME | 146
+Morocco | MA | 147
+Myanmar | MM | 149
+Nepal | NP | 152
 Luxembourg | LU | 126
 Mexico | MX | 140
 Moldova | MD | 142
@@ -39,7 +51,6 @@ Romania | RO | 179
 Serbia | RS | 192
 Singapore | SG | 195
 Slovakia | SK | 196
-Slovenia | SI | 197
 South Africa | ZA | 200
 South Korea | KR | 114
 Spain | ES | 202
