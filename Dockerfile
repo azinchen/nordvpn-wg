@@ -53,13 +53,13 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
         bash=5.2.26-r0 \
-        curl=8.7.1-r0 \
+        curl=8.8.0-r0 \
         iptables=1.8.10-r3 \
         ip6tables=1.8.10-r3 \
         jq=1.7.1-r0 \
         shadow=4.15.1-r0 \
         shadow-login=4.15.1-r0 \
-        openvpn=2.6.10-r0 \
+        openvpn=2.6.11-r0 \
         bind-tools=9.18.27-r0 \
         && \
     echo "**** create process user ****" && \
