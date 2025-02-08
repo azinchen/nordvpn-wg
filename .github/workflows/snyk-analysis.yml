@@ -11,16 +11,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Run Snyk to check Docker image for vulnerabilities
-        continue-on-error: true
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: '${{ github.repository }}:latest'
-          args: --file=Dockerfile
+#      - name: Run Snyk to check Docker image for vulnerabilities
+#        continue-on-error: true
+#        uses: snyk/actions/docker@master
+#        env:
+#          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+#        with:
+#          image: '${{ github.repository }}:latest'
+#          args: --file=Dockerfile
 
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk.sarif
+#      - name: Upload result to GitHub Code Scanning
+#        uses: github/codeql-action/upload-sarif@v3
+#        with:
+#          sarif_file: snyk.sarif

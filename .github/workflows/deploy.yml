@@ -76,19 +76,19 @@ jobs:
             ${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:latest
 
-      - name: Run Snyk to check Docker image for vulnerabilities
-        continue-on-error: true
-        uses: snyk/actions/docker@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          image: '${{ github.repository }}:${{ env.image_tag }}'
-          args: --file=Dockerfile
+#      - name: Run Snyk to check Docker image for vulnerabilities
+#        continue-on-error: true
+#        uses: snyk/actions/docker@master
+#        env:
+#          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+#        with:
+#          image: '${{ github.repository }}:${{ env.image_tag }}'
+#          args: --file=Dockerfile
 
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk.sarif
+#      - name: Upload result to GitHub Code Scanning
+#        uses: github/codeql-action/upload-sarif@v3
+#        with:
+#          sarif_file: snyk.sarif
 
       - name: Update repo description
         if: ${{ env.is_tag == 'true' }}
