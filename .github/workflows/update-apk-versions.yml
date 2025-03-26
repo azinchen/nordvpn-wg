@@ -20,6 +20,10 @@ jobs:
           # Pass the path to the Dockerfile; adjust if your Dockerfile is located elsewhere.
           ./scripts/update_apk_versions.sh Dockerfile
 
+          TEMPLATE_DATE=$(date +%y%m%d)
+          echo "template_date=${TEMPLATE_DATE}" >> $GITHUB_ENV
+          echo "Base date=${TEMPLATE_DATE}"
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.8
         with:
