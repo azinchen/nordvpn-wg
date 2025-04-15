@@ -577,6 +577,13 @@
         "latitude": 48.866667,
         "longitude": 2.333333,
         "dns_name": "paris"
+      },
+      {
+        "id": 2929151,
+        "name": "Strasbourg",
+        "latitude": 48.600381,
+        "longitude": 7.787355,
+        "dns_name": "strasbourg"
       }
     ]
   },
