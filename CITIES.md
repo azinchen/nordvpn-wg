@@ -47,6 +47,7 @@ Estonia | EE | 68 | Tallinn | 2514182
 Finland | FI | 73 | Helsinki | 2704343
 France | FR | 74 | Marseille | 2867102
 France | FR | 74 | Paris | 2886284
+France | FR | 74 | Strasbourg | 2929151
 Georgia | GE | 80 | Tbilisi | 3032063
 Germany | DE | 81 | Berlin | 2181458
 Germany | DE | 81 | Frankfurt | 2215709
