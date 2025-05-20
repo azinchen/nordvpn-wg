@@ -1811,6 +1811,13 @@
         "dns_name": "new-york"
       },
       {
+        "id": 8943887,
+        "name": "Omaha",
+        "latitude": 41.2586111,
+        "longitude": -95.9375,
+        "dns_name": "omaha"
+      },
+      {
         "id": 8741960,
         "name": "Phoenix",
         "latitude": 33.4483333,
