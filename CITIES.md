@@ -34,6 +34,7 @@ Canada | CA | 38 | Vancouver | 1054610
 Cayman Islands | KY | 40 | George Town | 4922303
 Chile | CL | 43 | Santiago | 1227092
 Colombia | CO | 47 | Bogota | 1980695
+Comoros | KM | 48 | Moroni | 4698371
 Costa Rica | CR | 52 | San Jose | 2062994
 Croatia | HR | 54 | Zagreb | 3308120
 Cyprus | CY | 56 | Nicosia | 2099627
@@ -63,6 +64,7 @@ Hungary | HU | 98 | Budapest | 3348344
 Iceland | IS | 99 | Reykjavik | 4509791
 India | IN | 100 | Mumbai | 4041548
 Indonesia | ID | 101 | Jakarta | 3560288
+Iraq | IQ | 103 | Baghdad | 4093955
 Ireland | IE | 104 | Dublin | 3939200
 Isle of Man | IM | 243 | Douglas | 3965405
 Israel | IL | 105 | Tel Aviv | 3964220
@@ -80,6 +82,7 @@ Kuwait | KW | 116 | Kuwait City | 9521894
 Lao People's Democratic Republic | LA | 118 | Vientiane | 5015876
 Latvia | LV | 119 | Riga | 5192828
 Lebanon | LB | 120 | Beirut | 5022080
+Libyan Arab Jamahiriya | LY | 123 | Tripoli | 5206697
 Liechtenstein | LI | 124 | Vaduz | 5037212
 Lithuania | LT | 125 | Vilnius | 5166932
 Luxembourg | LU | 126 | Luxembourg | 9521876
@@ -108,7 +111,9 @@ Philippines | PH | 172 | Manila | 6391379
 Poland | PL | 174 | Warsaw | 6863429
 Portugal | PT | 175 | Lisbon | 6906665
 Puerto Rico | PR | 176 | San Juan | 9521884
+Qatar | QA | 177 | Doha | 6940529
 Romania | RO | 179 | Bucharest | 6953096
+Rwanda | RW | 181 | Kigali | 7723910
 Senegal | SN | 191 | Dakar | 7924958
 Serbia | RS | 192 | Belgrade | 7030907
 Singapore | SG | 195 | Singapore | 7867982
@@ -146,6 +151,7 @@ United States | US | 228 | Los Angeles | 8761958
 United States | US | 228 | Manassas | 9113744
 United States | US | 228 | McAllen | 9086162
 United States | US | 228 | Miami | 8787782
+United States | US | 228 | Nashville | 9071273
 United States | US | 228 | New York | 8971718
 United States | US | 228 | Omaha | 8943887
 United States | US | 228 | Phoenix | 8741960
