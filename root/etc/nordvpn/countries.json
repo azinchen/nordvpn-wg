@@ -406,6 +406,20 @@
     ]
   },
   {
+    "id": 48,
+    "name": "Comoros",
+    "code": "KM",
+    "cities": [
+      {
+        "id": 4698371,
+        "name": "Moroni",
+        "latitude": -11.7041667,
+        "longitude": 43.2402778,
+        "dns_name": "moroni"
+      }
+    ]
+  },
+  {
     "id": 52,
     "name": "Costa Rica",
     "code": "CR",
@@ -784,6 +798,20 @@
     ]
   },
   {
+    "id": 103,
+    "name": "Iraq",
+    "code": "IQ",
+    "cities": [
+      {
+        "id": 4093955,
+        "name": "Baghdad",
+        "latitude": 33.3386111,
+        "longitude": 44.3938889,
+        "dns_name": "baghdad"
+      }
+    ]
+  },
+  {
     "id": 104,
     "name": "Ireland",
     "code": "IE",
@@ -997,6 +1025,20 @@
         "latitude": 33.8719444,
         "longitude": 35.5097222,
         "dns_name": "beirut"
+      }
+    ]
+  },
+  {
+    "id": 123,
+    "name": "Libyan Arab Jamahiriya",
+    "code": "LY",
+    "cities": [
+      {
+        "id": 5206697,
+        "name": "Tripoli",
+        "latitude": 32.8925,
+        "longitude": 13.18,
+        "dns_name": "tripoli"
       }
     ]
   },
@@ -1393,6 +1435,20 @@
     ]
   },
   {
+    "id": 177,
+    "name": "Qatar",
+    "code": "QA",
+    "cities": [
+      {
+        "id": 6940529,
+        "name": "Doha",
+        "latitude": 25.286667,
+        "longitude": 51.533333,
+        "dns_name": "doha"
+      }
+    ]
+  },
+  {
     "id": 179,
     "name": "Romania",
     "code": "RO",
@@ -1403,6 +1459,20 @@
         "latitude": 44.433333,
         "longitude": 26.1,
         "dns_name": "bucharest"
+      }
+    ]
+  },
+  {
+    "id": 181,
+    "name": "Rwanda",
+    "code": "RW",
+    "cities": [
+      {
+        "id": 7723910,
+        "name": "Kigali",
+        "latitude": -1.9536111,
+        "longitude": 30.0605556,
+        "dns_name": "kigali"
       }
     ]
   },
@@ -1802,6 +1872,13 @@
         "latitude": 25.7738889,
         "longitude": -80.1938889,
         "dns_name": "miami"
+      },
+      {
+        "id": 9071273,
+        "name": "Nashville",
+        "latitude": 36.1658333,
+        "longitude": -86.7844444,
+        "dns_name": "nashville"
       },
       {
         "id": 8971718,
