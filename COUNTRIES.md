@@ -28,6 +28,7 @@ Canada | CA | 38
 Cayman Islands | KY | 40
 Chile | CL | 43
 Colombia | CO | 47
+Comoros | KM | 48
 Costa Rica | CR | 52
 Croatia | HR | 54
 Cyprus | CY | 56
@@ -53,6 +54,7 @@ Hungary | HU | 98
 Iceland | IS | 99
 India | IN | 100
 Indonesia | ID | 101
+Iraq | IQ | 103
 Ireland | IE | 104
 Isle of Man | IM | 243
 Israel | IL | 105
@@ -67,6 +69,7 @@ Kuwait | KW | 116
 Lao People's Democratic Republic | LA | 118
 Latvia | LV | 119
 Lebanon | LB | 120
+Libyan Arab Jamahiriya | LY | 123
 Liechtenstein | LI | 124
 Lithuania | LT | 125
 Luxembourg | LU | 126
@@ -95,7 +98,9 @@ Philippines | PH | 172
 Poland | PL | 174
 Portugal | PT | 175
 Puerto Rico | PR | 176
+Qatar | QA | 177
 Romania | RO | 179
+Rwanda | RW | 181
 Senegal | SN | 191
 Serbia | RS | 192
 Singapore | SG | 195
