@@ -2,6 +2,7 @@
 
 Country | Code | ID | City | ID
 --- | --- | --- | --- | ---
+Afghanistan | AF | 1 | Kabul | 98270
 Albania | AL | 2 | Tirana | 308615
 Algeria | DZ | 3 | Algiers | 2438216
 Andorra | AD | 5 | Andorra la Vella | 20
@@ -119,6 +120,7 @@ Serbia | RS | 192 | Belgrade | 7030907
 Singapore | SG | 195 | Singapore | 7867982
 Slovakia | SK | 196 | Bratislava | 7884305
 Slovenia | SI | 197 | Ljubljana | 7874306
+Somalia | SO | 199 | Mogadishu | 7971170
 South Africa | ZA | 200 | Johannesburg | 9383693
 South Korea | KR | 114 | Seoul | 4879586
 Spain | ES | 202 | Barcelona | 2572757
