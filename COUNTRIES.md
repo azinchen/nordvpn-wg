@@ -2,6 +2,7 @@
 
 Country | Code | ID
 --- | --- | ---
+Afghanistan | AF | 1
 Albania | AL | 2
 Algeria | DZ | 3
 Andorra | AD | 5
@@ -106,6 +107,7 @@ Serbia | RS | 192
 Singapore | SG | 195
 Slovakia | SK | 196
 Slovenia | SI | 197
+Somalia | SO | 199
 South Africa | ZA | 200
 South Korea | KR | 114
 Spain | ES | 202
