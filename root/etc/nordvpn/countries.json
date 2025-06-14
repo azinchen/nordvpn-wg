@@ -1,5 +1,19 @@
 [
   {
+    "id": 1,
+    "name": "Afghanistan",
+    "code": "AF",
+    "cities": [
+      {
+        "id": 98270,
+        "name": "Kabul",
+        "latitude": 34.516667,
+        "longitude": 69.183333,
+        "dns_name": "kabul"
+      }
+    ]
+  },
+  {
     "id": 2,
     "name": "Albania",
     "code": "AL",
@@ -1543,6 +1557,20 @@
         "latitude": 46.0552778,
         "longitude": 14.5144444,
         "dns_name": "ljubljana"
+      }
+    ]
+  },
+  {
+    "id": 199,
+    "name": "Somalia",
+    "code": "SO",
+    "cities": [
+      {
+        "id": 7971170,
+        "name": "Mogadishu",
+        "latitude": 2.0666667,
+        "longitude": 45.3666667,
+        "dns_name": "mogadishu"
       }
     ]
   },
