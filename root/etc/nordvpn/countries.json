@@ -1127,6 +1127,20 @@
     ]
   },
   {
+    "id": 137,
+    "name": "Mauritania",
+    "code": "MR",
+    "cities": [
+      {
+        "id": 5551598,
+        "name": "Nouakchott",
+        "latitude": 18.0863889,
+        "longitude": -15.9752778,
+        "dns_name": "nouakchott"
+      }
+    ]
+  },
+  {
     "id": 140,
     "name": "Mexico",
     "code": "MX",
