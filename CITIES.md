@@ -89,6 +89,7 @@ Lithuania | LT | 125 | Vilnius | 5166932
 Luxembourg | LU | 126 | Luxembourg | 9521876
 Malaysia | MY | 131 | Kuala Lumpur | 5820143
 Malta | MT | 134 | Valletta | 5554481
+Mauritania | MR | 137 | Nouakchott | 5551598
 Mexico | MX | 140 | Mexico | 5677037
 Moldova | MD | 142 | Chisinau | 5295179
 Monaco | MC | 143 | Monte Carlo | 5292332
