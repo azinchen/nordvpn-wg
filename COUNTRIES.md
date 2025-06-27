@@ -76,6 +76,7 @@ Lithuania | LT | 125
 Luxembourg | LU | 126
 Malaysia | MY | 131
 Malta | MT | 134
+Mauritania | MR | 137
 Mexico | MX | 140
 Moldova | MD | 142
 Monaco | MC | 143
