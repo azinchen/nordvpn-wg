@@ -104,13 +104,130 @@ jobs:
           sarif_file: 'grype-results.sarif'
           category: 'grype-docker-image'
 
+      - name: Create scan results archive
+        if: always()
+        run: |
+          # Create directory for scan results
+          mkdir -p scan-results
+          
+          # Copy all scan result files if they exist
+          [ -f "trivy-results.sarif" ] && cp trivy-results.sarif scan-results/
+          [ -f "trivy-image-results.sarif" ] && cp trivy-image-results.sarif scan-results/
+          [ -f "grype-results.sarif" ] && cp grype-results.sarif scan-results/
+          [ -f "snyk-results.sarif" ] && cp snyk-results.sarif scan-results/
+          
+          # Create text summary files for easier reading
+          if [ -f "trivy-results.sarif" ]; then
+            jq -r '.runs[0].results[] | 
+              "TRIVY: \(.message.text // .ruleId) in \(.locations[0].physicalLocation.artifactLocation.uri // "unknown")"' \
+              trivy-results.sarif > scan-results/trivy-summary.txt 2>/dev/null || \
+              echo "No Trivy filesystem results" > scan-results/trivy-summary.txt
+          else
+            echo "No Trivy filesystem results" > scan-results/trivy-summary.txt
+          fi
+          
+          if [ -f "trivy-image-results.sarif" ]; then
+            jq -r '.runs[0].results[] | 
+              "TRIVY-IMAGE: \(.message.text // .ruleId) in \(.locations[0].physicalLocation.artifactLocation.uri // "unknown")"' \
+              trivy-image-results.sarif > scan-results/trivy-image-summary.txt 2>/dev/null || \
+              echo "No Trivy image results" > scan-results/trivy-image-summary.txt
+          else
+            echo "No Trivy image results" > scan-results/trivy-image-summary.txt
+          fi
+          
+          if [ -f "grype-results.sarif" ]; then
+            jq -r '.runs[0].results[] | 
+              "GRYPE: \(.message.text // .ruleId) in \(.locations[0].physicalLocation.artifactLocation.uri // "unknown")"' \
+              grype-results.sarif > scan-results/grype-summary.txt 2>/dev/null || \
+              echo "No Grype results" > scan-results/grype-summary.txt
+          else
+            echo "No Grype results" > scan-results/grype-summary.txt
+          fi
+          
+          if [ -f "snyk-results.sarif" ]; then
+            jq -r '.runs[0].results[] | 
+              "SNYK: \(.message.text // .ruleId) in \(.locations[0].physicalLocation.artifactLocation.uri // "unknown")"' \
+              snyk-results.sarif > scan-results/snyk-summary.txt 2>/dev/null || \
+              echo "No Snyk results" > scan-results/snyk-summary.txt
+          else
+            echo "No Snyk results" > scan-results/snyk-summary.txt
+          fi
+          
+          # Create a summary file with scan information
+          cat > scan-results/scan-summary.md << 'EOF'
+          # Security Scan Results Summary
+          EOF
+          
+          # Add dynamic content to summary
+          cat >> scan-results/scan-summary.md << EOF
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Repository:** ${{ github.repository }}
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Run ID:** ${{ github.run_id }}
+          
+          ## Files Included
+          EOF
+          
+          # List files in scan-results directory
+          ls -la scan-results/ | grep -v "^total" | grep -v "^d" | \
+            awk '{print "- " $9 " (" $5 " bytes)"}' >> scan-results/scan-summary.md
+          
+          # Add tools section
+          cat >> scan-results/scan-summary.md << 'EOF'
+          
+          ## Tools Used
+          - **Trivy**: Filesystem and Docker image vulnerability scanning
+          - **Grype**: Docker image vulnerability scanning  
+          - **Snyk**: Commercial-grade Docker image vulnerability scanning
+          - **CodeQL**: Static security analysis
+          - **Super-Linter**: Multi-language linting
+          
+          ## Quick Summary
+          EOF
+          
+          # Add quick summary from text files
+          cat scan-results/*-summary.txt 2>/dev/null | head -20 >> scan-results/scan-summary.md || \
+            echo "No summary data available" >> scan-results/scan-summary.md
+          
+          # Add links section
+          cat >> scan-results/scan-summary.md << EOF
+          
+          ## View Results
+          - [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning)
+          EOF
+          
+          # Create zip archive with current date
+          zip -r "security-scan-results-$(date +%Y%m%d-%H%M%S).zip" scan-results/
+          
+          # Store the zip filename for later use
+          echo "SCAN_RESULTS_ZIP=$(ls security-scan-results-*.zip)" >> $GITHUB_ENV
+
+      - name: Upload scan results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: security-scan-results
+          path: security-scan-results-*.zip
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: ignore
+
       - name: Create Super-Linter Issue
         if: steps.super-linter.outcome == 'failure'
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🔍 Linting Issues Found';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Super-Linter Found Issues
             
@@ -122,6 +239,14 @@ jobs:
             
             ### Fix Required
             [View detailed linting results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            ${hasZipFile ? `### 📎 Scan Results
+            Download the complete scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            The zip file contains:
+            - SARIF files from all security scanners
+            - Detailed scan summary
+            - Raw scan outputs` : ''}
             
             **Priority:** Medium
             **Type:** Code Quality
@@ -148,6 +273,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -164,19 +290,27 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🔄 **Issue updated on ${currentDate}** - New linting problems detected.\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔄 **Issue updated on ${currentDate}** - New linting problems detected.\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: updateComment
                 });
               } else {
                 // Same content, just add a comment about reoccurrence
+                const sameIssueComment = `⚠️ **Same linting issues still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `⚠️ **Same linting issues still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: sameIssueComment
                 });
               }
             } else {
@@ -195,8 +329,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🛡️ Security Issues Found in Dockerfile';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Trivy Security Scan Results
             
@@ -205,6 +345,16 @@ jobs:
             ### Critical Action Required
             [View detailed security results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            ${hasZipFile ? `### 📎 Complete Scan Results
+            Download all security scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            The archive includes:
+            - Trivy SARIF results (filesystem & Docker image)
+            - Grype & Snyk scan outputs
+            - Detailed vulnerability reports
+            - Scan summary and metadata
+            ` : ''}
             
             **Priority:** High
             **Type:** Security
@@ -231,6 +381,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -247,19 +398,29 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🚨 **SECURITY ISSUE UPDATED on ${currentDate}** - New or changed security problems detected!\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **High Priority - Please review immediately**` +
+                  (hasZipFile ? `\n\n📎 **Detailed Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🚨 **SECURITY ISSUE UPDATED on ${currentDate}** - New or changed security problems detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Please review immediately**`
+                  body: updateComment
                 });
               } else {
                 // Same content, just add a comment about reoccurrence
+                const sameIssueComment = `🔴 **Same security issues still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **Please prioritize fixing these security issues**` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔴 **Same security issues still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please prioritize fixing these security issues**`
+                  body: sameIssueComment
                 });
               }
             } else {
@@ -278,8 +439,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🐳 Docker Image Vulnerabilities Found (Trivy)';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Trivy Docker Image Scan Results
             
@@ -297,6 +464,16 @@ jobs:
             ### Fix Required
             [View detailed Trivy results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            ${hasZipFile ? `### 📎 Complete Security Analysis
+            Download comprehensive scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            Includes:
+            - Trivy vulnerability reports (SARIF format)
+            - Cross-reference with Grype and Snyk findings
+            - Detailed vulnerability metadata
+            - Remediation guidance
+            ` : ''}
             
             **Priority:** High
             **Type:** Container Security
@@ -323,6 +500,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -338,18 +516,28 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🚨 **DOCKER IMAGE VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected in published image!\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **High Priority - Users may be affected**` +
+                  (hasZipFile ? `\n\n📎 **Comprehensive Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🚨 **DOCKER IMAGE VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected in published image!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Users may be affected**`
+                  body: updateComment
                 });
               } else {
+                const sameIssueComment = `🔴 **Same Docker image vulnerabilities still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **Please update and republish the Docker image**` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔴 **Same Docker image vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please update and republish the Docker image**`
+                  body: sameIssueComment
                 });
               }
             } else {
@@ -367,8 +555,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🔍 Docker Image Vulnerabilities Found (Grype)';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Grype Docker Image Scan Results
             
@@ -386,6 +580,16 @@ jobs:
             ### Fix Required
             [View detailed Grype results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            ${hasZipFile ? `### 📎 Multi-Tool Analysis Results
+            Download complete vulnerability analysis: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            Compare findings across tools:
+            - Grype fast detection results
+            - Trivy comprehensive scanning
+            - Snyk commercial intelligence
+            - Consolidated security assessment
+            ` : ''}
             
             **Priority:** Medium
             **Type:** Container Security
@@ -412,6 +616,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -427,18 +632,26 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🔄 **Grype Docker scan updated on ${currentDate}** - New vulnerabilities detected!\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Multi-Tool Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔄 **Grype Docker scan updated on ${currentDate}** - New vulnerabilities detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: updateComment
                 });
               } else {
+                const sameIssueComment = `⚠️ **Same Grype vulnerabilities still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `⚠️ **Same Grype vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: sameIssueComment
                 });
               }
             } else {
@@ -456,8 +669,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🔬 CodeQL Security Analysis Issues Found';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## CodeQL Security Analysis Results
             
@@ -475,6 +694,16 @@ jobs:
             ### Fix Required
             [View detailed CodeQL results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            ${hasZipFile ? `### 📎 Complete Security Analysis Package
+            Download full security scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            This package contains:
+            - CodeQL static analysis findings
+            - Container vulnerability assessments (Trivy, Grype, Snyk)
+            - Cross-referenced security analysis
+            - Comprehensive security report
+            ` : ''}
             
             **Priority:** Critical
             **Type:** Security Vulnerability
@@ -501,6 +730,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -517,19 +747,29 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🚨 **CRITICAL: CodeQL SECURITY ISSUES UPDATED on ${currentDate}** - New security vulnerabilities detected!\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `🔴 **IMMEDIATE ACTION REQUIRED - Security vulnerabilities found**` +
+                  (hasZipFile ? `\n\n📎 **Complete Analysis:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🚨 **CRITICAL: CodeQL SECURITY ISSUES UPDATED on ${currentDate}** - New security vulnerabilities detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n🔴 **IMMEDIATE ACTION REQUIRED - Security vulnerabilities found**`
+                  body: updateComment
                 });
               } else {
                 // Same content, just add a comment about reoccurrence
+                const sameIssueComment = `🔴 **CRITICAL: Same security vulnerabilities still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **URGENT: Please prioritize fixing these security vulnerabilities immediately**` +
+                  (hasZipFile ? `\n\n📎 **Security Package:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔴 **CRITICAL: Same security vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **URGENT: Please prioritize fixing these security vulnerabilities immediately**`
+                  body: sameIssueComment
                 });
               }
             } else {
@@ -548,8 +788,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🚨 Code Analysis Failed';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Code Analysis Failure Report
             
@@ -563,12 +809,23 @@ jobs:
             - Linting issues found by Super-Linter
             - Security vulnerabilities found by Trivy
             - Configuration problems in Dockerfile
+            - Docker image vulnerabilities detected by Grype/Snyk
             
             ### Next Steps
             1. Check the [workflow run logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             2. Review any findings in the [Security tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
             3. Fix the identified issues
             4. Close this issue once resolved
+            
+            ${hasZipFile ? `### 📎 Analysis Results Available
+            Download complete scan results for detailed analysis: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            The package contains:
+            - All SARIF security scan results
+            - Detailed vulnerability reports
+            - Tool-specific findings
+            - Analysis summary and metadata
+            ` : ''}
             
             **Last Updated:** ${currentDate}
             **Run ID:** ${context.runId}
@@ -597,6 +854,7 @@ jobs:
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/\*\*Commit:\*\* [a-f0-9]+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -613,19 +871,27 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🔄 **Workflow failure updated on ${currentDate}** - New failure detected with different characteristics.\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Analysis Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔄 **Workflow failure updated on ${currentDate}** - New failure detected with different characteristics.\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: updateComment
                 });
               } else {
                 // Same type of failure, just add a comment
+                const sameFailureComment = `🔄 **Same failure detected again on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
+                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔄 **Same failure detected again on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                  body: sameFailureComment
                 });
               }
             } else {
@@ -661,8 +927,14 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
+            const fs = require('fs');
             const currentDate = new Date().toISOString().split('T')[0];
             const title = '🔐 Docker Image Vulnerabilities Found (Snyk)';
+            
+            // Check if scan results zip exists
+            const scanResultsZip = process.env.SCAN_RESULTS_ZIP;
+            const hasZipFile = scanResultsZip && fs.existsSync(scanResultsZip);
+            
             const newBody = `
             ## Snyk Docker Image Scan Results
             
@@ -681,6 +953,17 @@ jobs:
             ### Fix Required
             [View detailed Snyk results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            ${hasZipFile ? `### 📎 Premium Security Intelligence Package
+            Download enterprise-grade security analysis: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            This comprehensive package includes:
+            - Snyk's commercial vulnerability intelligence
+            - Trivy & Grype open-source findings for comparison
+            - Cross-tool vulnerability correlation
+            - Prioritized remediation recommendations
+            - License compliance analysis
+            ` : ''}
             
             **Priority:** High
             **Type:** Container Security (Commercial Grade)
@@ -714,6 +997,7 @@ jobs:
                   .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
                   .replace(/\*\*Run ID:\*\* \d+/g, '')
                   .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
                   .replace(/\s+/g, ' ')
                   .trim();
               };
@@ -729,18 +1013,28 @@ jobs:
                   body: newBody
                 });
                 
+                const updateComment = `🚨 **SNYK VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected with commercial intelligence!\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **High Priority - Commercial-grade detection**` +
+                  (hasZipFile ? `\n\n📎 **Premium Analysis Package:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🚨 **SNYK VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected with commercial intelligence!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Commercial-grade detection**`
+                  body: updateComment
                 });
               } else {
+                const sameIssueComment = `🔴 **Same Snyk vulnerabilities still present on ${currentDate}**\n\n` +
+                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
+                  `⚠️ **Please review Snyk's detailed fix recommendations**` +
+                  (hasZipFile ? `\n\n📎 **Security Intelligence:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: existingIssue.number,
-                  body: `🔴 **Same Snyk vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please review Snyk's detailed fix recommendations**`
+                  body: sameIssueComment
                 });
               }
             } else {
