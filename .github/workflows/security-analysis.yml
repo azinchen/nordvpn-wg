@@ -1,0 +1,743 @@
+name: Security Analysis
+
+on:
+  schedule:
+    - cron: 0 4 * * *
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3.29.1
+        with:
+          languages: javascript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        id: codeql-analyze
+        uses: github/codeql-action/analyze@v3.29.1
+        continue-on-error: true
+        with:
+          category: "/language:javascript"
+
+      - name: Super-Linter
+        id: super-linter
+        uses: super-linter/super-linter@v7.2.0
+        continue-on-error: true
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_DOCKERFILE_HADOLINT: true
+          VALIDATE_BASH: true
+          VALIDATE_SHELL_SHFMT: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_JSON: true
+          VALIDATE_YAML: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy on Dockerfile
+        id: trivy-config
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          scan-type: 'config'
+          scan-ref: 'Dockerfile'
+          format: 'table'
+
+      - name: Run Trivy on Docker Hub Image
+        id: trivy-image
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          image-ref: '${{ github.repository }}:latest'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+
+      - name: Upload Trivy Docker Image scan results
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
+      - name: Run Grype on Docker Hub Image
+        id: grype-scan
+        continue-on-error: true
+        uses: anchore/scan-action@v3.6.4
+        with:
+          image: '${{ github.repository }}:latest'
+          fail-build: false
+          severity-cutoff: medium
+          output-format: sarif
+
+      - name: Upload Grype scan results
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+      - name: Create Super-Linter Issue
+        if: steps.super-linter.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🔍 Linting Issues Found';
+            const newBody = `
+            ## Super-Linter Found Issues
+            
+            **Files with problems detected in:**
+            - Shell scripts
+            - Dockerfile
+            - Markdown files
+            - JSON/YAML files
+            
+            ### Fix Required
+            [View detailed linting results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            **Priority:** Medium
+            **Type:** Code Quality
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            `;
+            
+            // Get existing issues with the same title (without date)
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['linting', 'code-quality']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Linting Issues Found')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                // Content changed, update the issue
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔄 **Issue updated on ${currentDate}** - New linting problems detected.\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              } else {
+                // Same content, just add a comment about reoccurrence
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `⚠️ **Same linting issues still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              }
+            } else {
+              // No existing issue, create new one
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['linting', 'code-quality', 'automated']
+              });
+            }
+
+      - name: Create Trivy Security Issue
+        if: steps.trivy-config.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🛡️ Security Issues Found in Dockerfile';
+            const newBody = `
+            ## Trivy Security Scan Results
+            
+            **Security misconfigurations found in Dockerfile**
+            
+            ### Critical Action Required
+            [View detailed security results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            **Priority:** High
+            **Type:** Security
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            `;
+            
+            // Get existing security issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'trivy']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Security Issues Found')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                // Content changed, update the issue
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🚨 **SECURITY ISSUE UPDATED on ${currentDate}** - New or changed security problems detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Please review immediately**`
+                });
+              } else {
+                // Same content, just add a comment about reoccurrence
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔴 **Same security issues still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please prioritize fixing these security issues**`
+                });
+              }
+            } else {
+              // No existing issue, create new one
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['security', 'trivy', 'automated', 'high-priority']
+              });
+            }
+
+      - name: Create Trivy Docker Image Issue
+        if: steps.trivy-image.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🐳 Docker Image Vulnerabilities Found (Trivy)';
+            const newBody = `
+            ## Trivy Docker Image Scan Results
+            
+            **Vulnerabilities found in Docker Hub image: \`${{ github.repository }}:latest\`**
+            
+            ### Critical Action Required
+            Trivy has detected vulnerabilities in your published Docker image that could affect users.
+            
+            **Common issues found:**
+            - OS package vulnerabilities (Alpine/Ubuntu packages)
+            - Application dependency vulnerabilities
+            - Base image security issues
+            - Outdated system libraries
+            
+            ### Fix Required
+            [View detailed Trivy results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            **Priority:** High
+            **Type:** Container Security
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            `;
+            
+            // Get existing Trivy Docker image issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'trivy', 'docker-image']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Docker Image Vulnerabilities Found (Trivy)')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🚨 **DOCKER IMAGE VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected in published image!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Users may be affected**`
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔴 **Same Docker image vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please update and republish the Docker image**`
+                });
+              }
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['security', 'trivy', 'docker-image', 'automated', 'high-priority']
+              });
+            }
+
+      - name: Create Grype Docker Image Issue
+        if: steps.grype-scan.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🔍 Docker Image Vulnerabilities Found (Grype)';
+            const newBody = `
+            ## Grype Docker Image Scan Results
+            
+            **Vulnerabilities found in Docker Hub image: \`${{ github.repository }}:latest\`**
+            
+            ### Action Required
+            Grype has detected vulnerabilities in your published Docker image.
+            
+            **Grype specializes in:**
+            - Fast vulnerability detection
+            - Multiple vulnerability databases
+            - Language-specific package vulnerabilities
+            - Supply chain security issues
+            
+            ### Fix Required
+            [View detailed Grype results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            **Priority:** Medium
+            **Type:** Container Security
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            `;
+            
+            // Get existing Grype Docker image issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'grype', 'docker-image']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Docker Image Vulnerabilities Found (Grype)')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔄 **Grype Docker scan updated on ${currentDate}** - New vulnerabilities detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `⚠️ **Same Grype vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              }
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['security', 'grype', 'docker-image', 'automated']
+              });
+            }
+
+      - name: Create CodeQL Security Issue
+        if: failure() && steps.codeql-analyze.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🔬 CodeQL Security Analysis Issues Found';
+            const newBody = `
+            ## CodeQL Security Analysis Results
+            
+            **Security vulnerabilities detected by CodeQL static analysis**
+            
+            ### Critical Action Required
+            CodeQL has identified potential security issues in the codebase that require immediate attention.
+            
+            **Common issues CodeQL finds:**
+            - Command injection vulnerabilities
+            - Path traversal issues
+            - Unsafe string operations
+            - Security misconfigurations
+            
+            ### Fix Required
+            [View detailed CodeQL results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            **Priority:** Critical
+            **Type:** Security Vulnerability
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            `;
+            
+            // Get existing CodeQL security issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'codeql']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('CodeQL Security Analysis Issues Found')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                // Content changed, update the issue
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🚨 **CRITICAL: CodeQL SECURITY ISSUES UPDATED on ${currentDate}** - New security vulnerabilities detected!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n🔴 **IMMEDIATE ACTION REQUIRED - Security vulnerabilities found**`
+                });
+              } else {
+                // Same content, just add a comment about reoccurrence
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔴 **CRITICAL: Same security vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **URGENT: Please prioritize fixing these security vulnerabilities immediately**`
+                });
+              }
+            } else {
+              // No existing issue, create new one
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['security', 'codeql', 'automated', 'critical']
+              });
+            }
+
+      - name: Create Issue on Failure
+        if: failure()
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🚨 Code Analysis Failed';
+            const newBody = `
+            ## Code Analysis Failure Report
+            
+            **Workflow:** ${context.workflow}
+            **Run ID:** ${context.runId}
+            **Commit:** ${context.sha}
+            **Branch/Ref:** ${context.ref}
+            
+            ### What happened?
+            The automated code analysis workflow failed. This could be due to:
+            - Linting issues found by Super-Linter
+            - Security vulnerabilities found by Trivy
+            - Configuration problems in Dockerfile
+            
+            ### Next Steps
+            1. Check the [workflow run logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            2. Review any findings in the [Security tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            3. Fix the identified issues
+            4. Close this issue once resolved
+            
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            
+            ### Auto-generated
+            This issue was automatically created by the code analysis workflow.
+            `;
+            
+            // Check if similar issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['automated-analysis', 'bug']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Code Analysis Failed')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates, run IDs, and commit SHAs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/\*\*Commit:\*\* [a-f0-9]+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                // Content changed, update the issue
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔄 **Workflow failure updated on ${currentDate}** - New failure detected with different characteristics.\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              } else {
+                // Same type of failure, just add a comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔄 **Same failure detected again on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                });
+              }
+            } else {
+              // No existing issue, create new one
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['automated-analysis', 'bug', 'security']
+              });
+            }
+
+      - name: Run Snyk to check for vulnerabilities
+        id: snyk-scan
+        continue-on-error: true
+        uses: snyk/actions/docker@14818c4695ecc4045f33c9cee9e795a788711ca4
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: '${{ github.repository }}:latest'
+          args: --severity-threshold=medium --file=Dockerfile
+          sarif: true
+
+      - name: Upload Snyk scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+      - name: Create Snyk Docker Image Issue
+        if: steps.snyk-scan.outcome == 'failure'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const title = '🔐 Docker Image Vulnerabilities Found (Snyk)';
+            const newBody = `
+            ## Snyk Docker Image Scan Results
+            
+            **Vulnerabilities found in Docker Hub image: \`${{ github.repository }}:latest\`**
+            
+            ### Critical Action Required
+            Snyk has detected vulnerabilities in your published Docker image with advanced commercial intelligence.
+            
+            **Snyk's enhanced detection covers:**
+            - Proprietary vulnerability database with faster updates
+            - Advanced exploit detection and prioritization
+            - License compliance issues
+            - Base image recommendations
+            - Detailed fix guidance and remediation steps
+            
+            ### Fix Required
+            [View detailed Snyk results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            
+            **Priority:** High
+            **Type:** Container Security (Commercial Grade)
+            **Last Updated:** ${currentDate}
+            **Run ID:** ${context.runId}
+            
+            ### Why Snyk?
+            Snyk provides commercial-grade security intelligence with:
+            - Faster vulnerability discovery than open-source tools
+            - Better false positive filtering
+            - Detailed remediation guidance
+            - License compliance checking
+            `;
+            
+            // Get existing Snyk Docker image issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'snyk', 'docker-image']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Docker Image Vulnerabilities Found (Snyk)')
+            );
+            
+            if (existingIssue) {
+              // Compare content (excluding dates and run IDs)
+              const normalizeContent = (content) => {
+                return content
+                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
+                  .replace(/\*\*Run ID:\*\* \d+/g, '')
+                  .replace(/runs\/\d+/g, 'runs/XXXXX')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              };
+              
+              const existingNormalized = normalizeContent(existingIssue.body);
+              const newNormalized = normalizeContent(newBody);
+              
+              if (existingNormalized !== newNormalized) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: newBody
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🚨 **SNYK VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected with commercial intelligence!\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **High Priority - Commercial-grade detection**`
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: `🔴 **Same Snyk vulnerabilities still present on ${currentDate}**\n\n[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n⚠️ **Please review Snyk's detailed fix recommendations**`
+                });
+              }
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: newBody,
+                labels: ['security', 'snyk', 'docker-image', 'automated', 'high-priority']
+              });
+            }
