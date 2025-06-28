@@ -53,6 +53,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-filesystem'
 
       - name: Run Trivy on Dockerfile
         id: trivy-config
@@ -77,6 +78,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-docker-image'
 
       - name: Run Grype on Docker Hub Image
         id: grype-scan
@@ -88,11 +90,19 @@ jobs:
           severity-cutoff: medium
           output-format: sarif
 
+      - name: Move Grype results to named file
+        if: always()
+        run: |
+          if [ -f "results.sarif" ]; then
+            mv results.sarif grype-results.sarif
+          fi
+
       - name: Upload Grype scan results
         uses: github/codeql-action/upload-sarif@v3.29.1
-        if: always()
+        if: always() && hashFiles('grype-results.sarif') != ''
         with:
-          sarif_file: results.sarif
+          sarif_file: 'grype-results.sarif'
+          category: 'grype-docker-image'
 
       - name: Create Super-Linter Issue
         if: steps.super-linter.outcome == 'failure'
@@ -637,14 +647,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: '${{ github.repository }}:latest'
-          args: --severity-threshold=medium --file=Dockerfile
-          sarif: true
+          args: --severity-threshold=medium --file=Dockerfile --sarif-file-output=snyk-results.sarif
 
       - name: Upload Snyk scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3.29.1
-        if: always()
+        if: always() && hashFiles('snyk-results.sarif') != ''
         with:
-          sarif_file: snyk.sarif
+          sarif_file: 'snyk-results.sarif'
+          category: 'snyk-docker-image'
 
       - name: Create Snyk Docker Image Issue
         if: steps.snyk-scan.outcome == 'failure'
