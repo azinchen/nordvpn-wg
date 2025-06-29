@@ -1,4 +1,6 @@
 name: Docker Image Security Analysis
+permissions:
+  contents: read
 
 on:
   schedule:
