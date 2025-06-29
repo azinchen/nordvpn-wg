@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: 0 3 * * *
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   update_github_releases:
     name: Update github package versions
