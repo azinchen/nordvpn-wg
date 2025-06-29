@@ -1,5 +1,10 @@
 name: Security Analysis
 
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+
 on:
   schedule:
     - cron: 0 4 * * *
