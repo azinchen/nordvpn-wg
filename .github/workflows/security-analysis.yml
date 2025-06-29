@@ -200,10 +200,8 @@ jobs:
           EOF
           
           # Create zip archive with current date
-          zip -r "security-scan-results-$(date +%Y%m%d-%H%M%S).zip" scan-results/
-          
-          # Store the zip filename for later use
-          echo "SCAN_RESULTS_ZIP=$(ls security-scan-results-*.zip)" >> $GITHUB_ENV
+          ZIP_FILENAME="security-scan-results-$(date +%Y%m%d-%H%M%S).zip"
+          zip -r "$ZIP_FILENAME" scan-results/
 
       - name: Upload scan results as artifact
         if: always()
@@ -241,9 +239,9 @@ jobs:
             [View detailed linting results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             
             ${hasZipFile ? `### 📎 Scan Results
-            Download the complete scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            Download the complete scan results: [security-scan-results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             
-            The zip file contains:
+            Click "security-scan-results" in the Artifacts section to download the zip file containing:
             - SARIF files from all security scanners
             - Detailed scan summary
             - Raw scan outputs` : ''}
@@ -292,7 +290,7 @@ jobs:
                 
                 const updateComment = `🔄 **Issue updated on ${currentDate}** - New linting problems detected.\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
-                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -304,7 +302,7 @@ jobs:
                 // Same content, just add a comment about reoccurrence
                 const sameIssueComment = `⚠️ **Same linting issues still present on ${currentDate}**\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
-                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -347,9 +345,9 @@ jobs:
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
             
             ${hasZipFile ? `### 📎 Complete Scan Results
-            Download all security scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            Download all security scan results from: [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             
-            The archive includes:
+            Look for "security-scan-results" artifact which includes:
             - Trivy SARIF results (filesystem & Docker image)
             - Grype & Snyk scan outputs
             - Detailed vulnerability reports
@@ -401,7 +399,7 @@ jobs:
                 const updateComment = `🚨 **SECURITY ISSUE UPDATED on ${currentDate}** - New or changed security problems detected!\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
                   `⚠️ **High Priority - Please review immediately**` +
-                  (hasZipFile ? `\n\n📎 **Detailed Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Detailed Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -414,7 +412,7 @@ jobs:
                 const sameIssueComment = `🔴 **Same security issues still present on ${currentDate}**\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
                   `⚠️ **Please prioritize fixing these security issues**` +
-                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -466,9 +464,9 @@ jobs:
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
             
             ${hasZipFile ? `### 📎 Complete Security Analysis
-            Download comprehensive scan results: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            Download comprehensive scan results from: [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             
-            Includes:
+            Look for "security-scan-results" artifact which includes:
             - Trivy vulnerability reports (SARIF format)
             - Cross-reference with Grype and Snyk findings
             - Detailed vulnerability metadata
@@ -519,7 +517,7 @@ jobs:
                 const updateComment = `🚨 **DOCKER IMAGE VULNERABILITIES UPDATED on ${currentDate}** - New vulnerabilities detected in published image!\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
                   `⚠️ **High Priority - Users may be affected**` +
-                  (hasZipFile ? `\n\n📎 **Comprehensive Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Comprehensive Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -531,7 +529,7 @@ jobs:
                 const sameIssueComment = `🔴 **Same Docker image vulnerabilities still present on ${currentDate}**\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
                   `⚠️ **Please update and republish the Docker image**` +
-                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -582,9 +580,9 @@ jobs:
             [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
             
             ${hasZipFile ? `### 📎 Multi-Tool Analysis Results
-            Download complete vulnerability analysis: [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            Download complete vulnerability analysis from: [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             
-            Compare findings across tools:
+            Look for "security-scan-results" artifact to compare findings across tools:
             - Grype fast detection results
             - Trivy comprehensive scanning
             - Snyk commercial intelligence
@@ -634,7 +632,7 @@ jobs:
                 
                 const updateComment = `🔄 **Grype Docker scan updated on ${currentDate}** - New vulnerabilities detected!\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
-                  (hasZipFile ? `\n\n📎 **Multi-Tool Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Multi-Tool Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -645,7 +643,7 @@ jobs:
               } else {
                 const sameIssueComment = `⚠️ **Same Grype vulnerabilities still present on ${currentDate}**\n\n` +
                   `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` +
-                  (hasZipFile ? `\n\n📎 **Scan Results:** [${scanResultsZip}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
+                  (hasZipFile ? `\n\n📎 **Scan Results:** Download from [Artifacts section](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) (look for "security-scan-results")` : '');
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
