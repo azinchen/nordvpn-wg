@@ -1,0 +1,83 @@
+name: Docker Image Security Analysis
+
+on:
+  schedule:
+    - cron: 0 6 * * *  # Run at 6 AM UTC daily to check latest image
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to scan'
+        required: false
+        default: 'latest'
+        type: string
+  workflow_call:  # Allow this workflow to be called by other workflows
+    inputs:
+      image_tag:
+        description: 'Docker image tag to scan'
+        required: false
+        default: 'latest'
+        type: string
+
+jobs:
+  docker-image-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Run Trivy on GitHub Container Registry Image
+        id: trivy-image
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          image-ref: "ghcr.io/${{ github.repository }}:${{ inputs.image_tag || 'latest' }}"
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-docker-image'
+
+      - name: Run Grype on GitHub Container Registry Image
+        id: grype-scan
+        continue-on-error: true
+        uses: anchore/scan-action@v3.6.4
+        with:
+          image: "ghcr.io/${{ github.repository }}:${{ inputs.image_tag || 'latest' }}"
+          fail-build: false
+          severity-cutoff: medium
+          output-format: sarif
+
+      - name: Move Grype results to named file
+        if: always()
+        run: |
+          if [ -f "results.sarif" ]; then
+            mv results.sarif grype-results.sarif
+          fi
+
+      - name: Upload Grype scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always() && hashFiles('grype-results.sarif') != ''
+        with:
+          sarif_file: 'grype-results.sarif'
+          category: 'grype-docker-image'
+
+      - name: Run Snyk to check for vulnerabilities
+        id: snyk-scan
+        continue-on-error: true
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: "ghcr.io/${{ github.repository }}:${{ inputs.image_tag || 'latest' }}"
+          args: --severity-threshold=medium --file=Dockerfile --sarif-file-output=snyk-results.sarif
+
+      - name: Upload Snyk scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.29.1
+        if: always() && hashFiles('snyk-results.sarif') != ''
+        with:
+          sarif_file: 'snyk-results.sarif'
+          category: 'snyk-docker-image'

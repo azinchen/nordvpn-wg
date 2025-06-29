@@ -10,6 +10,9 @@ jobs:
   update_config_build_and_deploy:
     name: Build and publish Docker image
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.git.outputs.image_tag }}
+      is_tag: ${{ steps.git.outputs.is_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -33,6 +36,8 @@ jobs:
 
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_ENV
           echo "is_tag=${IS_TAG}" >> $GITHUB_ENV
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "is_tag=${IS_TAG}" >> $GITHUB_OUTPUT
 
           echo "Action branch=${BRANCH_NAME} tag=${IS_TAG} ref=${GITHUB_REF} image_tag=${IMAGE_TAG}"
 
@@ -76,20 +81,6 @@ jobs:
             ${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:latest
 
-#      - name: Run Snyk to check Docker image for vulnerabilities
-#        continue-on-error: true
-#        uses: snyk/actions/docker@master
-#        env:
-#          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-#        with:
-#          image: '${{ github.repository }}:${{ env.image_tag }}'
-#          args: --file=Dockerfile
-
-#      - name: Upload result to GitHub Code Scanning
-#        uses: github/codeql-action/upload-sarif@v3
-#        with:
-#          sarif_file: snyk.sarif
-
       - name: Update repo description
         if: ${{ env.is_tag == 'true' }}
         uses: peter-evans/dockerhub-description@v4.0.2
@@ -98,3 +89,20 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: ${{ github.repository }}
           short-description: ${{ github.event.repository.description }}
+
+  security-scan-tag:
+    name: Run security scan on deployed image
+    needs: update_config_build_and_deploy
+    uses: ./.github/workflows/docker-image-security.yml
+    with:
+      image_tag: ${{ needs.update_config_build_and_deploy.outputs.image_tag }}
+    secrets: inherit
+
+  security-scan-latest:
+    name: Run security scan on latest image
+    needs: update_config_build_and_deploy
+    if: ${{ needs.update_config_build_and_deploy.outputs.is_tag == 'true' }}
+    uses: ./.github/workflows/docker-image-security.yml
+    with:
+      image_tag: 'latest'
+    secrets: inherit
