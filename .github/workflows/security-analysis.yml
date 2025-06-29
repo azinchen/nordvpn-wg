@@ -142,7 +142,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Create Super-Linter Issue
-        if: steps.super-linter.outcome == 'failure'
+        if: always() && steps.super-linter.outcome == 'failure'
         uses: actions/github-script@v7.0.1
         with:
           script: |
@@ -250,7 +250,7 @@ jobs:
             }
 
       - name: Create Trivy Security Issue
-        if: steps.trivy-config.outcome == 'failure'
+        if: always() && steps.trivy-config.outcome == 'failure'
         uses: actions/github-script@v7.0.1
         with:
           script: |
@@ -360,7 +360,7 @@ jobs:
             }
 
       - name: Create CodeQL Security Issue
-        if: failure() && steps.codeql-analyze.outcome == 'failure'
+        if: always() && steps.codeql-analyze.outcome == 'failure'
         uses: actions/github-script@v7.0.1
         with:
           script: |
