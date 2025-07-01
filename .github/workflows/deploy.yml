@@ -7,6 +7,7 @@ permissions:
   contents: read
   packages: write
   actions: read
+  security-events: write  # Required for called security workflows to upload SARIF files
 
 env:
   PLATFORMS: "linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/riscv64,linux/s390x"
@@ -39,8 +40,6 @@ jobs:
             IMAGE_TAG=${BRANCH_NAME}
           fi
 
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_ENV
-          echo "is_tag=${IS_TAG}" >> $GITHUB_ENV
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "is_tag=${IS_TAG}" >> $GITHUB_OUTPUT
 
@@ -73,11 +72,11 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           push: true
           tags: |
-            ${{ github.repository }}:${{ env.image_tag }}
-            ghcr.io/${{ github.repository }}:${{ env.image_tag }}
+            ${{ github.repository }}:${{ steps.git.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }}
 
-      - name: Build and push ${{ github.repository }}:latest
-        if: ${{ env.is_tag == 'true' }}
+      - name: Build and push latest image
+        if: ${{ steps.git.outputs.is_tag == 'true' }}
         uses: docker/build-push-action@v6.18.0
         with:
           platforms: ${{ env.PLATFORMS }}
@@ -87,7 +86,7 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
 
       - name: Update repo description
-        if: ${{ env.is_tag == 'true' }}
+        if: ${{ steps.git.outputs.is_tag == 'true' }}
         uses: peter-evans/dockerhub-description@v4.0.2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}

@@ -1,6 +1,7 @@
 name: Docker Image Security Analysis
 permissions:
   contents: read
+  security-events: write  # Required for uploading SARIF files to Security tab
 
 on:
   schedule:
