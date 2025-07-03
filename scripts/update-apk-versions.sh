@@ -1,9 +1,9 @@
 #!/bin/bash
-# scripts/update_apk_versions.sh
+# scripts/update-apk-versions.sh
 # This script extracts package names and versions from a specified Dockerfile,
 # checks for updates from Alpine package repositories (main first, then community),
 # and updates the Dockerfile if necessary.
-# Usage: ./scripts/update_apk_versions.sh <path/to/Dockerfile>
+# Usage: ./scripts/update-apk-versions.sh <path/to/Dockerfile>
 # If no argument is provided, it defaults to "Dockerfile" in the current directory.
 
 DOCKERFILE="${1:-Dockerfile}"
@@ -42,9 +42,16 @@ extract_new_version() {
     echo "$version"
 }
 
-# --- 4. Function to Update a Single Package ---
-update_package() {
+# --- 4. Initialize variables to track updates ---
+UPDATED_PACKAGES=""
+TOTAL_PACKAGES=0
+UPDATED_COUNT=0
+
+# --- 5. Modified update_package function to track changes ---
+update_package_with_tracking() {
     pkg_with_version="$1"  # e.g., tar=1.35-r2
+    TOTAL_PACKAGES=$((TOTAL_PACKAGES + 1))
+    
     if [[ "$pkg_with_version" == *"="* ]]; then
         pkg=$(echo "$pkg_with_version" | cut -d'=' -f1)
         current_version=$(echo "$pkg_with_version" | cut -d'=' -f2)
@@ -75,14 +82,71 @@ update_package() {
     if [ "$current_version" != "$new_version" ]; then
         echo "  Updating '$pkg' from $current_version to $new_version (found in $repo repo)"
         sed -i "s/${pkg}=${current_version}/${pkg}=${new_version}/g" "$DOCKERFILE"
+        UPDATED_COUNT=$((UPDATED_COUNT + 1))
+        if [ -z "$UPDATED_PACKAGES" ]; then
+            UPDATED_PACKAGES="- $pkg ($current_version → $new_version)"
+        else
+            UPDATED_PACKAGES="$UPDATED_PACKAGES
+- $pkg ($current_version → $new_version)"
+        fi
     else
         echo "  '$pkg' is up-to-date ($current_version)."
     fi
     echo
 }
 
-# --- 5. Loop Over All Packages and Update ---
+# --- 6. Loop Over All Packages and Update ---
 while IFS= read -r package; do
-    update_package "$package"
+    update_package_with_tracking "$package"
 done <<< "$packages"
+
+# --- 7. Output summary ---
+echo "=== UPDATE SUMMARY ==="
+echo "Total packages checked: $TOTAL_PACKAGES"
+echo "Packages updated: $UPDATED_COUNT"
+
+if [ $UPDATED_COUNT -gt 0 ]; then
+    echo "Updated packages:"
+    echo "$UPDATED_PACKAGES"
+    echo "✅ SUCCESS: $UPDATED_COUNT package(s) were updated."
+    UPDATE_EXIT_CODE=0
+else
+    echo "No packages were updated."
+    echo "✅ All packages are up-to-date."
+    UPDATE_EXIT_CODE=0
+fi
+
+# Set GitHub Actions environment variables and outputs (only if running in GitHub Actions)
+if [ -n "$GITHUB_ENV" ]; then
+    echo "TOTAL_PACKAGES=$TOTAL_PACKAGES" >> $GITHUB_ENV
+    echo "UPDATED_COUNT=$UPDATED_COUNT" >> $GITHUB_ENV
+    
+    if [ $UPDATED_COUNT -gt 0 ]; then
+        echo "PACKAGES_UPDATED<<EOF" >> $GITHUB_ENV
+        echo "$UPDATED_PACKAGES" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        echo "HAS_UPDATES=true" >> $GITHUB_ENV
+    else
+        echo "PACKAGES_UPDATED=No packages needed updates" >> $GITHUB_ENV
+        echo "HAS_UPDATES=false" >> $GITHUB_ENV
+    fi
+fi
+
+if [ -n "$GITHUB_OUTPUT" ]; then
+    echo "total_packages=$TOTAL_PACKAGES" >> $GITHUB_OUTPUT
+    echo "updated_count=$UPDATED_COUNT" >> $GITHUB_OUTPUT
+    
+    if [ $UPDATED_COUNT -gt 0 ]; then
+        echo "packages_updated<<EOF" >> $GITHUB_OUTPUT
+        echo "$UPDATED_PACKAGES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        echo "has_updates=true" >> $GITHUB_OUTPUT
+    else
+        echo "packages_updated=No packages needed updates" >> $GITHUB_OUTPUT
+        echo "has_updates=false" >> $GITHUB_OUTPUT
+    fi
+fi
+
+# Exit with appropriate code
+exit $UPDATE_EXIT_CODE
 
