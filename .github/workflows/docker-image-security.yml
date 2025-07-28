@@ -47,7 +47,7 @@ jobs:
       - name: Run Grype on GitHub Container Registry Image
         id: grype-scan
         continue-on-error: true
-        uses: anchore/scan-action@v6.4.0
+        uses: anchore/scan-action@v6.5.0
         with:
           image: "ghcr.io/${{ github.repository }}:${{ inputs.image_tag || 'latest' }}"
           fail-build: false
