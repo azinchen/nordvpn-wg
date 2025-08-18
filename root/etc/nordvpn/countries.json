@@ -1867,13 +1867,6 @@
         "dns_name": "denver"
       },
       {
-        "id": 8903312,
-        "name": "Detroit",
-        "latitude": 42.3313889,
-        "longitude": -83.0458333,
-        "dns_name": "detroit"
-      },
-      {
         "id": 9083687,
         "name": "Houston",
         "latitude": 29.7630556,
