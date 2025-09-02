@@ -140,6 +140,7 @@ United Kingdom | GB | 227 | Edinburgh | 2975852
 United Kingdom | GB | 227 | Glasgow | 2978888
 United Kingdom | GB | 227 | London | 2989907
 United Kingdom | GB | 227 | Manchester | 2991110
+United States | US | 228 | Ashburn | 9103211
 United States | US | 228 | Atlanta | 8792429
 United States | US | 228 | Boston | 8895305
 United States | US | 228 | Buffalo | 8963153
