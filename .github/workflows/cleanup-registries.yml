@@ -1,0 +1,126 @@
+name: Cleanup Container Registries
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (preview only)'
+        required: false
+        default: true
+        type: boolean
+      max_release_days:
+        description: 'Maximum age in days for release tags'
+        required: false
+        default: '365'
+        type: string
+      max_dev_days:
+        description: 'Maximum age in days for development tags'
+        required: false
+        default: '90'
+        type: string
+
+jobs:
+  cleanup-registries:
+    name: Cleanup Docker Hub and GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # Required for GHCR cleanup
+    
+    steps:
+      - name: Verify repository configuration
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Owner: ${{ github.repository_owner }}"
+          echo "GHCR package will be: nordvpn"
+          echo "Docker Hub repo will be: ${{ github.repository_owner }}/nordvpn"
+          
+          # Verify we have the necessary secrets (without exposing them)
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            echo "❌ DOCKERHUB_USERNAME secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "❌ DOCKERHUB_TOKEN secret is not set"  
+            exit 1
+          fi
+          echo "✅ All required secrets are configured"
+
+      - name: Download registry pruner script
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/azinchen/container-registry-pruner/main/registry-prune.sh -o registry-prune.sh
+          chmod +x registry-prune.sh
+
+      - name: Set cleanup parameters
+        id: params
+        run: |
+          # Default values for scheduled runs (conservative settings)
+          DRY_RUN="false"
+          MAX_RELEASE_DAYS="365"  # Keep release tags for 1 year
+          MAX_DEV_DAYS="90"       # Keep dev tags for 3 months
+          
+          # Override with manual inputs if workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DRY_RUN="${{ inputs.dry_run }}"
+            MAX_RELEASE_DAYS="${{ inputs.max_release_days }}"
+            MAX_DEV_DAYS="${{ inputs.max_dev_days }}"
+          fi
+          
+          echo "dry_run=${DRY_RUN}" >> $GITHUB_OUTPUT
+          echo "max_release_days=${MAX_RELEASE_DAYS}" >> $GITHUB_OUTPUT
+          echo "max_dev_days=${MAX_DEV_DAYS}" >> $GITHUB_OUTPUT
+          
+          echo "Configuration:"
+          echo "  Dry run: ${DRY_RUN}"
+          echo "  Max release days: ${MAX_RELEASE_DAYS}"
+          echo "  Max dev days: ${MAX_DEV_DAYS}"
+
+      - name: Run registry cleanup (dry-run preview)
+        if: steps.params.outputs.dry_run == 'true'
+        run: |
+          echo "🔍 Running in DRY-RUN mode - no images will be deleted"
+          ./registry-prune.sh \
+            --ghcr-owner-type users \
+            --ghcr-owner ${{ github.repository_owner }} \
+            --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
+            --ghcr-package nordvpn \
+            --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
+            --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
+            --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
+            --docker-repo nordvpn \
+            --max-release-days ${{ steps.params.outputs.max_release_days }} \
+            --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
+            --protect-latest-per patch
+
+      - name: Run registry cleanup (execute)
+        if: steps.params.outputs.dry_run == 'false'
+        run: |
+          echo "🗑️  Running in EXECUTE mode - images will be deleted"
+          ./registry-prune.sh \
+            --ghcr-owner-type users \
+            --ghcr-owner ${{ github.repository_owner }} \
+            --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
+            --ghcr-package nordvpn \
+            --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
+            --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
+            --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
+            --docker-repo nordvpn \
+            --max-release-days ${{ steps.params.outputs.max_release_days }} \
+            --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
+            --protect-latest-per patch \
+            --execute \
+            --yes
+
+      - name: Cleanup summary
+        if: always()
+        run: |
+          echo "✅ Registry cleanup workflow completed"
+          echo "Mode: ${{ steps.params.outputs.dry_run == 'true' && 'DRY-RUN (preview only)' || 'EXECUTE (images deleted)' }}"
+          echo "Settings used:"
+          echo "  - Max release tag age: ${{ steps.params.outputs.max_release_days }} days"
+          echo "  - Max dev tag age: ${{ steps.params.outputs.max_dev_days }} days"
+          echo "  - Protected tags: latest (default) + highest patch per version"
+          echo "  - Registries: Docker Hub (azinchen/nordvpn) + GHCR (ghcr.io/azinchen/nordvpn)"
