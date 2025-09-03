@@ -1818,6 +1818,13 @@
     "code": "US",
     "cities": [
       {
+        "id": 9103211,
+        "name": "Ashburn",
+        "latitude": 39.0436111,
+        "longitude": -77.4877778,
+        "dns_name": "ashburn"
+      },
+      {
         "id": 8792429,
         "name": "Atlanta",
         "latitude": 33.7488889,
