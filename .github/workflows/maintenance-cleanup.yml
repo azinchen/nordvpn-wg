@@ -1,9 +1,9 @@
-name: Cleanup Container Registries
+name: Maintenance - Registry Cleanup
 
 on:
   schedule:
-    # Run daily at 2:00 AM UTC
-    - cron: '0 2 * * *'
+    # Run weekly on Sundays at 2:00 AM UTC
+    - cron: '0 2 * * 0'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -24,30 +24,38 @@ on:
 
 jobs:
   cleanup-registries:
-    name: Cleanup Docker Hub and GHCR
+    name: 🧹 Cleanup Docker Registries
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write  # Required for GHCR cleanup
     
     steps:
+      - name: Check Docker Hub secrets
+        id: check_dockerhub
+        run: |
+          DOCKERHUB_AVAILABLE="false"
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            DOCKERHUB_AVAILABLE="true"
+            echo "✅ Docker Hub secrets are configured"
+          else
+            echo "⚠️  Docker Hub secrets are not set - Docker Hub cleanup will be skipped"
+            if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              echo "  - DOCKERHUB_USERNAME secret is missing"
+            fi
+            if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+              echo "  - DOCKERHUB_TOKEN secret is missing"
+            fi
+          fi
+          echo "dockerhub_available=${DOCKERHUB_AVAILABLE}" >> $GITHUB_OUTPUT
+
       - name: Verify repository configuration
         run: |
           echo "Repository: ${{ github.repository }}"
           echo "Owner: ${{ github.repository_owner }}"
           echo "GHCR package will be: nordvpn"
           echo "Docker Hub repo will be: ${{ github.repository_owner }}/nordvpn"
-          
-          # Verify we have the necessary secrets (without exposing them)
-          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-            echo "❌ DOCKERHUB_USERNAME secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-            echo "❌ DOCKERHUB_TOKEN secret is not set"  
-            exit 1
-          fi
-          echo "✅ All required secrets are configured"
+          echo "Docker Hub cleanup: ${{ steps.check_dockerhub.outputs.dockerhub_available == 'true' && 'enabled' || 'disabled (secrets missing)' }}"
 
       - name: Download registry pruner script
         run: |
@@ -82,37 +90,67 @@ jobs:
         if: steps.params.outputs.dry_run == 'true'
         run: |
           echo "🔍 Running in DRY-RUN mode - no images will be deleted"
+          
+          # Always cleanup GHCR
+          echo "Cleaning up GHCR..."
           ./registry-prune.sh \
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
             --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
             --ghcr-package nordvpn \
-            --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
-            --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
-            --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
-            --docker-repo nordvpn \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
             --protect-latest-per patch
+          
+          # Only cleanup Docker Hub if secrets are available
+          if [ "${{ steps.check_dockerhub.outputs.dockerhub_available }}" == "true" ]; then
+            echo "Cleaning up Docker Hub..."
+            ./registry-prune.sh \
+              --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
+              --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
+              --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
+              --docker-repo nordvpn \
+              --max-release-days ${{ steps.params.outputs.max_release_days }} \
+              --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
+              --protect-latest-per patch
+          else
+            echo "⚠️  Skipping Docker Hub cleanup - secrets not available"
+          fi
 
       - name: Run registry cleanup (execute)
         if: steps.params.outputs.dry_run == 'false'
         run: |
           echo "🗑️  Running in EXECUTE mode - images will be deleted"
+          
+          # Always cleanup GHCR
+          echo "Cleaning up GHCR..."
           ./registry-prune.sh \
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
             --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
             --ghcr-package nordvpn \
-            --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
-            --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
-            --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
-            --docker-repo nordvpn \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
             --protect-latest-per patch \
             --execute \
             --yes
+          
+          # Only cleanup Docker Hub if secrets are available
+          if [ "${{ steps.check_dockerhub.outputs.dockerhub_available }}" == "true" ]; then
+            echo "Cleaning up Docker Hub..."
+            ./registry-prune.sh \
+              --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
+              --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
+              --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
+              --docker-repo nordvpn \
+              --max-release-days ${{ steps.params.outputs.max_release_days }} \
+              --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
+              --protect-latest-per patch \
+              --execute \
+              --yes
+          else
+            echo "⚠️  Skipping Docker Hub cleanup - secrets not available"
+          fi
 
       - name: Cleanup summary
         if: always()
@@ -123,4 +161,12 @@ jobs:
           echo "  - Max release tag age: ${{ steps.params.outputs.max_release_days }} days"
           echo "  - Max dev tag age: ${{ steps.params.outputs.max_dev_days }} days"
           echo "  - Protected tags: latest (default) + highest patch per version"
-          echo "  - Registries: Docker Hub (azinchen/nordvpn) + GHCR (ghcr.io/azinchen/nordvpn)"
+          echo "  - GHCR cleanup: enabled"
+          echo "  - Docker Hub cleanup: ${{ steps.check_dockerhub.outputs.dockerhub_available == 'true' && 'enabled' || 'skipped (secrets missing)' }}"
+          echo "Registries processed:"
+          echo "  - GHCR: ghcr.io/${{ github.repository_owner }}/nordvpn"
+          if [ "${{ steps.check_dockerhub.outputs.dockerhub_available }}" == "true" ]; then
+            echo "  - Docker Hub: ${{ secrets.DOCKERHUB_USERNAME }}/nordvpn"
+          else
+            echo "  - Docker Hub: skipped"
+          fi

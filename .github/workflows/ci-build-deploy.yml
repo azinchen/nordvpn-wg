@@ -1,7 +1,13 @@
-name: Build and Deploy image
+name: CI - Build and Deploy
 
 on:
   push:
+    # Deploy on master (production) and all other branches (dev)
+    branches: [ '**' ]
+    tags: [ 'v*' ]
+  pull_request:
+    # Only PRs targeting master branch
+    branches: [ master ]
 
 permissions:
   contents: read
@@ -13,8 +19,8 @@ env:
   PLATFORMS: "linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/riscv64,linux/s390x"
 
 jobs:
-  update_config_build_and_deploy:
-    name: Build and publish Docker image
+  build-and-deploy:
+    name: 🏗️ Build and Deploy Docker Image
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.git.outputs.image_tag }}
@@ -94,19 +100,20 @@ jobs:
           repository: ${{ github.repository }}
           short-description: ${{ github.event.repository.description }}
 
-  security-scan-tag:
-    name: Run security scan on deployed image
-    needs: update_config_build_and_deploy
-    uses: ./.github/workflows/docker-image-security.yml
+  security-scan-built-image:
+    name: 🔒 Security Scan - Built Image
+    needs: build-and-deploy
+    if: ${{ always() && needs.build-and-deploy.result == 'success' }}
+    uses: ./.github/workflows/security-docker.yml
     with:
-      image_tag: ${{ needs.update_config_build_and_deploy.outputs.image_tag }}
+      image_tag: ${{ needs.build-and-deploy.outputs.image_tag }}
     secrets: inherit
 
   security-scan-latest:
-    name: Run security scan on latest image
-    needs: update_config_build_and_deploy
-    if: ${{ needs.update_config_build_and_deploy.outputs.is_tag == 'true' }}
-    uses: ./.github/workflows/docker-image-security.yml
+    name: 🔒 Security Scan - Latest Image
+    needs: build-and-deploy
+    if: ${{ needs.build-and-deploy.outputs.is_tag == 'true' }}
+    uses: ./.github/workflows/security-docker.yml
     with:
       image_tag: 'latest'
     secrets: inherit

@@ -1,4 +1,4 @@
-name: Security Analysis
+name: Security - Codebase Analysis
 
 permissions:
   contents: read
@@ -6,12 +6,20 @@ permissions:
   issues: write
 
 on:
+  push:
+    # Scan on master (production) and all other branches (dev)
+    branches: [ '**' ]
+    tags: [ 'v*' ]
   schedule:
-    - cron: 0 4 * * *
+    - cron: '0 4 * * *'  # Run at 4 AM UTC daily on master HEAD
   workflow_dispatch:
+  pull_request:
+    # Only scan PRs targeting master branch
+    branches: [ master ]
 
 jobs:
-  security-scan:
+  codebase-security-scan:
+    name: 🔍 Codebase Security Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

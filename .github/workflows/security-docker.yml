@@ -1,11 +1,16 @@
-name: Docker Image Security Analysis
+name: Security - Docker Image Analysis
+
 permissions:
   contents: read
   security-events: write  # Required for uploading SARIF files to Security tab
 
 on:
+  push:
+    # Scan on master (production) and all other branches (dev)
+    branches: [ '**' ]
+    tags: [ 'v*' ]
   schedule:
-    - cron: 0 6 * * *  # Run at 6 AM UTC daily to check latest image
+    - cron: '0 6 * * *'  # Run at 6 AM UTC daily to check latest image
   workflow_dispatch:
     inputs:
       image_tag:
@@ -22,7 +27,8 @@ on:
         type: string
 
 jobs:
-  docker-image-scan:
+  docker-security-scan:
+    name: 🔍 Docker Image Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
