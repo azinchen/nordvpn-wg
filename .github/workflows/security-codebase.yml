@@ -31,7 +31,7 @@ jobs:
         continue-on-error: true
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_DOCKERFILE_HADOLINT: true
           VALIDATE_BASH: true

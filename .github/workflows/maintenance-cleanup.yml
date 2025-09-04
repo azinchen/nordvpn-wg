@@ -96,7 +96,7 @@ jobs:
           ./registry-prune.sh \
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
-            --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
+            --ghcr-token ${{ github.token }} \
             --ghcr-package nordvpn \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
@@ -127,7 +127,7 @@ jobs:
           ./registry-prune.sh \
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
-            --ghcr-token ${{ secrets.GITHUB_TOKEN }} \
+            --ghcr-token ${{ github.token }} \
             --ghcr-package nordvpn \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
