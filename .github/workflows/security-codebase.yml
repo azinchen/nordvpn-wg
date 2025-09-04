@@ -25,19 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5.0.0
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3.29.11
-        with:
-          languages: javascript
-          queries: security-extended,security-and-quality
-
-      - name: Perform CodeQL Analysis
-        id: codeql-analyze
-        uses: github/codeql-action/analyze@v3.29.11
-        continue-on-error: true
-        with:
-          category: "/language:javascript"
-
       - name: Run Super-Linter
         id: super-linter
         uses: super-linter/super-linter@v8.1.0
@@ -122,8 +109,8 @@ jobs:
           
           ## Tools Used
           - **Trivy**: Filesystem vulnerability scanning
-          - **CodeQL**: Static security analysis
-          - **Super-Linter**: Multi-language linting
+          - **Super-Linter**: Multi-language linting and code quality
+          - **GitHub's Default CodeQL**: Automatic security analysis (when enabled)
           
           ## Quick Summary
           EOF
@@ -372,125 +359,6 @@ jobs:
               });
             }
 
-      - name: Create CodeQL Security Issue
-        if: always() && steps.codeql-analyze.outcome == 'failure'
-        uses: actions/github-script@v7.0.1
-        with:
-          script: |
-            const fs = require('fs');
-            const currentDate = new Date().toISOString().split('T')[0];
-            const title = '🔬 CodeQL Security Analysis Issues Found';
-            
-            // Artifacts are always available in GitHub Actions
-            const hasArtifacts = true;
-            
-            const newBody = `
-            ## CodeQL Security Analysis Results
-            
-            **Security vulnerabilities detected by CodeQL static analysis**
-            
-            ### Critical Action Required
-            CodeQL has identified potential security issues in the codebase that require immediate attention.
-            
-            **Common issues CodeQL finds:**
-            - Command injection vulnerabilities
-            - Path traversal issues
-            - Unsafe string operations
-            - Security misconfigurations
-            
-            ### Fix Required
-            [View detailed CodeQL results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-            [Check Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
-            
-            ${hasArtifacts ? `### 📎 Complete Security Analysis Package
-            Download full security scan results: [security-scan-results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-            
-            This package contains:
-            - CodeQL static analysis findings
-            - Trivy filesystem vulnerability assessments
-            - Super-Linter code quality results
-            - Cross-referenced security analysis
-            - Comprehensive security report
-            ` : ''}
-            
-            **Priority:** Critical
-            **Type:** Security Vulnerability
-            **Last Updated:** ${currentDate}
-            **Run ID:** ${context.runId}
-            `;
-            
-            // Get existing CodeQL security issues
-            const existingIssues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: ['security', 'codeql']
-            });
-            
-            const existingIssue = existingIssues.data.find(issue => 
-              issue.title.includes('CodeQL Security Analysis Issues Found')
-            );
-            
-            if (existingIssue) {
-              // Compare content (excluding dates and run IDs)
-              const normalizeContent = (content) => {
-                return content
-                  .replace(/\*\*Last Updated:\*\* \d{4}-\d{2}-\d{2}/g, '')
-                  .replace(/\*\*Run ID:\*\* \d+/g, '')
-                  .replace(/runs\/\d+/g, 'runs/XXXXX')
-                  .replace(/security-scan-results-\d+-\d+\.zip/g, 'security-scan-results-XXXXX.zip')
-                  .replace(/\s+/g, ' ')
-                  .trim();
-              };
-              
-              const existingNormalized = normalizeContent(existingIssue.body);
-              const newNormalized = normalizeContent(newBody);
-              
-              if (existingNormalized !== newNormalized) {
-                // Content changed, update the issue
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existingIssue.number,
-                  body: newBody
-                });
-                
-                const updateComment = `🚨 **CRITICAL: CodeQL SECURITY ISSUES UPDATED on ${currentDate}** - New security vulnerabilities detected!\n\n` +
-                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
-                  `🔴 **IMMEDIATE ACTION REQUIRED - Security vulnerabilities found**` +
-                  (hasArtifacts ? `\n\n📎 **Complete Analysis:** [security-scan-results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existingIssue.number,
-                  body: updateComment
-                });
-              } else {
-                // Same content, just add a comment about reoccurrence
-                const sameIssueComment = `🔴 **CRITICAL: Same security vulnerabilities still present on ${currentDate}**\n\n` +
-                  `[View latest run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
-                  `⚠️ **URGENT: Please prioritize fixing these security vulnerabilities immediately**` +
-                  (hasArtifacts ? `\n\n📎 **Security Package:** [security-scan-results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})` : '');
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existingIssue.number,
-                  body: sameIssueComment
-                });
-              }
-            } else {
-              // No existing issue, create new one
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: title,
-                body: newBody,
-                labels: ['security', 'codeql', 'automated', 'critical']
-              });
-            }
-
       - name: Create Issue on Failure
         if: failure()
         uses: actions/github-script@v7.0.1
@@ -517,7 +385,7 @@ jobs:
             - Linting issues found by Super-Linter
             - Security vulnerabilities found by Trivy
             - Configuration problems in Dockerfile
-            - CodeQL static analysis issues
+            - Code quality issues detected
             
             ### Next Steps
             1. Check the [workflow run logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
