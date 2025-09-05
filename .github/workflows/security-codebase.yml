@@ -9,7 +9,7 @@ on:
   push:
     # Scan on master (production) and all other branches (dev)
     branches: [ '**' ]
-    tags: [ 'v*' ]
+    tags: [ '**' ]
   schedule:
     - cron: '0 4 * * *'  # Run at 4 AM UTC daily on master HEAD
   workflow_dispatch:

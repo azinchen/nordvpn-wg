@@ -3,8 +3,10 @@ name: CI - Build and Deploy
 on:
   push:
     # Deploy on master (production) and all other branches (dev)
+    # Production builds: master branch and tags -> push to both registries
+    # Development builds: other branches -> push only to GHCR with branch name as tag
     branches: [ '**' ]
-    tags: [ 'v*' ]
+    tags: [ '**' ]
   pull_request:
     # Only PRs targeting master branch
     branches: [ master ]
@@ -16,7 +18,10 @@ permissions:
   security-events: write  # Required for called security workflows to upload SARIF files
 
 env:
+  # Multi-platform builds for production (master/tags)
   PLATFORMS: "linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/riscv64,linux/s390x"
+  # Fast builds for development branches (amd64 only)
+  DEV_PLATFORMS: "linux/amd64"  # Only build for amd64 on development branches for speed
 
 jobs:
   build-and-deploy:
@@ -26,32 +31,61 @@ jobs:
       image_tag: ${{ steps.git.outputs.image_tag }}
       is_tag: ${{ steps.git.outputs.is_tag }}
     steps:
+      # === VALIDATION PHASE ===
       - name: Checkout
         uses: actions/checkout@v5.0.0
 
-      - name: Get branch name
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          echo "🔐 Validating required secrets and environment..."
+          
+          # Check if required secrets are available for production builds
+          if [[ "${{ github.ref_name }}" == "master" ]] || [[ "${{ github.ref_type }}" == "tag" ]]; then
+            if [[ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]] || [[ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+              echo "❌ DockerHub credentials not available for production build"
+              exit 1
+            fi
+            if [[ -z "${{ secrets.DOCKERHUB_PASSWORD }}" ]]; then
+              echo "⚠️  DockerHub password not available - repo description update will be skipped"
+            fi
+          fi
+          
+          echo "✅ Secret validation completed"
+
+      # === BUILD CONFIGURATION PHASE ===
+      - name: Get branch name and build metadata
         id: git
         shell: bash
         run: |
-          IS_TAG=false
-          if [[ ${GITHUB_REF} == *"/tags/"* ]]; then
-            IS_TAG=true
-          fi
-
-          BRANCH_NAME=$(echo ${GITHUB_REF} | sed -e "s/.*\///g")
-
-          if [[ ${IS_TAG} == 'true' ]]; then
-            IMAGE_TAG=${BRANCH_NAME:1}
+          # Determine if this is a tag or branch
+          IS_TAG=${{ github.ref_type == 'tag' }}
+          
+          # Get clean branch/tag name
+          if [[ "$IS_TAG" == "true" ]]; then
+            IMAGE_TAG=${GITHUB_REF_NAME}
+            PLATFORMS="${{ env.PLATFORMS }}"  # Build all platforms for tags
+            PUSH_TO_PROD=true
+          elif [[ "$GITHUB_REF_NAME" == "master" ]]; then
+            IMAGE_TAG="master"
+            PLATFORMS="${{ env.PLATFORMS }}"  # Build all platforms for master
+            PUSH_TO_PROD=true
           else
-            IMAGE_TAG=${BRANCH_NAME}
+            IMAGE_TAG="${GITHUB_REF_NAME}"  # Use branch name as-is for dev builds
+            PLATFORMS="${{ env.DEV_PLATFORMS }}"  # Build only amd64 for dev branches
+            PUSH_TO_PROD=false
           fi
 
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "is_tag=${IS_TAG}" >> $GITHUB_OUTPUT
+          echo "platforms=${PLATFORMS}" >> $GITHUB_OUTPUT
+          echo "push_to_prod=${PUSH_TO_PROD}" >> $GITHUB_OUTPUT
 
-          echo "Action branch=${BRANCH_NAME} tag=${IS_TAG} ref=${GITHUB_REF} image_tag=${IMAGE_TAG}"
+          echo "Action branch=${GITHUB_REF_NAME} tag=${IS_TAG} ref=${GITHUB_REF} image_tag=${IMAGE_TAG} platforms=${PLATFORMS}"
 
+      # === AUTHENTICATION PHASE ===
       - name: Login to DockerHub
+        if: ${{ steps.git.outputs.push_to_prod == 'true' }}
         uses: docker/login-action@v3.5.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -64,33 +98,58 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # === DOCKER BUILD SETUP PHASE ===
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.6.0
         with:
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ steps.git.outputs.platforms }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.11.1
 
-      - name: Build and push ${{ github.repository }}:${{ env.image_tag }}
+      # === BUILD AND PUSH PHASE ===
+      - name: Build and push image
         uses: docker/build-push-action@v6.18.0
         with:
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ steps.git.outputs.platforms }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
-            ${{ github.repository }}:${{ steps.git.outputs.image_tag }}
             ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }}
+            ${{ steps.git.outputs.push_to_prod == 'true' && format('{0}:{1}', github.repository, steps.git.outputs.image_tag) || '' }}
 
       - name: Build and push latest image
         if: ${{ steps.git.outputs.is_tag == 'true' }}
         uses: docker/build-push-action@v6.18.0
         with:
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ steps.git.outputs.platforms }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:latest
 
+      # === MONITORING AND METADATA PHASE ===
+      - name: Get image size and metadata
+        if: ${{ always() && steps.git.outputs.push_to_prod == 'true' }}
+        shell: bash
+        run: |
+          echo "📊 Image Build Metrics:"
+          echo "- Image Tag: ${{ steps.git.outputs.image_tag }}"
+          echo "- Platforms: ${{ steps.git.outputs.platforms }}"
+          echo "- Production Build: ${{ steps.git.outputs.push_to_prod }}"
+          echo "- Registry: ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }}"
+          
+          # Get image size if possible
+          if docker manifest inspect ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }} >/dev/null 2>&1; then
+            echo "✅ Image successfully pushed and available"
+          else
+            echo "⚠️  Image may still be propagating"
+          fi
+
+      # === REPOSITORY MAINTENANCE PHASE ===
       - name: Update repo description
         if: ${{ steps.git.outputs.is_tag == 'true' }}
         uses: peter-evans/dockerhub-description@v4.0.2
@@ -100,6 +159,7 @@ jobs:
           repository: ${{ github.repository }}
           short-description: ${{ github.event.repository.description }}
 
+  # === SECURITY SCANNING PHASE ===
   security-scan-built-image:
     name: 🔒 Security Scan - Built Image
     needs: build-and-deploy
@@ -107,13 +167,4 @@ jobs:
     uses: ./.github/workflows/security-docker.yml
     with:
       image_tag: ${{ needs.build-and-deploy.outputs.image_tag }}
-    secrets: inherit
-
-  security-scan-latest:
-    name: 🔒 Security Scan - Latest Image
-    needs: build-and-deploy
-    if: ${{ needs.build-and-deploy.outputs.is_tag == 'true' }}
-    uses: ./.github/workflows/security-docker.yml
-    with:
-      image_tag: 'latest'
     secrets: inherit
