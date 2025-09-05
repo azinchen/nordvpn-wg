@@ -1,0 +1,306 @@
+name: "🔒 Comprehensive Security Analysis"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  issues: write
+
+on:
+  push:
+    branches: [ '**' ]
+    tags: [ '**' ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 4 * * *'  # Run at 4 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  comprehensive-security:
+    name: 🔒 Complete Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      # ============================================================================
+      # SETUP & CHECKOUT
+      # ============================================================================
+      - name: Checkout repository
+        uses: actions/checkout@v5.0.0
+
+      # ============================================================================
+      # CODEQL STATIC ANALYSIS
+      # ============================================================================
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3.30.0
+        with:
+          languages: javascript
+          build-mode: none
+          queries: +security-extended,security-and-quality
+          config: |
+            name: "Advanced Security Configuration"
+            queries:
+              - uses: security-extended
+              - uses: security-and-quality
+            paths:
+              - root/
+              - scripts/
+              - .github/
+            paths-ignore:
+              - "**/*.md"
+              - "**/*.txt"
+              - "**/*.json"
+              - "LICENSE"
+
+      - name: Perform CodeQL Analysis
+        id: codeql-analysis
+        uses: github/codeql-action/analyze@v3.30.0
+        continue-on-error: true
+        with:
+          category: "/language:javascript"
+          upload: true
+
+      # ============================================================================
+      # SUPER-LINTER CODE QUALITY
+      # ============================================================================
+      - name: Run Super-Linter
+        id: super-linter
+        uses: super-linter/super-linter@v8.1.0
+        continue-on-error: true
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_DOCKERFILE_HADOLINT: true
+          VALIDATE_BASH: true
+          VALIDATE_SHELL_SHFMT: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_JSON: true
+          VALIDATE_YAML: true
+
+      # ============================================================================
+      # TRIVY VULNERABILITY SCANNING
+      # ============================================================================
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3.30.0
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-filesystem-security'
+
+      - name: Run Trivy on Dockerfile
+        id: trivy-config
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          scan-type: 'config'
+          scan-ref: 'Dockerfile'
+          format: 'table'
+
+      # ============================================================================
+      # RESULTS COMPILATION & ARTIFACTS
+      # ============================================================================
+      - name: Create comprehensive scan results
+        if: always()
+        run: |
+          # Create directory for all scan results
+          mkdir -p scan-results
+          
+          # Copy all scan result files if they exist
+          [ -f "trivy-results.sarif" ] && cp trivy-results.sarif scan-results/
+          
+          # Create unified summary
+          cat > scan-results/security-analysis-summary.md << 'EOF'
+          # 🔒 Comprehensive Security Analysis Report
+          EOF
+          
+          # Add dynamic content
+          cat >> scan-results/security-analysis-summary.md << EOF
+          
+          **Analysis Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Repository:** ${{ github.repository }}
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Run ID:** ${{ github.run_id }}
+          
+          ## 🔍 Analysis Components
+          
+          ### 🔬 CodeQL Static Analysis
+          - **Status:** ${{ steps.codeql-analysis.outcome }}
+          - **Language:** JavaScript (with generic security patterns)
+          - **Queries:** security-extended + security-and-quality
+          - **Scope:** Shell scripts, configs, GitHub Actions workflows
+          
+          ### 🧹 Super-Linter Code Quality
+          - **Status:** ${{ steps.super-linter.outcome }}
+          - **Languages:** Bash, Dockerfile, Markdown, JSON, YAML
+          - **Validation:** Syntax, style, and best practices
+          
+          ### 🛡️ Trivy Vulnerability Scanning
+          - **Filesystem Status:** $([ -f "trivy-results.sarif" ] && echo "✅ Completed" || echo "❌ No results")
+          - **Config Analysis Status:** ${{ steps.trivy-config.outcome }}
+          - **Scope:** Dependencies, container vulnerabilities, misconfigurations
+          
+          ## 📊 Summary Statistics
+          EOF
+          
+          # Add Trivy results count if available
+          if [ -f "trivy-results.sarif" ] && command -v jq >/dev/null 2>&1; then
+            TRIVY_COUNT=$(jq '.runs[0].results | length' trivy-results.sarif 2>/dev/null || echo "0")
+            echo "- **Trivy Findings:** $TRIVY_COUNT security issues detected" >> scan-results/security-analysis-summary.md
+          fi
+          
+          # Add file listing
+          cat >> scan-results/security-analysis-summary.md << 'EOF'
+          
+          ## 📁 Included Files
+          EOF
+          
+          ls -la scan-results/ | grep -v "^total" | grep -v "^d" | \
+            awk '{print "- " $9 " (" $5 " bytes)"}' >> scan-results/security-analysis-summary.md
+          
+          # Add links section
+          cat >> scan-results/security-analysis-summary.md << EOF
+          
+          ## 🔗 View Results
+          - [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning)
+          - [CodeQL Results](https://github.com/${{ github.repository }}/security/code-scanning?tool=CodeQL)
+          - [Trivy Results](https://github.com/${{ github.repository }}/security/code-scanning?tool=Trivy)
+          
+          ## 🛠️ Tools Information
+          - **CodeQL:** Advanced static analysis for security vulnerabilities
+          - **Trivy:** Comprehensive vulnerability scanner for containers and filesystems
+          - **Super-Linter:** Multi-language linter for code quality and standards
+          EOF
+          
+          # Create archive
+          ZIP_FILENAME="comprehensive-security-analysis-$(date +%Y%m%d-%H%M%S).zip"
+          zip -r "$ZIP_FILENAME" scan-results/
+
+      # ============================================================================
+      # ARTIFACT UPLOAD
+      # ============================================================================
+      - name: Upload comprehensive security results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: comprehensive-security-analysis
+          path: comprehensive-security-analysis-*.zip
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: ignore
+
+      # ============================================================================
+      # WORKFLOW SUMMARY
+      # ============================================================================
+      - name: Create workflow summary
+        if: always()
+        run: |
+          echo "## 🔒 Comprehensive Security Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔬 CodeQL Analysis | ${{ steps.codeql-analysis.outcome }} | Static security analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Super-Linter | ${{ steps.super-linter.outcome }} | Code quality validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡️ Trivy Filesystem | $([ -f "trivy-results.sarif" ] && echo "✅ success" || echo "❌ failed") | Vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔧 Trivy Config | ${{ steps.trivy-config.outcome }} | Configuration analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Download Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      # ============================================================================
+      # ISSUE MANAGEMENT
+      # ============================================================================
+      - name: Create Issues for Failures
+        if: always() && (steps.super-linter.outcome == 'failure' || steps.trivy-config.outcome == 'failure')
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const currentDate = new Date().toISOString().split('T')[0];
+            const hasArtifacts = true;
+            
+            let issueTitle = '🔒 Security Analysis Issues Found';
+            let issueBody = `## Comprehensive Security Analysis Report
+            
+            **Date:** ${currentDate}
+            **Run ID:** ${context.runId}
+            **Commit:** ${context.sha}
+            
+            ### 📊 Component Results
+            - **🔬 CodeQL:** ${{ steps.codeql-analysis.outcome }}
+            - **🧹 Super-Linter:** ${{ steps.super-linter.outcome }}
+            - **🛡️ Trivy Config:** ${{ steps.trivy-config.outcome }}
+            
+            ### 🚨 Issues Detected
+            `;
+            
+            if ('${{ steps.super-linter.outcome }}' === 'failure') {
+              issueBody += `
+            #### Super-Linter Issues
+            - Code quality problems found in shell scripts, Dockerfile, or configuration files
+            - Review linting output for specific fixes needed
+            `;
+            }
+            
+            if ('${{ steps.trivy-config.outcome }}' === 'failure') {
+              issueBody += `
+            #### Trivy Configuration Issues  
+            - Security misconfigurations detected in Dockerfile
+            - Infrastructure security improvements needed
+            `;
+            }
+            
+            issueBody += `
+            ### 🔗 Next Steps
+            1. [Review workflow logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            2. [Check Security tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning)
+            3. Download and review the comprehensive analysis package
+            4. Fix identified issues and re-run analysis
+            
+            ${hasArtifacts ? `### 📎 Complete Analysis Package
+            Download: [comprehensive-security-analysis](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            Contains: CodeQL findings, Trivy results, Super-Linter output, unified summary` : ''}
+            
+            **Auto-generated by comprehensive security analysis workflow**
+            `;
+            
+            // Check for existing issues
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['security', 'automated-analysis']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Security Analysis Issues Found')
+            );
+            
+            if (existingIssue) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `🔄 **Updated analysis on ${currentDate}**\n\n${issueBody}`
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['security', 'automated-analysis', 'comprehensive']
+              });
+            }
