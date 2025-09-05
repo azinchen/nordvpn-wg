@@ -337,6 +337,7 @@ jobs:
             
             // Parse Trivy SARIF results for detailed reporting
             let trivyFindings = "No Trivy findings data available.";
+            let hasVulnerabilities = false;
             
             const fs = require('fs');
             if (fs.existsSync('trivy-results.sarif')) {
@@ -345,6 +346,7 @@ jobs:
                 if (sarif.runs && sarif.runs[0] && sarif.runs[0].results) {
                   const results = sarif.runs[0].results;
                   if (results.length > 0) {
+                    hasVulnerabilities = true;
                     trivyFindings = `## 🛡️ Trivy Vulnerability Findings (${results.length} issues)\n\n`;
                     
                     // Group by severity
@@ -380,6 +382,12 @@ jobs:
               } catch (error) {
                 trivyFindings = `❌ Error parsing Trivy SARIF file: ${error.message}`;
               }
+            }
+            
+            // Only create or update issues if vulnerabilities were actually found
+            if (!hasVulnerabilities) {
+              console.log('✅ No Trivy vulnerabilities found - skipping issue creation');
+              return;
             }
             
             const issueTitle = '🛡️ Trivy Vulnerability Analysis Results';
