@@ -8,7 +8,7 @@ on:
   push:
     # Scan on master (production) and all other branches (dev)
     branches: [ '**' ]
-    tags: [ 'v*' ]
+    tags: [ '**' ]
   schedule:
     - cron: '0 6 * * *'  # Run at 6 AM UTC daily to check latest image
   workflow_dispatch:
