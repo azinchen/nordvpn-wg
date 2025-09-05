@@ -108,7 +108,8 @@ jobs:
         uses: docker/setup-buildx-action@v3.11.1
 
       # === BUILD AND PUSH PHASE ===
-      - name: Build and push image
+      - name: Build and push image (Development)
+        if: ${{ steps.git.outputs.push_to_prod == 'false' }}
         uses: docker/build-push-action@v6.18.0
         with:
           platforms: ${{ steps.git.outputs.platforms }}
@@ -117,7 +118,18 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }}
-            ${{ steps.git.outputs.push_to_prod == 'true' && format('{0}:{1}', github.repository, steps.git.outputs.image_tag) || '' }}
+
+      - name: Build and push image (Production)
+        if: ${{ steps.git.outputs.push_to_prod == 'true' }}
+        uses: docker/build-push-action@v6.18.0
+        with:
+          platforms: ${{ steps.git.outputs.platforms }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.git.outputs.image_tag }}
+            ${{ github.repository }}:${{ steps.git.outputs.image_tag }}
 
       - name: Build and push latest image
         if: ${{ steps.git.outputs.is_tag == 'true' }}
