@@ -71,7 +71,8 @@ jobs:
             PLATFORMS="${{ env.PLATFORMS }}"  # Build all platforms for master
             PUSH_TO_PROD=true
           else
-            IMAGE_TAG="${GITHUB_REF_NAME}"  # Use branch name as-is for dev builds
+            # Sanitize branch name for Docker tag (replace / and other invalid chars with -)
+            IMAGE_TAG=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/^-\+\|-\+$//g')
             PLATFORMS="${{ env.DEV_PLATFORMS }}"  # Build only amd64 for dev branches
             PUSH_TO_PROD=false
           fi
