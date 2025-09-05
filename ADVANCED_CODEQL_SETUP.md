@@ -1,8 +1,23 @@
 # Advanced CodeQL Setup - Migration Guide
 
-## Overview
+## ⚠️ **UPDATED**: This repository has been migrated to a unified comprehensive security workflow
 
-This repository has been migrated from GitHub's default CodeQL setup to an advanced custom configuration to eliminate SARIF upload conflicts and provide better security analysis coverage.
+**Current Workflow**: `.github/workflows/security-comprehensive.yml`
+- **Combines**: CodeQL + Trivy + Super-Linter in a single unified workflow
+- **Benefits**: Better efficiency, unified reporting, easier maintenance
+- **Status**: Fully implemented and operational
+
+**Migration Complete**: 
+- ✅ Default CodeQL setup disabled
+- ✅ SARIF upload conflicts eliminated  
+- ✅ Unified comprehensive security analysis active
+- ✅ 50% reduction in workflow complexity (2 files → 1 file)
+
+---
+
+## Historical Context (Previous Setup)
+
+This repository was migrated from GitHub's default CodeQL setup to an advanced custom configuration to eliminate SARIF upload conflicts and provide better security analysis coverage. Initially implemented as separate workflows, it has since been unified for better efficiency.
 
 ## What Changed
 
@@ -12,26 +27,24 @@ This repository has been migrated from GitHub's default CodeQL setup to an advan
 - Conflict: "CodeQL analyses from advanced configurations cannot be processed when the default setup is enabled"
 - Workflow failures and incomplete security analysis
 
-### ✅ **After (Advanced Setup)**
-- **Dedicated CodeQL workflow**: `.github/workflows/security-codeql-advanced.yml`
-- **Conflict-free integration** with Trivy and Super-Linter
+### ✅ **After (Unified Advanced Setup)**
+- **Single comprehensive workflow**: `.github/workflows/security-comprehensive.yml`
+- **Conflict-free integration** with all security tools in one workflow
 - **Enhanced customization** with security-extended query packs
 - **Complete security coverage** without conflicts
+- **Unified reporting** and artifact generation
 
-## New Workflow Structure
+## New Unified Workflow Structure
 
-### 1. **security-codeql-advanced.yml**
-- **Purpose**: Advanced static code analysis with CodeQL
-- **Schedule**: Daily at 2 AM UTC
-- **Languages**: JavaScript (with generic security patterns)
-- **Queries**: security-extended + security-and-quality
-- **Scope**: Shell scripts, configs, GitHub Actions workflows
-
-### 2. **security-codebase.yml** (Updated)
-- **Purpose**: Filesystem vulnerability scanning and linting
-- **Tools**: Trivy + Super-Linter
-- **Schedule**: Daily at 4 AM UTC  
-- **Storage**: Results preserved in artifacts (no SARIF upload conflicts)
+### **security-comprehensive.yml** 
+- **Purpose**: Complete security analysis pipeline combining all tools
+- **Schedule**: Daily at 4 AM UTC
+- **Components**: 
+  - Advanced CodeQL static analysis (JavaScript with generic security patterns)
+  - Trivy filesystem and configuration vulnerability scanning
+  - Super-Linter multi-language code quality analysis
+- **Scope**: Shell scripts, configs, GitHub Actions workflows, dependencies
+- **Benefits**: Unified reporting, shared context, better efficiency
 
 ## Benefits of Advanced Setup
 
@@ -62,11 +75,11 @@ This repository has been migrated from GitHub's default CodeQL setup to an advan
 4. **Disable "Default setup"** for CodeQL
 5. This eliminates the conflict source
 
-### ✅ **Step 2: Verify Advanced Setup**
-1. Check that both new workflows are present:
-   - `.github/workflows/security-codeql-advanced.yml`
-   - `.github/workflows/security-codebase.yml` (updated)
-2. Both should run successfully without conflicts
+### ✅ **Step 2: Verify Unified Setup**
+1. Check that the comprehensive workflow is present and running:
+   - `.github/workflows/security-comprehensive.yml`
+2. The unified workflow should run successfully without conflicts
+3. All security components (CodeQL, Trivy, Super-Linter) execute in sequence
 
 ## Security Analysis Coverage
 
@@ -93,16 +106,15 @@ This repository has been migrated from GitHub's default CodeQL setup to an advan
 ## Monitoring Your Security Pipeline
 
 ### ✅ **Daily Automated Scans**
-- **2 AM UTC**: Advanced CodeQL analysis
-- **4 AM UTC**: Trivy + Super-Linter analysis
-- **On PRs**: Both workflows run for new changes
+- **4 AM UTC**: Comprehensive security analysis (CodeQL + Trivy + Super-Linter)
+- **On PRs**: Complete security analysis for new changes
 - **Manual**: Can be triggered via workflow_dispatch
 
 ### 📊 **Result Locations**
-1. **GitHub Security Tab**: CodeQL findings (no conflicts!)
-2. **Workflow Artifacts**: Complete scan packages for manual review
-3. **Workflow Logs**: Detailed execution information and summaries
-4. **Automatic Issues**: Created for high-priority findings
+1. **GitHub Security Tab**: CodeQL and Trivy findings (no conflicts!)
+2. **Workflow Artifacts**: Complete comprehensive analysis packages
+3. **Workflow Logs**: Detailed execution information and unified summaries
+4. **Automatic Issues**: Created for high-priority findings across all tools
 
 ### 🔔 **Alert Management**
 - **GitHub Security Alerts**: For CodeQL findings
@@ -116,34 +128,33 @@ Run these checks to verify the migration was successful:
 
 ### 1. **Check Workflow Status**
 ```bash
-# Both workflows should complete successfully
-gh run list --workflow=security-codeql-advanced.yml --limit=1
-gh run list --workflow=security-codebase.yml --limit=1
+# The unified workflow should complete successfully
+gh run list --workflow=security-comprehensive.yml --limit=1
 ```
 
 ### 2. **Verify Security Tab**
 - Visit: `https://github.com/azinchen/nordvpn/security/code-scanning`
-- Should show CodeQL results without conflicts
-- Trivy results preserved in artifacts
+- Should show both CodeQL and Trivy results without conflicts
+- All results integrated from the unified workflow
 
 ### 3. **Test Manual Triggers**
 ```bash
-# Trigger both workflows manually to test
-gh workflow run security-codeql-advanced.yml
-gh workflow run security-codebase.yml
+# Trigger the comprehensive workflow manually to test
+gh workflow run security-comprehensive.yml
 ```
 
 ## Troubleshooting
 
-### ❓ **If CodeQL analysis fails**
-- Check that default setup is disabled in repository settings
+### ❓ **If the comprehensive workflow fails**
+- Check that default CodeQL setup is disabled in repository settings
 - Verify the workflow file syntax is correct
-- Review logs for specific error messages
+- Review logs for specific error messages in any component (CodeQL, Trivy, or Super-Linter)
 
-### ❓ **If you need Trivy results in Security tab**
-- The advanced setup preserves all results in artifacts
-- For Security tab integration, ensure default CodeQL is disabled
-- Consider re-enabling SARIF upload in security-codebase.yml
+### ❓ **If you need component-specific results**
+- All results are available in the comprehensive artifact package
+- CodeQL results appear in Security tab when successful
+- Trivy results are both in Security tab and artifacts
+- Super-Linter results are in workflow logs and artifacts
 
 ### ❓ **If you want different scheduling**
 - Edit the `cron` expressions in both workflow files
@@ -152,14 +163,14 @@ gh workflow run security-codebase.yml
 
 ## Rollback Instructions
 
-If you need to revert to the simpler setup:
+If you need to revert to a simpler setup:
 
 1. **Re-enable GitHub default CodeQL** in repository settings
-2. **Delete** `.github/workflows/security-codeql-advanced.yml`
-3. **Revert** `.github/workflows/security-codebase.yml` to store-only mode
-4. **Accept** that SARIF upload conflicts will return
+2. **Create a simple Trivy-only workflow** for vulnerability scanning
+3. **Remove** `.github/workflows/security-comprehensive.yml`
+4. **Accept** that you'll lose the advanced customization and unified reporting
 
-However, the advanced setup provides better coverage and reliability, so rollback is not recommended unless specifically required.
+However, the unified comprehensive setup provides better coverage, efficiency, and maintainability, so rollback is not recommended unless specifically required.
 
 ---
 

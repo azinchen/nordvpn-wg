@@ -2,7 +2,7 @@
 
 ## Problem Description
 
-The GitHub Actions workflow `security-codebase.yml` was failing with the error:
+The GitHub Actions workflow `security-comprehensive.yml` (previously split into `security-codebase.yml` and `security-codeql-advanced.yml`) was failing with the error:
 
 ```
 Code Scanning could not process the submitted SARIF file: CodeQL analyses from 
@@ -41,10 +41,13 @@ GitHub introduced "default CodeQL setup" as a simplified way to enable code scan
 
 ## Files Modified
 
-1. **`.github/workflows/security-codebase.yml`**
-   - Enhanced SARIF upload error handling
-   - Added detailed status logging
-   - Improved documentation and comments
+1. **`.github/workflows/security-comprehensive.yml`** (unified workflow)
+   - Combined CodeQL, Trivy, and Super-Linter into single comprehensive workflow
+   - Enhanced SARIF upload error handling with graceful degradation
+   - Added detailed status logging and unified reporting
+   - Improved documentation and comprehensive artifact generation
+
+**Note**: This workflow replaced the previous separate `security-codebase.yml` and `security-codeql-advanced.yml` files for better maintainability and efficiency.
 
 ## Verification
 
