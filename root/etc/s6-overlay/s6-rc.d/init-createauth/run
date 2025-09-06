@@ -1,8 +1,7 @@
-#!/command/with-contenv bash
-# shellcheck shell=bash
+#!/command/with-contenv sh
+# shellcheck shell=sh
 
-[[ "${DEBUG,,}" == trace* ]] && set -x
-set -euo pipefail
+set -eu
 
 authfile="/tmp/auth"
 
@@ -11,5 +10,6 @@ echo "Create auth file"
 echo "$USER" > "$authfile"
 echo "$PASS" >> "$authfile"
 chmod 0600 "$authfile"
+chown nordvpn:nordvpn "$authfile"
 
 exit 0

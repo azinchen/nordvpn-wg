@@ -3,6 +3,6 @@
 
 set -eu
 
-echo "Run crond service"
+vpn-config
 
-exec crond -f
+exit 0

@@ -1,0 +1,11 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eu
+
+vpn-config
+
+echo "Reconnect to selected VPN server"
+s6-svc -h /run/service/nordvpnd
+
+exit 0

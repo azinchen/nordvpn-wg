@@ -91,6 +91,19 @@ jobs:
           echo "=== Capturing Super-Linter logs ==="
           mkdir -p super-linter-output
           
+          # Fix ownership/permissions for the directory
+          sudo chown -R runner:docker super-linter-output
+          sudo chmod -R 755 super-linter-output
+          
+          # Verify directory creation and permissions
+          if [ ! -d "super-linter-output" ]; then
+            echo "❌ Failed to create super-linter-output directory"
+            exit 1
+          fi
+          
+          echo "✅ super-linter-output directory created successfully"
+          ls -la super-linter-output/ || echo "Directory is empty"
+          
           # Capture general logs
           if [ -d "super-linter-logs" ]; then
             echo "Found super-linter-logs directory"
@@ -117,7 +130,13 @@ jobs:
           done
           
           # Create a comprehensive log file with all findings
-          echo "# Super-Linter Results Summary" > super-linter-output/summary.md
+          echo "Creating summary file..."
+          if ! echo "# Super-Linter Results Summary" > super-linter-output/summary.md; then
+            echo "❌ Failed to create summary.md file"
+            ls -la super-linter-output/
+            exit 1
+          fi
+          
           echo "Generated: $(date)" >> super-linter-output/summary.md
           echo "" >> super-linter-output/summary.md
           
@@ -185,34 +204,49 @@ jobs:
           EOF
           
           # Add dynamic content
+          ANALYSIS_DATE="$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          REPOSITORY="${{ github.repository }}"
+          COMMIT="${{ github.sha }}"
+          BRANCH="${{ github.ref_name }}"
+          RUN_ID="${{ github.run_id }}"
+          CODEQL_STATUS="${{ steps.codeql-analysis.outcome }}"
+          SUPERLINTER_STATUS="${{ steps.super-linter.outcome }}"
+          TRIVY_CONFIG_STATUS="${{ steps.trivy-config.outcome }}"
+          
           cat >> scan-results/security-analysis-summary.md << EOF
           
-          **Analysis Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          **Repository:** ${{ github.repository }}
-          **Commit:** ${{ github.sha }}
-          **Branch:** ${{ github.ref_name }}
-          **Run ID:** ${{ github.run_id }}
+          **Analysis Date:** ${ANALYSIS_DATE}
+          **Repository:** ${REPOSITORY}
+          **Commit:** ${COMMIT}
+          **Branch:** ${BRANCH}
+          **Run ID:** ${RUN_ID}
           
           ## 🔍 Analysis Components
           
           ### 🔬 CodeQL Static Analysis
-          - **Status:** ${{ steps.codeql-analysis.outcome }}
+          - **Status:** ${CODEQL_STATUS}
           - **Language:** JavaScript (with generic security patterns)
           - **Queries:** security-extended + security-and-quality
           - **Scope:** Shell scripts, configs, GitHub Actions workflows
           
           ### 🧹 Super-Linter Code Quality
-          - **Status:** ${{ steps.super-linter.outcome }}
+          - **Status:** ${SUPERLINTER_STATUS}
           - **Languages:** Bash, Dockerfile, Markdown, JSON, YAML
           - **Validation:** Syntax, style, and best practices
           
           ### 🛡️ Trivy Vulnerability Scanning
-          - **Filesystem Status:** $([ -f "trivy-results.sarif" ] && echo "✅ Completed" || echo "❌ No results")
-          - **Config Analysis Status:** ${{ steps.trivy-config.outcome }}
+          - **Config Analysis Status:** ${TRIVY_CONFIG_STATUS}
           - **Scope:** Dependencies, container vulnerabilities, misconfigurations
           
           ## 📊 Summary Statistics
           EOF
+          
+          # Add Trivy filesystem scan status
+          if [ -f "trivy-results.sarif" ]; then
+            echo "- **Filesystem Status:** ✅ Completed" >> scan-results/security-analysis-summary.md
+          else
+            echo "- **Filesystem Status:** ❌ No results" >> scan-results/security-analysis-summary.md
+          fi
           
           # Add Trivy results count if available
           if [ -f "trivy-results.sarif" ] && command -v jq >/dev/null 2>&1; then
@@ -232,17 +266,16 @@ jobs:
           ## 📁 Included Files
           EOF
           
-          ls -la scan-results/ | grep -v "^total" | grep -v "^d" | \
-            awk '{print "- " $9 " (" $5 " bytes)"}' >> scan-results/security-analysis-summary.md
+          ls -la scan-results/ | grep -v "^total" | grep -v "^d" | awk '{print "- " $9 " (" $5 " bytes)"}' >> scan-results/security-analysis-summary.md
           
           # Add links section
           cat >> scan-results/security-analysis-summary.md << EOF
           
           ## 🔗 View Results
-          - [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          - [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning)
-          - [CodeQL Results](https://github.com/${{ github.repository }}/security/code-scanning?tool=CodeQL)
-          - [Trivy Results](https://github.com/${{ github.repository }}/security/code-scanning?tool=Trivy)
+          - [Workflow Run](https://github.com/${REPOSITORY}/actions/runs/${RUN_ID})
+          - [Security Tab](https://github.com/${REPOSITORY}/security/code-scanning)
+          - [CodeQL Results](https://github.com/${REPOSITORY}/security/code-scanning?tool=CodeQL)
+          - [Trivy Results](https://github.com/${REPOSITORY}/security/code-scanning?tool=Trivy)
           
           ## 🛠️ Tools Information
           - **CodeQL:** Advanced static analysis for security vulnerabilities
@@ -251,7 +284,8 @@ jobs:
           EOF
           
           # Create archive
-          ZIP_FILENAME="comprehensive-security-analysis-$(date +%Y%m%d-%H%M%S).zip"
+          TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+          ZIP_FILENAME="comprehensive-security-analysis-${TIMESTAMP}.zip"
           zip -r "$ZIP_FILENAME" scan-results/
 
       # ============================================================================
@@ -279,12 +313,32 @@ jobs:
           echo "|-----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| 🔬 CodeQL Analysis | ${{ steps.codeql-analysis.outcome }} | Static security analysis |" >> $GITHUB_STEP_SUMMARY
           echo "| 🧹 Super-Linter | ${{ steps.super-linter.outcome }} | Code quality validation |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🛡️ Trivy Filesystem | $([ -f "trivy-results.sarif" ] && echo "✅ success" || echo "❌ failed") | Vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+          
+          # Check Trivy filesystem status
+          if [ -f "trivy-results.sarif" ]; then
+            echo "| 🛡️ Trivy Filesystem | ✅ success | Vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🛡️ Trivy Filesystem | ❌ failed | Vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "| 🔧 Trivy Config | ${{ steps.trivy-config.outcome }} | Configuration analysis |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 SARIF Files Generated" >> $GITHUB_STEP_SUMMARY
-          echo "- **CodeQL SARIF:** $([ -f "codeql-results.sarif" ] && echo "✅ Available" || echo "❌ Not generated")" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trivy SARIF:** $([ -f "trivy-results.sarif" ] && echo "✅ Available" || echo "❌ Not generated")" >> $GITHUB_STEP_SUMMARY
+          
+          # Check CodeQL SARIF
+          if [ -f "codeql-results.sarif" ]; then
+            echo "- **CodeQL SARIF:** ✅ Available" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **CodeQL SARIF:** ❌ Not generated" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check Trivy SARIF
+          if [ -f "trivy-results.sarif" ]; then
+            echo "- **Trivy SARIF:** ✅ Available" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Trivy SARIF:** ❌ Not generated" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Quick Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> $GITHUB_STEP_SUMMARY
@@ -299,6 +353,7 @@ jobs:
         with:
           script: |
             const currentDate = new Date().toISOString().split('T')[0];
+            const analysisOutcome = '${{ steps.codeql-analysis.outcome }}';
             
             // Get CodeQL alerts for detailed reporting
             let codeqlFindings = "No specific findings data available through API in workflow context.";
@@ -340,7 +395,7 @@ jobs:
             **Analysis Date:** ${currentDate}
             **Run ID:** ${context.runId}
             **Commit:** ${context.sha.substring(0, 8)}
-            **Status:** ${{ steps.codeql-analysis.outcome }}
+            **Status:** ${analysisOutcome}
             
             ## 📊 Analysis Details
             - **Language:** JavaScript (with generic security patterns)
@@ -513,6 +568,7 @@ jobs:
           script: |
             const currentDate = new Date().toISOString().split('T')[0];
             const fs = require('fs');
+            const superLinterOutcome = '${{ steps.super-linter.outcome }}';
             
             // Parse Super-Linter logs for specific error details
             let linterFindings = "";
@@ -529,7 +585,7 @@ jobs:
               const summaryFile = `${logDir}/summary.md`;
               if (fs.existsSync(summaryFile)) {
                 const summaryContent = fs.readFileSync(summaryFile, 'utf8');
-                linterFindings += `## � Detailed Findings\n\n${summaryContent}\n\n`;
+                linterFindings += `## 📋 Detailed Findings\n\n${summaryContent}\n\n`;
               }
               
               // Process individual log files
@@ -630,7 +686,7 @@ jobs:
             
             // Fallback to generic guidance if no specific logs found
             if (!linterFindings.trim()) {
-              linterFindings = `## � Super-Linter Issues Detected\n\n`;
+              linterFindings = `## 🔧 Super-Linter Issues Detected\n\n`;
               linterFindings += `Super-Linter detected code quality issues. View the [workflow logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed information.\n\n`;
               
               // Add common issue categories as before
@@ -658,6 +714,7 @@ jobs:
               linterFindings += `- Missing or extra commas/colons\n`;
               linterFindings += `- Trailing whitespace\n`;
               linterFindings += `- Syntax errors or malformed structures\n\n`;
+            }
             
             // Add file-specific guidance  
             linterFindings += `### 🎯 Files Likely Affected\n\n`;
@@ -674,7 +731,7 @@ jobs:
             **Analysis Date:** ${currentDate}
             **Run ID:** ${context.runId}
             **Commit:** ${context.sha.substring(0, 8)}
-            **Status:** ${{ steps.super-linter.outcome }}
+            **Status:** ${superLinterOutcome}
             
             ## 📊 Analysis Summary
             
@@ -721,9 +778,9 @@ jobs:
             ### 4. ✅ Test Before Committing
             \`\`\`bash
             # Run Super-Linter locally (optional)
-            docker run --rm -v "\$(pwd)":/tmp/lint \\
-              -e DEFAULT_BRANCH=master \\
-              -e RUN_LOCAL=true \\
+            docker run --rm -v "\\$(pwd)":/tmp/lint \\\\
+              -e DEFAULT_BRANCH=master \\\\
+              -e RUN_LOCAL=true \\\\
               github/super-linter:latest
             \`\`\`
             
@@ -739,7 +796,7 @@ jobs:
             **Shell Scripts:**
             \`\`\`bash
             # Quote variables
-            echo "\$variable" instead of echo $variable
+            echo "\\$variable" instead of echo \\$variable
             
             # Add error handling
             set -euo pipefail  # at top of script
