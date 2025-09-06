@@ -79,6 +79,64 @@ jobs:
           VALIDATE_MARKDOWN: true
           VALIDATE_JSON: true
           VALIDATE_YAML: true
+          LOG_LEVEL: DEBUG
+          CREATE_LOG_FILE: true
+          OUTPUT_FORMAT: tap
+          OUTPUT_FOLDER: super-linter-logs
+          OUTPUT_DETAILS: detailed
+
+      - name: Capture Super-Linter detailed logs
+        if: always() && steps.super-linter.outcome == 'failure'
+        run: |
+          echo "=== Capturing Super-Linter logs ==="
+          mkdir -p super-linter-output
+          
+          # Capture general logs
+          if [ -d "super-linter-logs" ]; then
+            echo "Found super-linter-logs directory"
+            cp -r super-linter-logs/* super-linter-output/ 2>/dev/null || true
+          fi
+          
+          # Look for common Super-Linter log locations
+          for log_path in \
+            "/tmp/lint" \
+            "/github/workspace/super-linter.log" \
+            "/github/workspace/linter-results" \
+            "./super-linter.log" \
+            "/tmp/super-linter.log" \
+            "./super-linter-logs"
+          do
+            if [ -e "$log_path" ]; then
+              echo "Found logs at: $log_path"
+              if [ -d "$log_path" ]; then
+                cp -r "$log_path"/* super-linter-output/ 2>/dev/null || true
+              else
+                cp "$log_path" super-linter-output/ 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          # Create a comprehensive log file with all findings
+          echo "# Super-Linter Results Summary" > super-linter-output/summary.md
+          echo "Generated: $(date)" >> super-linter-output/summary.md
+          echo "" >> super-linter-output/summary.md
+          
+          # Find and process individual linter logs
+          find . -name "*.tap" -o -name "*-lint.log" -o -name "super-linter*.log" 2>/dev/null | while read -r file; do
+            if [ -f "$file" ] && [ -s "$file" ]; then
+              echo "Processing: $file"
+              {
+                echo "## Log file: $file"
+                echo "```"
+                cat "$file" 2>/dev/null || echo "Could not read file"
+                echo "```"
+                echo ""
+              } >> super-linter-output/summary.md
+            fi
+          done
+          
+          echo "=== Super-Linter logs captured ==="
+          ls -la super-linter-output/ || echo "No output directory created"
 
       # ============================================================================
       # TRIVY VULNERABILITY SCANNING
@@ -454,66 +512,154 @@ jobs:
         with:
           script: |
             const currentDate = new Date().toISOString().split('T')[0];
-            
-            // Check for Super-Linter output files or environment variables that might contain errors
-            let linterFindings = "## 🚨 Super-Linter Issues Detected\n\n";
-            let hasIssues = false;
             const fs = require('fs');
             
-            // Super-Linter typically outputs results to specific log files or environment variables
-            // Check for common Super-Linter output patterns
-            const superLinterFiles = [
-              'super-linter.log',
-              '/tmp/lint/.automation/lint.log',
-              '/github/workspace/super-linter.log'
-            ];
+            // Parse Super-Linter logs for specific error details
+            let linterFindings = "";
+            let hasIssues = true; // We know it failed
             
-            // Since Super-Linter failed, we know there are issues
-            hasIssues = true;
+            // Check for captured logs
+            const logDir = 'super-linter-output';
+            let specificFindings = [];
             
-            // Parse common file extensions that Super-Linter validates
-            const fileExtensions = {
-              '.sh': 'Shell Scripts (shellcheck)',
-              '.bash': 'Bash Scripts (shellcheck)', 
-              '.md': 'Markdown (markdownlint)',
-              '.json': 'JSON (jsonlint)',
-              '.yml': 'YAML (yamllint)',
-              '.yaml': 'YAML (yamllint)',
-              'Dockerfile': 'Docker (hadolint)'
-            };
+            if (fs.existsSync(logDir)) {
+              console.log('Found super-linter-output directory');
+              
+              // Read summary file if it exists
+              const summaryFile = `${logDir}/summary.md`;
+              if (fs.existsSync(summaryFile)) {
+                const summaryContent = fs.readFileSync(summaryFile, 'utf8');
+                linterFindings += `## � Detailed Findings\n\n${summaryContent}\n\n`;
+              }
+              
+              // Process individual log files
+              const logFiles = fs.readdirSync(logDir).filter(file => 
+                file.endsWith('.log') || file.endsWith('.tap') || file.endsWith('.txt')
+              );
+              
+              if (logFiles.length > 0) {
+                linterFindings += `## 🔍 Individual Linter Results\n\n`;
+                
+                for (const logFile of logFiles.slice(0, 5)) { // Limit to first 5 files
+                  try {
+                    const logPath = `${logDir}/${logFile}`;
+                    const logContent = fs.readFileSync(logPath, 'utf8');
+                    
+                    // Extract meaningful error lines
+                    const lines = logContent.split('\n');
+                    const errorLines = lines.filter(line => 
+                      line.includes('ERROR') || 
+                      line.includes('FAIL') || 
+                      line.includes('SC') || // ShellCheck codes
+                      line.includes('DL') || // Hadolint codes
+                      line.includes('MD') || // Markdownlint codes
+                      line.includes('not ok')
+                    ).slice(0, 10); // Limit to 10 errors per file
+                    
+                    if (errorLines.length > 0) {
+                      linterFindings += `### ${logFile}\n`;
+                      linterFindings += `\`\`\`\n${errorLines.join('\n')}\`\`\`\n\n`;
+                      
+                      // Parse specific error patterns
+                      errorLines.forEach(line => {
+                        // ShellCheck errors
+                        const shellCheckMatch = line.match(/In (.+) line (\d+):/);
+                        if (shellCheckMatch) {
+                          specificFindings.push({
+                            tool: 'ShellCheck',
+                            file: shellCheckMatch[1],
+                            line: shellCheckMatch[2],
+                            message: line
+                          });
+                        }
+                        
+                        // Hadolint errors
+                        const hadolintMatch = line.match(/(Dockerfile):(\d+) (DL\d+)/);
+                        if (hadolintMatch) {
+                          specificFindings.push({
+                            tool: 'Hadolint',
+                            file: hadolintMatch[1],
+                            line: hadolintMatch[2],
+                            code: hadolintMatch[3],
+                            message: line
+                          });
+                        }
+                        
+                        // Markdownlint errors
+                        const markdownMatch = line.match(/(.+\.md):(\d+) (MD\d+)/);
+                        if (markdownMatch) {
+                          specificFindings.push({
+                            tool: 'Markdownlint',
+                            file: markdownMatch[1],
+                            line: markdownMatch[2],
+                            code: markdownMatch[3],
+                            message: line
+                          });
+                        }
+                      });
+                    }
+                  } catch (error) {
+                    console.log(`Error reading ${logFile}: ${error.message}`);
+                  }
+                }
+              }
+            }
             
-            // Since we can't directly access Super-Linter's internal logs in this context,
-            // we'll provide structured guidance based on the failure
-            linterFindings += `### 🔍 Analysis Results\n\n`;
-            linterFindings += `Super-Linter detected code quality issues in your repository. The specific issues are detailed in the workflow logs.\n\n`;
+            // Create structured findings summary
+            if (specificFindings.length > 0) {
+              const groupedFindings = specificFindings.reduce((acc, finding) => {
+                if (!acc[finding.tool]) acc[finding.tool] = [];
+                acc[finding.tool].push(finding);
+                return acc;
+              }, {});
+              
+              linterFindings += `## 🎯 Summary by Tool\n\n`;
+              
+              for (const [tool, findings] of Object.entries(groupedFindings)) {
+                linterFindings += `### ${tool} (${findings.length} issues)\n\n`;
+                findings.slice(0, 5).forEach((finding, index) => {
+                  linterFindings += `${index + 1}. **${finding.file}:${finding.line}**\n`;
+                  if (finding.code) linterFindings += `   - Code: \`${finding.code}\`\n`;
+                  linterFindings += `   - Issue: \`${finding.message.trim()}\`\n\n`;
+                });
+                if (findings.length > 5) {
+                  linterFindings += `   *... and ${findings.length - 5} more issues*\n\n`;
+                }
+              }
+            }
             
-            // Add common issue categories
-            linterFindings += `### 📝 Common Issue Categories\n\n`;
-            linterFindings += `**Shell Script Issues (shellcheck):**\n`;
-            linterFindings += `- Unquoted variables that may cause word splitting\n`;
-            linterFindings += `- Missing error handling (\`set -e\` or \`|| exit 1\`)\n`;
-            linterFindings += `- Unsafe command substitution patterns\n`;
-            linterFindings += `- Variable assignments that may fail silently\n\n`;
+            // Fallback to generic guidance if no specific logs found
+            if (!linterFindings.trim()) {
+              linterFindings = `## � Super-Linter Issues Detected\n\n`;
+              linterFindings += `Super-Linter detected code quality issues. View the [workflow logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed information.\n\n`;
+              
+              // Add common issue categories as before
+              linterFindings += `### 📝 Common Issue Categories\n\n`;
+              linterFindings += `**Shell Script Issues (shellcheck):**\n`;
+              linterFindings += `- Unquoted variables that may cause word splitting\n`;
+              linterFindings += `- Missing error handling (\`set -e\` or \`|| exit 1\`)\n`;
+              linterFindings += `- Unsafe command substitution patterns\n`;
+              linterFindings += `- Variable assignments that may fail silently\n\n`;
+              
+              linterFindings += `**Dockerfile Issues (hadolint):**\n`;
+              linterFindings += `- Missing \`--no-cache-dir\` in pip install commands\n`;
+              linterFindings += `- Using \`ADD\` instead of \`COPY\` for local files\n`;
+              linterFindings += `- Missing version pinning in package installations\n`;
+              linterFindings += `- Inefficient layer management\n\n`;
+              
+              linterFindings += `**Markdown Issues (markdownlint):**\n`;
+              linterFindings += `- Missing or inconsistent heading structure\n`;
+              linterFindings += `- Trailing whitespace at line endings\n`;
+              linterFindings += `- Missing blank lines around headers\n`;
+              linterFindings += `- Line length violations\n\n`;
+              
+              linterFindings += `**YAML/JSON Issues:**\n`;
+              linterFindings += `- Indentation inconsistencies\n`;
+              linterFindings += `- Missing or extra commas/colons\n`;
+              linterFindings += `- Trailing whitespace\n`;
+              linterFindings += `- Syntax errors or malformed structures\n\n`;
             
-            linterFindings += `**Dockerfile Issues (hadolint):**\n`;
-            linterFindings += `- Missing \`--no-cache-dir\` in pip install commands\n`;
-            linterFindings += `- Using \`ADD\` instead of \`COPY\` for local files\n`;
-            linterFindings += `- Missing version pinning in package installations\n`;
-            linterFindings += `- Inefficient layer management\n\n`;
-            
-            linterFindings += `**Markdown Issues (markdownlint):**\n`;
-            linterFindings += `- Missing or inconsistent heading structure\n`;
-            linterFindings += `- Trailing whitespace at line endings\n`;
-            linterFindings += `- Missing blank lines around headers\n`;
-            linterFindings += `- Line length violations\n\n`;
-            
-            linterFindings += `**YAML/JSON Issues:**\n`;
-            linterFindings += `- Indentation inconsistencies\n`;
-            linterFindings += `- Missing or extra commas/colons\n`;
-            linterFindings += `- Trailing whitespace\n`;
-            linterFindings += `- Syntax errors or malformed structures\n\n`;
-            
-            // Add file-specific guidance
+            // Add file-specific guidance  
             linterFindings += `### 🎯 Files Likely Affected\n\n`;
             linterFindings += `Based on your repository structure, check these files:\n`;
             linterFindings += `- \`root/\` directory - Shell scripts and configuration\n`;
@@ -521,12 +667,6 @@ jobs:
             linterFindings += `- \`Dockerfile\` - Container configuration\n`;
             linterFindings += `- \`*.md\` files - Documentation\n`;
             linterFindings += `- \`.github/workflows/\` - YAML workflow files\n\n`;
-            
-            // Only create issues if Super-Linter actually failed (which we know it did)
-            if (!hasIssues) {
-              console.log('✅ No Super-Linter issues found - skipping issue creation');
-              return;
-            }
             
             const issueTitle = '🧹 Super-Linter Code Quality Issues';
             const issueBody = `# 🧹 Super-Linter Code Quality Report
@@ -537,6 +677,7 @@ jobs:
             **Status:** ${{ steps.super-linter.outcome }}
             
             ## 📊 Analysis Summary
+            
             **Languages Analyzed:**
             - ✅ Bash scripts (shellcheck)
             - ✅ Dockerfile (hadolint)  
@@ -577,7 +718,7 @@ jobs:
             yamllint .github/workflows/*.yml
             \`\`\`
             
-            ### 4. � Test Before Committing
+            ### 4. ✅ Test Before Committing
             \`\`\`bash
             # Run Super-Linter locally (optional)
             docker run --rm -v "\$(pwd)":/tmp/lint \\
@@ -586,7 +727,7 @@ jobs:
               github/super-linter:latest
             \`\`\`
             
-            ## �🔗 Additional Resources
+            ## 🔗 Additional Resources
             - [Workflow Run with Detailed Logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             - [Super-Linter Documentation](https://github.com/super-linter/super-linter)
             - [Shellcheck Wiki](https://github.com/koalaman/shellcheck/wiki)
