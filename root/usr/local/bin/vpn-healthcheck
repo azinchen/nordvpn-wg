@@ -3,7 +3,7 @@
 
 set -eu
 
-echo "$(date) Check VPN Internet connection"
+echo "[VPN-HEALTHCHECK] Starting VPN healthcheck script..."
 
 httpreq()
 {
@@ -20,19 +20,15 @@ while [ $counter -le "$CHECK_CONNECTION_ATTEMPTS" ]; do
     urls=$(echo "$CHECK_CONNECTION_URL" | tr ';,' ' ')
     for url in $urls; do
         if httpreq "$url"; then
-            echo "Connection via VPN is up"
+            echo "[VPN-HEALTHCHECK] Connection via VPN is up"
             exit 0
-        else
-            echo "Iteration $counter($CHECK_CONNECTION_ATTEMPTS), url=$url, Connection via VPN is down"
         fi
     done
 
-    echo "Sleep between iteration for $CHECK_CONNECTION_ATTEMPT_INTERVAL"
     sleep "$CHECK_CONNECTION_ATTEMPT_INTERVAL"
     counter=$((counter + 1))
 done
 
-echo "Connection via VPN is down, recreate VPN"
+echo "[VPN-HEALTHCHECK] All connection attempts failed, initiating VPN reconnection"
 vpn-reconnect
-
 exit 1

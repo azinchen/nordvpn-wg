@@ -3,6 +3,8 @@
 
 set -eu
 
+echo "[SERVICE-NORDVPND] Starting nordvpnd service..."
+
 authfile="/tmp/auth"
 ovpnfile="/tmp/nordvpn.ovpn"
 

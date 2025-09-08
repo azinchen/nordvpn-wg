@@ -3,6 +3,9 @@
 
 set -eu
 
+echo "[INIT-CREATEVPNCONFIG] Starting init-createvpnconfig script..."
+
 vpn-config
 
+echo "[INIT-CREATEVPNCONFIG] init-createvpnconfig script completed successfully"
 exit 0

@@ -3,12 +3,13 @@
 
 set -eu
 
+echo "[INIT-ADDUSER] Starting init-adduser script..."
+
 PUID=${PUID:-912}
 PGID=${PGID:-912}
-
-echo "Set nordvpn user uid $PUID and nordvpn group gid $PGID"
 
 groupmod --non-unique --gid "$PGID" nordvpn
 usermod --non-unique --uid "$PUID" nordvpn
 
+echo "[INIT-ADDUSER] init-adduser script completed successfully"
 exit 0
