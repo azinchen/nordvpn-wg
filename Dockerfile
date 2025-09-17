@@ -47,7 +47,7 @@ FROM alpine:3.22.1
 
 LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 
-ARG IMAGE_VERSION=dev
+ARG IMAGE_VERSION=N/A
 ARG BUILD_DATE=N/A
 
 ENV TECHNOLOGY=openvpn_udp \
