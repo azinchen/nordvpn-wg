@@ -49,7 +49,6 @@ if run4 $PIN_SPEC 2>/dev/null; then
     echo "[SERVICE-NORDVPND] pinhole added: $IPT $PIN_SPEC"
 fi
 
-
 echo "[SERVICE-NORDVPND] launching OpenVPN..."
 sg nordvpn -c "openvpn --config \"$ovpnfile\" --auth-user-pass \"$authfile\" --auth-nocache ${OPENVPN_OPTS:-}"
 
