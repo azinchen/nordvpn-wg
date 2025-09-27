@@ -35,7 +35,7 @@ run6_critical() {
 
 # Check if VPN is connected by checking for tun interface
 is_vpn_connected() {
-    if ip link show tun0 >/dev/null 2>&1; then
+    if ip link show wg0 >/dev/null 2>&1; then
         return 0
     else
         return 1

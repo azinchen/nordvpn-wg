@@ -5,14 +5,19 @@ set -eu
 
 echo "[SERVICE-NORDVPND] Stopping nordvpnd service..."
 
+wgfile="/etc/wireguard/wg0.conf"
+
 . /usr/local/bin/backend-functions
+
+if wg show wg0 >/dev/null 2>&1; then
+    wg-quick down wg0 || true
+else
+    echo "[SERVICE-NORDVPND] Interface wg0 not found, skipping wg-quick down"
+fi
+rm -f "$wgfile"
 
 echo "[SERVICE-NORDVPND] Cleaning VPN pinhole..."
 run4 -F VPN-SERVER
-
-echo "[SERVICE-NORDVPND] Disconnecting OpenVPN cleanly..."
-echo "signal SIGTERM" | nc 127.0.0.1 7505
-sleep 5
 
 echo "[SERVICE-NORDVPND] nordvpnd service stopped successfully"
 exit 0
