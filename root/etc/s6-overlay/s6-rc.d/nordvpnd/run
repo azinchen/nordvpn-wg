@@ -6,54 +6,32 @@ set -eu
 echo "[SERVICE-NORDVPND] Starting nordvpnd service..."
 
 # Paths (same as your original)
-authfile="/run/xt/auth"
-ovpnfile="/run/xt/nordvpn.ovpn"
-OPENVPN_OPTS="${OPENVPN_OPTS:-}"
+wgfile="/etc/wireguard/wg0.conf"
 NETWORK_DIAGNOSTIC_ENABLED="${NETWORK_DIAGNOSTIC_ENABLED:-false}"
 
 . /usr/local/bin/backend-functions
 
-# -------- helpers --------
-normalize_proto()
-{
-    # Map OpenVPN tokens to "udp" or "tcp" (family handled by IP literal)
-    case "$(echo "$1" | tr 'A-Z' 'a-z')" in
-        tcp|tcp-client|tcp-server|tcp6|tcp6-client|tcp6-server) echo "tcp" ;;
-        udp|udp-client|udp-server|udp6|udp6-client|udp6-server|"") echo "udp" ;;
-        * ) echo "udp" ;;
-    esac
-}
-
 vpn-config
 
-# -------- parse the single 'remote' line --------
-[ -s "$ovpnfile" ] || { echo "[SERVICE-NORDVPND] CRITICAL ERROR: OVPN file not found: $ovpnfile - sleeping infinite" >&2; sleep infinity; }
+# -------- parse the single 'Endpoint' line --------
+endpoint_line="$(awk '/^[[:space:]]*Endpoint[ \t]*=/ {print; exit}' "$wgfile")"
+[ -n "$endpoint_line" ] || { echo "[SERVICE-NORDVPND] CRITICAL ERROR: No 'Endpoint' line in $wgfile - sleeping infinite" >&2; sleep infinity; }
 
-r_line="$(awk '/^[[:space:]]*remote[ \t]+/ {print; exit}' "$ovpnfile")"
-[ -n "$r_line" ] || { echo "[SERVICE-NORDVPND] CRITICAL ERROR: No 'remote' line in $ovpnfile - sleeping infinite" >&2; sleep infinity; }
-
-# Fields: remote <ip> [port] [proto]
-r_ip_raw="$(echo "$r_line" | awk '{print $2}')"
-r_port="$(echo "$r_line"   | awk '{print $3}')"
-r_proto_raw="$(echo "$r_line" | awk '{print $4}')"
-
-# Fallbacks from file if not specified on the remote line
-[ -n "${r_port:-}" ] || r_port="$(awk '/^[[:space:]]*port[ \t]+/ {print $2; exit}' "$ovpnfile" || true)"
-[ -n "${r_port:-}" ] || r_port=1194
-r_proto="$(normalize_proto "$r_proto_raw")"
-
+endpoint_value="$(echo "$endpoint_line" | sed 's/.*= *//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')"
+r_ip_raw="$(echo "$endpoint_value" | cut -d: -f1)"
 # Clean up any bracketed IPv6 (just in case)
 r_ip="$(echo "$r_ip_raw" | sed 's,^\[,,' | sed 's,\]$,,' )"
 
 # -------- add a single temporary pinhole on eth0 --------
 
-PIN_SPEC="-A VPN-SERVER -o eth0 -p ${r_proto} -d ${r_ip} --dport ${r_port} -j ACCEPT"
+PIN_SPEC="-A VPN-SERVER -o eth0 -d ${r_ip} -j ACCEPT"
 if run4 $PIN_SPEC 2>/dev/null; then
     echo "[SERVICE-NORDVPND] pinhole added: $IPT $PIN_SPEC"
 fi
 
-echo "[SERVICE-NORDVPND] launching OpenVPN..."
-openvpn --group nordvpn --config "$ovpnfile" --auth-user-pass "$authfile" --auth-nocache --management 127.0.0.1 7505 $OPENVPN_OPTS &
+echo "[SERVICE-NORDVPND] launching Wireguard..."
+wg-quick down wg0 || true
+wg-quick up wg0
 
 # Wait for VPN connection
 echo "[SERVICE-NORDVPND] Waiting for VPN connection..."
@@ -74,5 +52,5 @@ else
     echo "[SERVICE-NORDVPND] VPN connection timeout"
 fi
 
-# Wait for OpenVPN to exit
-wait
+# Keep the s6 service running indefinitely
+sleep infinity

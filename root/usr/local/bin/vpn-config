@@ -8,15 +8,13 @@ echo "[VPN-CONFIG] Starting vpn-config script..."
 # Set default values for environment variables
 COUNTRY="${COUNTRY:-}"
 CITY="${CITY:-}"
-TECHNOLOGY="${TECHNOLOGY:-OpenVPN UDP}"
 GROUP="${GROUP:-}"
 RANDOM_TOP="${RANDOM_TOP:-0}"
 
 numericregex="^[0-9]+$"
 specific_server_regex="^[a-zA-Z]{2}[0-9]+$"
 
-ovpntemplatefile="/etc/nordvpn/template.ovpn"
-ovpnfile="/run/xt/nordvpn.ovpn"
+wgfile="/etc/wireguard/wg0.conf"
 
 # Helper functions for pattern matching (sh-compatible)
 is_numeric()
@@ -214,84 +212,6 @@ getgrouptitle()
     return 0
 }
 
-gettechnologyid()
-{
-    input=$1
-
-    # Check for empty input
-    if [ -z "$input" ]; then
-        return 1
-    fi
-
-    if is_numeric "$input"; then
-        id=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .id' < "/etc/nordvpn/technologies.json")
-    else
-        id=$(jq -r --arg NAME "$input" 'select(.name == $NAME) | .id' < "/etc/nordvpn/technologies.json")
-        if [ -z "$id" ]; then
-            id=$(jq -r --arg IDENTIFIER "$input" 'select(.identifier == $IDENTIFIER) | .id' < "/etc/nordvpn/technologies.json")
-        fi
-    fi
-
-    printf '%s' "$id"
-
-    if [ -z "$id" ]; then
-        return 1
-    fi
-
-    return 0
-}
-
-gettechnologyname()
-{
-    input=$1
-
-    if is_numeric "$input"; then
-        name=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .name' < "/etc/nordvpn/technologies.json")
-    else
-        name=$(jq -r --arg NAME "$input" 'select(.name == $NAME) | .name' < "/etc/nordvpn/technologies.json")
-        if [ -z "$name" ]; then
-            name=$(jq -r --arg IDENTIFIER "$input" 'select(.identifier == $IDENTIFIER) | .name' < "/etc/nordvpn/technologies.json")
-        fi
-    fi
-
-    printf '%s' "$name"
-
-    if [ -z "$name" ]; then
-        return 1
-    fi
-
-    return 0
-}
-
-getopenvpnprotocol()
-{
-    input=$1
-
-    ident=$(jq -r --arg NAME "$input" 'select(.name == $NAME) | .identifier' < "/etc/nordvpn/technologies.json")
-    if [ -z "$ident" ]; then
-        if is_numeric "$input"; then
-            ident=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .identifier' < "/etc/nordvpn/technologies.json")
-        fi
-    fi
-    if [ -z "$ident" ]; then
-        ident=$input
-    fi
-
-    if ! contains_substring "$ident" "openvpn"; then
-        printf ""
-        return 1
-    elif contains_substring "$ident" "udp"; then
-        printf "udp"
-        return 0
-    elif contains_substring "$ident" "tcp"; then
-        printf "tcp"
-        return 0
-    else
-        printf ""
-        return 1
-    fi
-}
-
 handle_specific_server()
 {
     value=$1
@@ -330,19 +250,9 @@ nord_api_curl()
 servers=""
 locations_count=0
 
-# Validate technology and group IDs and build filter strings
-tech_filter=""
-if [ -n "$TECHNOLOGY" ]; then
-    tech_id=$(gettechnologyid "$TECHNOLOGY")
-    if [ -z "$tech_id" ]; then
-        echo "[VPN-CONFIG] Warning: Could not find technology \"$TECHNOLOGY\""
-    else
-        tech_filter="--data-urlencode filters[servers_technologies][id]=$tech_id"
-    fi
-else
-    echo "[VPN-CONFIG] No technology filter specified"
-fi
+tech_filter="--data-urlencode filters[servers_technologies][id]=35"
 
+# Validate group IDs and build filter strings
 group_filter=""
 if [ -n "$GROUP" ]; then
     group_id=$(getgroupid "$GROUP")
@@ -376,10 +286,7 @@ if [ -n "$COUNTRY" ]; then
             countryid=$(getcountryid "$value")
             if [ -n "$countryid" ]; then
                 # Build curl parameters
-                curl_params="--data-urlencode filters[country_id]=$countryid"
-                if [ -n "$tech_filter" ]; then
-                    curl_params="$curl_params $tech_filter"
-                fi
+                curl_params="$tech_filter --data-urlencode filters[country_id]=$countryid"
                 if [ -n "$group_filter" ]; then
                     curl_params="$curl_params $group_filter"
                 fi
@@ -409,7 +316,7 @@ if [ -n "$CITY" ]; then
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
-        if is_specific_server "$value"; then
+        if is_specific_server "$value" ]; then
             servers="$servers$(handle_specific_server "$value")"
         elif [ -n "$value" ]; then
             coords=$(getcitycoordinates "$value")
@@ -418,10 +325,7 @@ if [ -n "$CITY" ]; then
                 longitude=$(echo "$coords" | cut -d',' -f2)
                 
                 # Build curl parameters
-                curl_params="--data-urlencode coordinates[latitude]=$latitude --data-urlencode coordinates[longitude]=$longitude"
-                if [ -n "$tech_filter" ]; then
-                    curl_params="$curl_params $tech_filter"
-                fi
+                curl_params="$tech_filter --data-urlencode coordinates[latitude]=$latitude --data-urlencode coordinates[longitude]=$longitude"
                 if [ -n "$group_filter" ]; then
                     curl_params="$curl_params $group_filter"
                 fi
@@ -455,10 +359,7 @@ if [ "$poollength" -eq 0 ]; then
     echo "[VPN-CONFIG] No servers found for specified criteria, requesting default recommended servers"
     
     # Build curl parameters for fallback
-    curl_params=""
-    if [ -n "$tech_filter" ]; then
-        curl_params="$tech_filter"
-    fi
+    curl_params="$tech_filter"
     if [ -n "$group_filter" ]; then
         curl_params="$curl_params $group_filter"
     fi
@@ -508,32 +409,49 @@ fi
 serverip=$(echo "$servers" | jq -r '.station' | head -n 1)
 name=$(echo "$servers" | jq -r '.name' | head -n 1)
 hostname=$(echo "$servers" | jq -r '.hostname' | head -n 1)
-protocol=$(getopenvpnprotocol "$TECHNOLOGY")
+serverkey=$(echo "$servers" | jq -r '.technologies[] | select(.id == 35) | .metadata[] | select(.name == "public_key") | .value' | head -n 1)
 
 # Extract location information
 country_name=$(echo "$servers" | jq -r '.locations[0].country.name' | head -n 1)
 city_name=$(echo "$servers" | jq -r '.locations[0].country.city.name' | head -n 1)
-echo "[VPN-CONFIG] Select server \"$name\" hostname=\"$hostname\" ip=\"$serverip\" protocol=\"$protocol\" location=\"$country_name, $city_name\""
+echo "[VPN-CONFIG] Select server \"$name\" hostname=\"$hostname\" ip=\"$serverip\" protocol=\"udp\" location=\"$country_name, $city_name\""
 
-cp "$ovpntemplatefile" "$ovpnfile"
-chmod 0600 "$ovpnfile"
-chown nordvpn:nordvpn "$ovpnfile"
-
-sed -i "s/__IP__/$serverip/g" "$ovpnfile"
-sed -i "s/__PROTOCOL__/$protocol/g" "$ovpnfile"
-sed -i "s/__X509_NAME__/$hostname/g" "$ovpnfile"
-
-if [ "$protocol" = "udp" ]; then
-    sed -i "s/__PORT__/1194/g" "$ovpnfile"
-elif [ "$protocol" = "tcp" ]; then
-    sed -i "s/__PORT__/443/g" "$ovpnfile"
-else
-    echo "[VPN-CONFIG] CRITICAL ERROR: TECHNOLOGY environment variable contains wrong parameter \"$TECHNOLOGY\" - sleeping infinite"
+if [ -z "$serverkey" ] || [ "$serverkey" = "null" ]; then
+    echo "[VPN-CONFIG] CRITICAL ERROR: Could not extract WireGuard public key from server data - sleeping infinite"
     sleep infinity
 fi
 
+# Set file permissions so only the owner can read/write the config file
+umask 077
+
+# Create and write WireGuard VPN configuration to /etc/wireguard/wg0.conf
+{
+    echo "# Local network interface configuration"
+    echo "[Interface]"
+    echo "PrivateKey = ${PRIVATE_KEY}"                # Your private key
+    echo "ListenPort = ${LISTEN_PORT:-51820}"         # Port for WireGuard (default: 51820)
+    echo "Address = ${ADDRESS:-10.5.0.2/32}"          # Local VPN IP address (default: 10.5.0.2/32)
+    echo "DNS = ${DNS}"                               # Default DNS servers for VPN
+    echo "Table = ${TABLE:-}"                         # Optional routing table
+    echo "PreUp = ${PRE_UP:-}"                        # Script to run before interface is up
+    echo "PostUp = ${POST_UP:-}"                      # Script to run after interface is up
+    echo "PreDown = ${PRE_DOWN:-}"                    # Script to run before interface is down
+    echo "PostDown = ${POST_DOWN:-}"                  # Script to run after interface is down
+    echo ""
+    echo "# Remote peer configuration"
+    echo "[Peer]"
+    echo "# Server: ${hostname}"
+    echo "Endpoint = ${serverip}:51820"               # Peer address and port
+    echo "PublicKey = ${serverkey}"                   # Peer public key
+    echo "AllowedIPs = ${ALLOWED_IPS:-0.0.0.0/0}"     # Allowed IPs via VPN (default: everything)
+    echo "PersistentKeepalive = ${PERSISTENT_KEEP_ALIVE:-25}" # Keepalive interval (default: 25 seconds)
+} > "$wgfile"
+
+# Flush filesystem buffers to disk to ensure changes are saved
+sync
+
 # Verify the config file was created successfully
-if [ ! -s "$ovpnfile" ]; then
+if [ ! -s "$wgfile" ]; then
     echo "[VPN-CONFIG] CRITICAL ERROR: VPN config file was not created successfully - sleeping infinite"
     sleep infinity
 fi

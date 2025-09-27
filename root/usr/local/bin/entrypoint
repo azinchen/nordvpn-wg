@@ -4,16 +4,16 @@
 set -eu
 
 # Display project information
-echo "=================================================================================="
-echo "🚀 NordVPN OpenVPN Docker Container"
-echo "=================================================================================="
-echo "📋 Description: Docker container for NordVPN with OpenVPN and advanced networking"
+echo "======================================++============================================"
+echo "🚀 NordVPN Wireguard Docker Container"
+echo "========================================+++========================================="
+echo "📋 Description: Docker container for NordVPN with Wireguard and advanced networking"
 echo "👤 Author: Alexander Zinchenko <alexander@zinchenko.com>"
-echo "🔗 Repository: https://github.com/azinchen/nordvpn"
-echo "📚 Documentation: https://github.com/azinchen/nordvpn#readme"
+echo "🔗 Repository: https://github.com/azinchen/nordvpn-wg"
+echo "📚 Documentation: https://github.com/azinchen/nordvpn-wg#readme"
 echo "🏷️ Image Version: ${IMAGE_VERSION:-unknown}"
 echo "📅 Build Date: ${BUILD_DATE:-unknown}"
-echo "=================================================================================="
+echo "===========================================++======================================="
 
 echo "[ENTRYPOINT] Applying immediate security rules..."
 

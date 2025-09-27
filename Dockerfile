@@ -39,8 +39,7 @@ COPY root/ /rootfs/
 RUN chmod +x /rootfs/usr/local/bin/* && \
     chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/run && \
     chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/finish && \
-    chmod 644 /rootfs/etc/nordvpn/*.json && \
-    chmod 644 /rootfs/etc/nordvpn/template.ovpn
+    chmod 644 /rootfs/etc/nordvpn/*.json
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
@@ -51,13 +50,13 @@ LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
 ARG IMAGE_VERSION=N/A
 ARG BUILD_DATE=N/A
 
-ENV TECHNOLOGY=openvpn_udp \
+ENV IMAGE_VERSION=${IMAGE_VERSION} \
+    BUILD_DATE=${BUILD_DATE} \
     NORDVPNAPI_IP=104.16.208.203;104.19.159.190 \
+    DNS=103.86.96.100,103.86.99.100 \
     RANDOM_TOP=0 \
     CHECK_CONNECTION_ATTEMPTS=5 \
     CHECK_CONNECTION_ATTEMPT_INTERVAL=10 \
-    IMAGE_VERSION=${IMAGE_VERSION} \
-    BUILD_DATE=${BUILD_DATE} \
     PATH=/command:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
@@ -70,12 +69,9 @@ RUN echo "**** install security fix packages ****" && \
         jq=1.8.0-r0 \
         shadow=4.17.3-r0 \
         shadow-login=4.17.3-r0 \
-        openvpn=2.6.14-r0 \
+        wireguard-tools=1.0.20250521-r0 \
         bind-tools=9.20.13-r0 \
         && \
-    echo "**** create process user ****" && \
-    addgroup --system --gid 912 nordvpn && \
-    adduser --system --uid 912 --disabled-password --no-create-home --ingroup nordvpn nordvpn && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
     rm -rf /var/cache/apk/*

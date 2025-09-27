@@ -1,5 +1,5 @@
 #!/bin/sh
-# network-diagnostic: POSIX sh network diagnostics for an OpenVPN-connected system (Docker-friendly)
+# network-diagnostic: POSIX sh network diagnostics for a WireGuard-connected system (Docker-friendly)
 # Usage: network-diagnostic [--basic|-b] | [--full|-f] | [--help|-h]
 # Default mode is --full.
 
@@ -10,6 +10,7 @@ MODE="full"
 print_usage()
 {
     cat <<'EOF'
+Usage: network-diagnostic [options]
 Usage: network-diagnostic [options]
 
 Options:
@@ -36,6 +37,7 @@ done
 NFT_BIN="$(command -v nft 2>/dev/null || printf '')"
 TR_BIN="$(command -v traceroute 2>/dev/null || printf '')"
 [ -n "$TR_BIN" ] || TR_BIN="$(command -v tracepath 2>/dev/null || printf '')"
+WG_BIN="$(command -v wg 2>/dev/null || printf '')"
 
 # ---- Public IP helpers (prefer ipinfo.io) ----------------------------------
 fetch_public_info()
@@ -81,103 +83,49 @@ is_private_ip()
     esac
 }
 
-# Query OpenVPN management interface for connection details
-get_openvpn_status()
+# Query WireGuard interface for connection details
+get_wireguard_status()
 {
-    # Try to connect to OpenVPN management interface
-    if command -v nc >/dev/null 2>&1; then
-        # Use netcat to query management interface
-        MGMT_RESP="$(printf "status\nquit\n" | nc -w 2 127.0.0.1 7505 2>/dev/null || printf '')"
-    elif command -v telnet >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
-        # Fallback to telnet with timeout
-        MGMT_RESP="$(printf "status\nquit\n" | timeout 2 telnet 127.0.0.1 7505 2>/dev/null | sed -n '/^END/,/^END/p' || printf '')"
-    else
-        MGMT_RESP=""
+    if [ -z "$WG_BIN" ]; then
+        return
     fi
-    
-    # Parse the response for connection details
-    if [ -n "$MGMT_RESP" ]; then
-        # For client connections, try to extract from different lines
-        # Look for remote server info in the status output
-        COMMON_NAME="$(printf "%s" "$MGMT_RESP" | grep -o 'TCP connection established with \[AF_INET\][0-9.]*:[0-9]*' | sed 's/.*\[\([^]]*\)\].*/\1/' | cut -d: -f1 || printf '')"
-        
-        # Extract remote IP from status (TCP or UDP)
-        TCP_LINE="$(printf "%s" "$MGMT_RESP" | grep 'TCP connection established' | head -1 || printf '')"
-        UDP_LINE="$(printf "%s" "$MGMT_RESP" | grep 'UDPv4 link remote' | head -1 || printf '')"
-        
-        if [ -n "$TCP_LINE" ]; then
-            TRUSTED_IP="$(printf "%s" "$TCP_LINE" | sed 's/.*\[AF_INET\]\([0-9.]*\):.*/\1/' || printf '')"
-        elif [ -n "$UDP_LINE" ]; then
-            TRUSTED_IP="$(printf "%s" "$UDP_LINE" | sed 's/.*\[AF_INET\]\([0-9.]*\):.*/\1/' || printf '')"
-        fi
-        
-        # Try to get port from management interface state
-        STATE_RESP="$(printf "state\nquit\n" | nc -w 2 127.0.0.1 7505 2>/dev/null || printf '')"
-        if [ -n "$STATE_RESP" ]; then
-            # Parse state line: >STATE:timestamp,connected,remote_ip,remote_port,local_ip,local_port
-            STATE_LINE="$(printf "%s" "$STATE_RESP" | grep '^>STATE:' | head -1 || printf '')"
-            if [ -n "$STATE_LINE" ]; then
-                STATE_IP="$(printf "%s" "$STATE_LINE" | cut -d, -f3 || printf '')"
-                STATE_PORT="$(printf "%s" "$STATE_LINE" | cut -d, -f4 || printf '')"
-                [ -n "$STATE_IP" ] && [ "$STATE_IP" != "0.0.0.0" ] && TRUSTED_IP="$STATE_IP"
-                [ -n "$STATE_PORT" ] && [ "$STATE_PORT" != "0" ] && TRUSTED_PORT="$STATE_PORT"
-            fi
-        fi
+
+    # Get endpoint from wg show
+    ENDPOINT_RAW="$(wg show "$DEV_IF" endpoints 2>/dev/null | awk '{print $2}' | head -1 || printf '')"
+    if [ -n "$ENDPOINT_RAW" ]; then
+        TRUSTED_IP="$(printf "%s" "$ENDPOINT_RAW" | cut -d: -f1)"
+        TRUSTED_PORT="$(printf "%s" "$ENDPOINT_RAW" | cut -d: -f2)"
     fi
-    
-    # Fallback: try to get from config file if management interface didn't work
-    if [ -z "$COMMON_NAME" ] && [ -f "/run/xt/nordvpn.ovpn" ]; then
-        # Extract from verify-x509-name line first (preferred)
-        COMMON_NAME="$(awk '/^[[:space:]]*verify-x509-name/ {for(i=1;i<=NF;i++) if($i ~ /CN=/) {sub(/CN=/,"",$i); print $i; exit}}' "/run/xt/nordvpn.ovpn" 2>/dev/null || printf '')"
+
+    # Get public key of peer
+    PEER_KEY="$(wg show "$DEV_IF" peers 2>/dev/null | head -1 || printf '')"
+
+    # Get listening port
+    LPORT="$(wg show "$DEV_IF" 2>/dev/null | awk '/listening port:/ {print $3}' || printf '?')"
+
+    # Try to get server name from config file
+    if [ -f "/etc/wireguard/$DEV_IF.conf" ]; then
+        # Extract from # Server: comment
+        COMMON_NAME="$(awk '/^# Server:/ {sub(/^# Server: /,""); print; exit}' "/etc/wireguard/$DEV_IF.conf" 2>/dev/null || printf '')"
         if [ -z "$COMMON_NAME" ]; then
-            # Fallback to remote hostname/IP
-            REMOTE_VAL="$(awk '/^[[:space:]]*remote[ \t]+/ {print $2; exit}' "/run/xt/nordvpn.ovpn" 2>/dev/null || printf '')"
-            # If it's an IP address, try to construct hostname
-            if printf "%s" "$REMOTE_VAL" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null 2>&1; then
-                # It's an IP, we can't easily get hostname, so leave empty for now
-                COMMON_NAME=""
-            else
-                COMMON_NAME="$REMOTE_VAL"
-            fi
+            # Fallback to Endpoint
+            COMMON_NAME="$(awk '/^[[:space:]]*Endpoint[[:space:]]*=[[:space:]]*/ {sub(/.*= /,""); print; exit}' "/etc/wireguard/$DEV_IF.conf" 2>/dev/null | cut -d: -f1 || printf '')"
         fi
     fi
-    if [ -z "$TRUSTED_IP" ] && [ -f "/run/xt/nordvpn.ovpn" ]; then
-        TRUSTED_IP="$(awk '/^[[:space:]]*remote[ \t]+/ {print $2; exit}' "/run/xt/nordvpn.ovpn" 2>/dev/null || printf '')"
-        TRUSTED_PORT="$(awk '/^[[:space:]]*remote[ \t]+/ {print $3; exit}' "/run/xt/nordvpn.ovpn" 2>/dev/null || printf '')"
-        [ -z "$TRUSTED_PORT" ] && TRUSTED_PORT="$(awk '/^[[:space:]]*port[ \t]+/ {print $2; exit}' "/run/xt/nordvpn.ovpn" 2>/dev/null || printf '')"
-    fi
+    # Fallback: if IP, leave as is
 }
 
-# Get OpenVPN interface details from system
+# Get WireGuard interface details from system
 get_interface_details()
 {
-    # Get device type (tun/tap)
-    DEV_TYPE="$(ip link show "$DEV_IF" 2>/dev/null | awk -F: '/^[0-9]+:.*tun[0-9]*:/ {print "tun"} /^[0-9]+:.*tap[0-9]*:/ {print "tap"}' || printf '?')"
-    
     # Get local IP from interface
     IFCONF_LOCAL="$(ip addr show "$DEV_IF" 2>/dev/null | awk '/inet / {split($2,a,"/"); print a[1]; exit}' || printf '?')"
-    
-    # For OpenVPN tun interface, remote IP is typically local_ip + 1 or from peer address
-    if [ "$IFCONF_LOCAL" != "?" ]; then
-        # Calculate remote IP (usually .1 for local, .2 for remote in /30 subnet)
-        # Split IP address using POSIX-compatible method
-        a="$(printf "%s" "$IFCONF_LOCAL" | cut -d. -f1)"
-        b="$(printf "%s" "$IFCONF_LOCAL" | cut -d. -f2)"
-        c="$(printf "%s" "$IFCONF_LOCAL" | cut -d. -f3)"
-        d="$(printf "%s" "$IFCONF_LOCAL" | cut -d. -f4)"
-        if [ "$d" = "1" ]; then
-            IFCONF_REMOTE="$a.$b.$c.2"
-        elif [ "$d" = "2" ]; then
-            IFCONF_REMOTE="$a.$b.$c.1"
-        else
-            IFCONF_REMOTE="?"
-        fi
-    else
-        IFCONF_REMOTE="?"
-    fi
-    
-    # Get VPN gateway from routes (usually the remote IP)
-    ROUTE_VPN_GW="$IFCONF_REMOTE"
+
+    # For WireGuard, remote IP is the peer endpoint
+    IFCONF_REMOTE="$TRUSTED_IP"
+
+    # Get VPN gateway from routes (usually the endpoint IP if routed)
+    ROUTE_VPN_GW="$TRUSTED_IP"
 }
 
 ns_geo_line()
@@ -246,41 +194,21 @@ PUBLIC_TEST_IPv6="2606:4700:4700::1111"
 
 # Initialize variables with defaults
 COMMON_NAME=""
-DEV_IF="tun0"
-DEV_TYPE="?"
+DEV_IF="wg0"
+DEV_TYPE="wireguard"
 IFCONF_LOCAL="?"
 IFCONF_REMOTE="?"
 ROUTE_VPN_GW="?"
 TRUSTED_IP=""
 TRUSTED_PORT=""
-PROTO="?"
+PROTO="wireguard"
 LPORT="?"
 
-# Try to get OpenVPN status from management interface
-get_openvpn_status
+# Try to get WireGuard status
+get_wireguard_status
 
 # Get interface details from system
 get_interface_details
-
-# Try to get protocol and port from OpenVPN config or process
-if [ -f "/run/xt/nordvpn.ovpn" ]; then
-    # Try to extract from config file
-    PROTO="$(awk '/^[[:space:]]*proto[ \t]+/ {print tolower($2); exit}' "/run/xt/nordvpn.ovpn" || printf '?')"
-    LPORT="$(awk '/^[[:space:]]*port[ \t]+/ {print $2; exit}' "/run/xt/nordvpn.ovpn" || printf '?')"
-    if [ -z "$LPORT" ] || [ "$LPORT" = "?" ]; then
-        # Try from remote line
-        LPORT="$(awk '/^[[:space:]]*remote[ \t]+/ {print $3; exit}' "/run/xt/nordvpn.ovpn" | grep '^[0-9]*$' || printf '?')"
-    fi
-elif command -v pgrep >/dev/null 2>&1 && command -v ps >/dev/null 2>&1; then
-    OVPN_PID="$(pgrep -f openvpn || printf '')"
-    if [ -n "$OVPN_PID" ]; then
-        # Try to extract from process command line
-        OVPN_CMD="$(ps -p "$OVPN_PID" -o args= 2>/dev/null || printf '')"
-        PROTO="$(printf "%s" "$OVPN_CMD" | grep -o '\-\-proto [a-zA-Z0-9]*' | awk '{print $2}' | tr 'A-Z' 'a-z' || printf '?')"
-        LPORT="$(printf "%s" "$OVPN_CMD" | grep -o '\-\-lport [0-9]*\|\-\-port [0-9]*' | awk '{print $2}' | tail -1 || printf '?')"
-        [ -z "$LPORT" ] && LPORT="$(printf "%s" "$OVPN_CMD" | grep -o '\-\-remote [0-9.]* [0-9]*' | awk '{print $3}' || printf '?')"
-    fi
-fi
 
 # Format trusted peer display
 if [ -n "$TRUSTED_IP" ] && [ -n "$TRUSTED_PORT" ]; then
@@ -292,18 +220,35 @@ else
 fi
 
 echo "================================================================"
-echo "OpenVPN DIAG (full)   : $(date -Is 2>/dev/null || date)"
+echo "WireGuard DIAG (full) : $(date -Is 2>/dev/null || date)"
+if ip link show "$DEV_IF" >/dev/null 2>&1 && [ -n "$WG_BIN" ]; then
+    VPN_STATUS="Connected"
+else
+    VPN_STATUS="Disconnected - No $DEV_IF interface or wg not available"
+fi
+echo "VPN Status            : $VPN_STATUS"
 echo "Device                : $DEV_IF (type=$DEV_TYPE)"
 echo "Common Name           : $COMMON_NAME"
 echo "Ifconfig Local        : $IFCONF_LOCAL"
-echo "Ifconfig Remote       : $IFCONF_REMOTE"
-echo "Route VPN Gateway     : $ROUTE_VPN_GW"
-echo "Trusted Peer          : $TRUSTED_PEER"
+echo "Peer IP               : $IFCONF_REMOTE"
+echo "Peer Endpoint         : $TRUSTED_PEER"
 echo "Proto/Local Port      : $PROTO/$LPORT"
 echo
 
 echo "### ip addr show $DEV_IF"
 ip addr show "$DEV_IF" 2>/dev/null || true
+echo
+
+echo "### wg show"
+wg show 2>/dev/null || echo "[info] wg show failed or no wg interface"
+echo
+
+echo "### wg0.conf"
+if [ -f /etc/wireguard/wg0.conf ]; then
+    cat /etc/wireguard/wg0.conf | sed 's/PrivateKey = .*/PrivateKey = [REDACTED]/'
+else
+    echo "[info] wg0.conf not found"
+fi
 echo
 
 echo "### ip link (up)"
@@ -316,6 +261,10 @@ echo
 
 echo "### ip rule"
 ip rule show 2>/dev/null || true
+echo
+
+echo "### ip route table 51820"
+ip route show table 51820 2>/dev/null || true
 echo
 
 # Default route / split-default detection
@@ -332,7 +281,13 @@ else
     if [ "$DEF_DEV" = "$DEV_IF" ]; then
         echo "[ok] Default route is via $DEV_IF"
     else
-        echo "[warn] Default route is NOT via $DEV_IF"
+        # Check for policy routing to VPN table
+        POLICY_VPN="$(ip rule show 2>/dev/null | grep -q "lookup 51820" && ip route show table 51820 2>/dev/null | grep -q "dev $DEV_IF" && echo "yes" || echo "no")"
+        if [ "$POLICY_VPN" = "yes" ]; then
+            echo "[info] Default route is via $DEF_DEV, but policy routing enforces VPN for internet traffic"
+        else
+            echo "[warn] Default route is NOT via $DEV_IF"
+        fi
     fi
 fi
 echo
@@ -434,11 +389,16 @@ fi
 
 # Quick verdicts
 echo "### Quick verdicts"
-ROUTE_DEV="$(ip route get "$PUBLIC_TEST_IPv4" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
-if [ -n "$ROUTE_DEV" ] && [ "$ROUTE_DEV" = "$DEV_IF" ]; then
-    echo "[ok] Route to $PUBLIC_TEST_IPv4 goes via $DEV_IF"
+if [ "$VPN_STATUS" != "Connected" ]; then
+    ROUTE_DEV="$(ip route get "$PUBLIC_TEST_IPv4" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+    echo "[info] VPN disconnected - routes via local interface (${ROUTE_DEV:-<none>})"
 else
-    echo "[warn] Route to $PUBLIC_TEST_IPv4 uses ${ROUTE_DEV:-<none>} (expected $DEV_IF)"
+    ROUTE_DEV="$(ip route get "$PUBLIC_TEST_IPv4" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+    if [ -n "$ROUTE_DEV" ] && [ "$ROUTE_DEV" = "$DEV_IF" ]; then
+        echo "[ok] Route to $PUBLIC_TEST_IPv4 goes via $DEV_IF"
+    else
+        echo "[warn] Route to $PUBLIC_TEST_IPv4 uses ${ROUTE_DEV:-<none>} (expected $DEV_IF)"
+    fi
 fi
 
 fetch_public_info
