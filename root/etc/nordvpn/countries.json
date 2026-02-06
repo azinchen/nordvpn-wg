@@ -284,11 +284,11 @@
   "code": "BA",
   "cities": [
     {
-      "id": 548462,
-      "name": "Novi Travnik",
-      "latitude": 44.1711111,
-      "longitude": 17.6575,
-      "dns_name": "novi-travnik"
+      "id": 556823,
+      "name": "Sarajevo",
+      "latitude": 43.85,
+      "longitude": 18.3833333,
+      "dns_name": "sarajevo"
     }
   ]
 }
@@ -606,6 +606,13 @@
   "code": "FR",
   "cities": [
     {
+      "id": 2767493,
+      "name": "Bordeaux",
+      "latitude": 44.840439,
+      "longitude": -0.5805,
+      "dns_name": "bordeaux"
+    },
+    {
       "id": 2867102,
       "name": "Marseille",
       "latitude": 43.285413,
@@ -853,20 +860,6 @@
   ]
 }
 {
-  "id": 243,
-  "name": "Isle of Man",
-  "code": "IM",
-  "cities": [
-    {
-      "id": 3965405,
-      "name": "Douglas",
-      "latitude": 54.15,
-      "longitude": -4.483333,
-      "dns_name": "douglas"
-    }
-  ]
-}
-{
   "id": 105,
   "name": "Israel",
   "code": "IL",
@@ -944,20 +937,6 @@
   ]
 }
 {
-  "id": 244,
-  "name": "Jersey",
-  "code": "JE",
-  "cities": [
-    {
-      "id": 4572281,
-      "name": "Saint Helier",
-      "latitude": 49.183333,
-      "longitude": -2.1,
-      "dns_name": "saint-helier"
-    }
-  ]
-}
-{
   "id": 109,
   "name": "Jordan",
   "code": "JO",
@@ -996,6 +975,20 @@
       "latitude": -1.2833333,
       "longitude": 36.8166667,
       "dns_name": "nairobi"
+    }
+  ]
+}
+{
+  "id": 114,
+  "name": "South Korea",
+  "code": "KR",
+  "cities": [
+    {
+      "id": 4879586,
+      "name": "Seoul",
+      "latitude": 37.5985,
+      "longitude": 126.9783,
+      "dns_name": "seoul"
     }
   ]
 }
@@ -1112,6 +1105,20 @@
   ]
 }
 {
+  "id": 128,
+  "name": "North Macedonia",
+  "code": "MK",
+  "cities": [
+    {
+      "id": 5386019,
+      "name": "Skopje",
+      "latitude": 42,
+      "longitude": 21.4333333,
+      "dns_name": "skopje"
+    }
+  ]
+}
+{
   "id": 131,
   "name": "Malaysia",
   "code": "MY",
@@ -1150,6 +1157,20 @@
       "latitude": 18.0863889,
       "longitude": -15.9752778,
       "dns_name": "nouakchott"
+    }
+  ]
+}
+{
+  "id": 138,
+  "name": "Mauritius",
+  "code": "MU",
+  "cities": [
+    {
+      "id": 5556011,
+      "name": "Port Louis",
+      "latitude": -20.1619444,
+      "longitude": 57.4988889,
+      "dns_name": "port-louis"
     }
   ]
 }
@@ -1318,20 +1339,6 @@
       "latitude": 6.453056,
       "longitude": 3.395833,
       "dns_name": "lagos"
-    }
-  ]
-}
-{
-  "id": 128,
-  "name": "North Macedonia",
-  "code": "MK",
-  "cities": [
-    {
-      "id": 5386019,
-      "name": "Skopje",
-      "latitude": 42,
-      "longitude": 21.4333333,
-      "dns_name": "skopje"
     }
   ]
 }
@@ -1616,20 +1623,6 @@
   ]
 }
 {
-  "id": 114,
-  "name": "South Korea",
-  "code": "KR",
-  "cities": [
-    {
-      "id": 4879586,
-      "name": "Seoul",
-      "latitude": 37.5985,
-      "longitude": 126.9783,
-      "dns_name": "seoul"
-    }
-  ]
-}
-{
   "id": 202,
   "name": "Spain",
   "code": "ES",
@@ -1661,6 +1654,20 @@
       "latitude": 6.9319444,
       "longitude": 79.8477778,
       "dns_name": "colombo"
+    }
+  ]
+}
+{
+  "id": 205,
+  "name": "Suriname",
+  "code": "SR",
+  "cities": [
+    {
+      "id": 7976870,
+      "name": "Paramaribo",
+      "latitude": 5.8333333,
+      "longitude": -55.1666667,
+      "dns_name": "paramaribo"
     }
   ]
 }
@@ -1703,6 +1710,20 @@
       "latitude": 25.0391667,
       "longitude": 121.525,
       "dns_name": "taipei"
+    }
+  ]
+}
+{
+  "id": 212,
+  "name": "Tajikistan",
+  "code": "TJ",
+  "cities": [
+    {
+      "id": 8269814,
+      "name": "Dushanbe",
+      "latitude": 38.56,
+      "longitude": 68.7738889,
+      "dns_name": "dushanbe"
     }
   ]
 }
@@ -1787,6 +1808,13 @@
       "latitude": 25.258172,
       "longitude": 55.304717,
       "dns_name": "dubai"
+    },
+    {
+      "id": 800,
+      "name": "Fujairah",
+      "latitude": 25.116412,
+      "longitude": 56.341408,
+      "dns_name": "fujairah"
     }
   ]
 }
@@ -1845,6 +1873,13 @@
       "dns_name": "atlanta"
     },
     {
+      "id": 8873894,
+      "name": "Baltimore",
+      "latitude": 39.2902778,
+      "longitude": -76.6125,
+      "dns_name": "baltimore"
+    },
+    {
       "id": 8895305,
       "name": "Boston",
       "latitude": 42.3583333,
@@ -1857,6 +1892,20 @@
       "latitude": 42.8863889,
       "longitude": -78.8786111,
       "dns_name": "buffalo"
+    },
+    {
+      "id": 9099731,
+      "name": "Burlington",
+      "latitude": 44.4758333,
+      "longitude": -73.2125,
+      "dns_name": "burlington"
+    },
+    {
+      "id": 9050567,
+      "name": "Charleston",
+      "latitude": 32.7763889,
+      "longitude": -79.9311111,
+      "dns_name": "charleston"
     },
     {
       "id": 8980922,
@@ -1894,11 +1943,25 @@
       "dns_name": "houston"
     },
     {
+      "id": 9134528,
+      "name": "Huntington",
+      "latitude": 38.4191667,
+      "longitude": -82.4452778,
+      "dns_name": "huntington"
+    },
+    {
       "id": 8930717,
       "name": "Kansas City",
       "latitude": 39.0997222,
       "longitude": -94.5783333,
       "dns_name": "kansas-city"
+    },
+    {
+      "id": 8869646,
+      "name": "Lewiston",
+      "latitude": 44.1002778,
+      "longitude": -70.2152778,
+      "dns_name": "lewiston"
     },
     {
       "id": 8761958,
@@ -1922,11 +1985,25 @@
       "dns_name": "miami"
     },
     {
+      "id": 8948549,
+      "name": "Nashua",
+      "latitude": 42.7652778,
+      "longitude": -71.4680556,
+      "dns_name": "nashua"
+    },
+    {
       "id": 9071273,
       "name": "Nashville",
       "latitude": 36.1658333,
       "longitude": -86.7844444,
       "dns_name": "nashville"
+    },
+    {
+      "id": 8775974,
+      "name": "New Haven",
+      "latitude": 41.3080556,
+      "longitude": -72.9286111,
+      "dns_name": "new-haven"
     },
     {
       "id": 8971718,
@@ -1948,6 +2025,20 @@
       "latitude": 33.4483333,
       "longitude": -112.0733333,
       "dns_name": "phoenix"
+    },
+    {
+      "id": 9036872,
+      "name": "Pittsburgh",
+      "latitude": 40.4405556,
+      "longitude": -79.9961111,
+      "dns_name": "pittsburgh"
+    },
+    {
+      "id": 9048614,
+      "name": "Providence",
+      "latitude": 41.8238889,
+      "longitude": -71.4133333,
+      "dns_name": "providence"
     },
     {
       "id": 8934551,
@@ -1976,6 +2067,20 @@
       "latitude": 47.6063889,
       "longitude": -122.3308333,
       "dns_name": "seattle"
+    },
+    {
+      "id": 8956166,
+      "name": "Trenton",
+      "latitude": 40.2169444,
+      "longitude": -74.7433333,
+      "dns_name": "trenton"
+    },
+    {
+      "id": 8781776,
+      "name": "Wilmington",
+      "latitude": 39.7458333,
+      "longitude": -75.5469444,
+      "dns_name": "wilmington"
     }
   ]
 }
@@ -2039,6 +2144,34 @@
       "latitude": 10.75,
       "longitude": 106.666667,
       "dns_name": "ho-chi-minh-city"
+    }
+  ]
+}
+{
+  "id": 243,
+  "name": "Isle of Man",
+  "code": "IM",
+  "cities": [
+    {
+      "id": 3965405,
+      "name": "Douglas",
+      "latitude": 54.15,
+      "longitude": -4.483333,
+      "dns_name": "douglas"
+    }
+  ]
+}
+{
+  "id": 244,
+  "name": "Jersey",
+  "code": "JE",
+  "cities": [
+    {
+      "id": 4572281,
+      "name": "Saint Helier",
+      "latitude": 49.183333,
+      "longitude": -2.1,
+      "dns_name": "saint-helier"
     }
   ]
 }
