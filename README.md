@@ -1,6 +1,6 @@
-[![logo](https://github.com/azinchen/nordvpn/raw/master/NordVpn_logo.png)](https://www.nordvpn.com/)
+[![logo](https://github.com/azinchen/nordvpn-wg/raw/main/NordVpn_logo.png)](https://www.nordvpn.com/)
 
-# NordVPN OpenVPN Docker Container
+# NordVPN WireGuard Docker Container
 
 [![Docker pulls][dockerhub-pulls]][dockerhub-link]
 [![Docker image size][dockerhub-size]][dockerhub-link]
@@ -12,9 +12,9 @@
 [![GitHub build][github-build]][github-actions]
 [![GitHub last commit][github-lastcommit]][github-link]
 [![License][license-badge]][license-link]
-[![OpenVPN][openvpn-badge]](https://openvpn.net/)
+[![WireGuard][wireguard-badge]](https://www.wireguard.com/)
 
-OpenVPN client docker container that routes other containers' traffic through NordVPN servers automatically.
+WireGuard client docker container that routes other containers' traffic through NordVPN servers automatically.
 
 ## ✨ Key Features
 
@@ -40,7 +40,7 @@ OpenVPN client docker container that routes other containers' traffic through No
   - [Security Features](#security-features)
   - [Container Registries](#container-registries)
   - [Firewall backends (nft vs legacy)](#firewall-backends-nft-vs-legacy)
-  - [Getting Service Credentials](#getting-service-credentials)
+  - [Getting WireGuard Private Key](#getting-wireguard-private-key)
 - [Configuration Options](#configuration-options)
   - [Server Selection](#server-selection)
   - [IPv6 behavior](#ipv6-behavior)
@@ -72,14 +72,14 @@ OpenVPN client docker container that routes other containers' traffic through No
 **From Docker Hub:**
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
-           -e USER=service_username -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            azinchen/nordvpn
 ```
 
 **From GitHub Container Registry:**
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
-           -e USER=service_username -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            ghcr.io/azinchen/nordvpn
 ```
 
@@ -90,9 +90,23 @@ docker run --net=container:vpn -d your/application
 
 ### Requirements
 
-- Docker with `--cap-add=NET_ADMIN` and `--device /dev/net/tun`
-- **NordVPN Service Credentials** (not regular account credentials)
-- The image includes both nftables and **iptables‑legacy** and auto‑selects the working backend at runtime — no manual config needed.
+- **Docker** with `--cap-add=NET_ADMIN` and `--device /dev/net/tun`
+- **Docker Compose**: Minimum configuration:
+  ```yaml
+  services:
+    vpn:
+      cap_add:
+        - NET_ADMIN
+        - SYS_ADMIN
+      devices:
+        - /dev/net/tun
+      sysctls:
+        - net.ipv4.conf.all.src_valid_mark=1
+  ```
+  **Note**: `SYS_ADMIN` capability is required for sysctl modifications. If issues persist, `privileged: true` can be used as a last resort.
+- **Linux kernel** with WireGuard support (kernel 5.6+ recommended, or wireguard.ko module)
+- **NordVPN WireGuard Private Key** (obtained via access token method as described below)
+- The image includes both nftables and **iptables‑legacy** and auto‑selects the working backend at runtime for firewall management — no manual config needed.
 
 ### Security Features
 
@@ -149,15 +163,51 @@ or on older systems:
 [ENTRYPOINT] Using IPv4 backend: iptables-legacy
 ```
 
-### Getting Service Credentials
+### Getting WireGuard Private Key
 
-1. Log into your [Nord Account Dashboard](https://my.nordaccount.com/)
-2. Click on **NordVPN**
-3. Under **Advanced Settings**, click **Set up NordVPN manually**
-4. Go to the **Service credentials** tab
-5. Copy the **Username** and **Password** shown there
+To get your PRIVATE_KEY you will need to get an access token from the NordVPN website and then use the https://github.com/bubuntux/nordvpn container.
 
-**Note**: These are different from your regular NordVPN login credentials and are specifically required for OpenVPN connections.
+1. Log in to https://nordvpn.com/
+2. On the left side, click on NordVPN
+3. In the middle, under Manual setup, click on Set up NordVPN manually and go through the verification process
+4. On the new page, in the middle, in the Access token box, click on Generate new token
+5. In the Generate new token? pop-up box, select Set to expire in 30 days and click Generate token
+6. In the Copy access token pop-up box, click the Copy link to copy your token
+7. From your computer where Docker is installed, run the below command and replace `{{{TOKEN}}}` with what you copied from step 6 above:
+
+```bash
+docker run --rm --cap-add=NET_ADMIN -e TOKEN={{{TOKEN}}} ghcr.io/bubuntux/nordvpn:get_private_key
+```
+
+Docker will do its thing and spit out your PRIVATE_KEY:
+
+```
+user@hostname:~/docker> docker run --rm --cap-add=NET_ADMIN -e TOKEN=[redacted] ghcr.io/bubuntux/nordvpn:get_private_key
+Unable to find image 'ghcr.io/bubuntux/nordvpn:get_private_key' locally
+get_private_key: Pulling from bubuntux/nordvpn
+06d39c85623a: Pull complete 
+3e1c241a05c8: Pull complete 
+0077b26e8dce: Pull complete 
+Digest: sha256:0d91aabb4511d400b01e930654950729a4e859d3c250f61664662b0ed7027c56
+Status: Downloaded newer image for ghcr.io/bubuntux/nordvpn:get_private_key
+Waiting for daemon to start up...
+A new version of NordVPN is available! Please update the application.
+Welcome to NordVPN! You can now connect to VPN by using 'nordvpn connect'.
+A new version of NordVPN is available! Please update the application.
+Technology is already set to 'NORDLYNX'.
+A new version of NordVPN is available! Please update the application.
+Connecting to United States #5831 (us5831.nordvpn.com)
+You are connected to United States #5831 (us5831.nordvpn.com)!
+############################################################
+IP: 10.5.0.2/32
+Private Key: [!!! THIS IS YOUR PRIVATE_KEY YOU NEED !!!]
+＼(＾O＾)／############################################################
+user@hostname:~/docker> 
+```
+
+8. Copy everything after `Private Key:` (note the space after `:`) to the end of the line -- this is your PRIVATE_KEY
+
+**Note**: This is different from your regular NordVPN login credentials and is specifically for WireGuard connections.
 
 ## Configuration Options
 
@@ -167,7 +217,7 @@ Filter NordVPN servers using location and server criteria:
 
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun \
-           -e USER=service_username -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            -e COUNTRY="United States;CA;153" \
            -e CITY="New York;2619989;es1234" \
            -e GROUP="Standard VPN servers" \
@@ -248,15 +298,6 @@ ip6tables -S 2>/dev/null || true  # may be empty/unavailable
 -e RECREATE_VPN_CRON="0 */4 * * *"
 ```
 
-#### Connection Failure Handling
-```bash
-# Force reconnect to different server on connection loss
--e OPENVPN_OPTS="--pull-filter ignore ping-restart --ping-exit 180"
-
-# Alternative: More aggressive reconnection
--e OPENVPN_OPTS="--ping 10 --ping-exit 60 --ping-restart 300"
-```
-
 #### Connection Health Monitoring
 ```bash
 # Check connection every 5 minutes
@@ -277,7 +318,7 @@ ip route | awk '!/ (docker0|br-)/ && /src/ {print $1}'
 # Configure container with local network access
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun \
            -e NETWORK=192.168.1.0/24 \
-           -e USER=service_username -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            azinchen/nordvpn
 ```
 
@@ -295,11 +336,11 @@ services:
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
+      - SYS_ADMIN
     devices:
       - /dev/net/tun
     environment:
-      - USER=service_username
-      - PASS=service_password
+      - PRIVATE_KEY=your_private_key_here
       - COUNTRY=United States;CA;38
       - CITY=New York;Los Angeles;Toronto
       - RANDOM_TOP=10
@@ -346,11 +387,11 @@ services:
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
+      - SYS_ADMIN
     devices:
       - /dev/net/tun
     environment:
-      - USER=service_username
-      - PASS=service_password
+      - PRIVATE_KEY=your_private_key_here
       - COUNTRY=Netherlands;DE;209
       - CITY=Amsterdam;Berlin;Frankfurt
       - GROUP=Standard VPN servers
@@ -359,7 +400,6 @@ services:
       - CHECK_CONNECTION_CRON=*/5 * * * *
       - CHECK_CONNECTION_URL=https://1.1.1.1;https://8.8.8.8
       - NETWORK=192.168.1.0/24;172.20.0.0/16
-      - OPENVPN_OPTS=--mute-replay-warnings --ping-exit 60
     ports:
       - "8080:8080"   # Web application
       - "3000:3000"   # API service
@@ -425,11 +465,11 @@ services:
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
+      - SYS_ADMIN
     devices:
       - /dev/net/tun
     environment:
-      - USER=service_username
-      - PASS=service_password
+      - PRIVATE_KEY=your_private_key_here
       - COUNTRY=CA;38
       - CITY=Toronto;Montreal
       - NETWORK=192.168.1.0/24
@@ -467,8 +507,7 @@ services:
 docker run -d --name vpn \
            --cap-add=NET_ADMIN \
            --device /dev/net/tun \
-           -e USER=service_username \
-           -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            azinchen/nordvpn
 
 # Run application through VPN
@@ -482,8 +521,7 @@ docker run -d --name vpn \
            --device /dev/net/tun \
            -p 8080:8080 \
            -p 9091:9091 \
-           -e USER=service_username \
-           -e PASS=service_password \
+           -e PRIVATE_KEY=your_private_key_here \
            -e COUNTRY="Germany;NL;202" \
            -e CITY="Amsterdam;6076868;uk2567" \
            -e GROUP="Standard VPN servers" \
@@ -505,12 +543,10 @@ docker run -d --name api-service --net=container:vpn \
 
 | Variable | Details |
 |---|---|
-| **USER** | **Required** — NordVPN service credentials username. <br> **Default:** — <br> **Example:** `service_username` |
-| **PASS** | **Required** — NordVPN service credentials password. <br> **Default:** — <br> **Example:** `service_password` |
+| **PRIVATE_KEY** | **Required** — NordVPN WireGuard private key. <br> **Default:** — <br> **Example:** `your_private_key_here` |
 | **COUNTRY** | Filter by countries: names, codes, IDs, or specific server hostnames ([list][nordvpn-countries]). Use semicolons to separate multiple values. <br> **Default:** All countries <br> **Example:** `United States;CA;228;es1234` |
 | **CITY** | Filter by cities: names, IDs, or specific server hostnames ([list][nordvpn-cities]). Use semicolons to separate multiple values. <br> **Default:** All cities <br> **Example:** `New York;8971718;uk2567` |
 | **GROUP** | Filter by server group ([list][nordvpn-groups]). <br> **Default:** Not defined <br> **Example:** `Standard VPN servers` |
-| **TECHNOLOGY** | Filter by technology — OpenVPN only supported ([list][nordvpn-technologies]). <br> **Default:** OpenVPN UDP <br> **Example:** `openvpn_udp` |
 | **RANDOM_TOP** | Randomize top **N** servers from the filtered list. <br> **Default:** Disabled <br> **Example:** `10` |
 | **RECREATE<wbr>_VPN<wbr>_CRON** | Schedule for server switching (cron format). <br> **Default:** Disabled <br> **Example:** `0 */6 * * *` *(every 6 hours)* |
 | **CHECK<wbr>_CONNECTION<wbr>_CRON** | Schedule for connection monitoring (cron format). <br> **Default:** Disabled <br> **Example:** `*/5 * * * *` *(every 5 minutes)* |
@@ -519,7 +555,6 @@ docker run -d --name api-service --net=container:vpn \
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPT<wbr>_INTERVAL** | Seconds between failed attempts. <br> **Default:** `10` <br> **Example:** `10` |
 | **NETWORK** | Local/LAN or inter‑container networks to allow; semicolon‑separated CIDRs. <br> **Default:** None <br> **Example:** `10.0.0.0/8;172.16.0.0/12;192.168.0.0/16` |
 | **NORDVPNAPI<wbr>_IP** | IPv4 list of `api.nordvpn.com` addresses (semicolon‑separated) used during **pre‑VPN bootstrap** to avoid DNS (HTTPS only). <br> **Default:** `104.16.208.203;104.19.159.190` <br> **Example:** `104.19.159.190;104.16.208.203` |
-| **OPENVPN<wbr>_OPTS** | Additional OpenVPN parameters. <br> **Default:** None <br> **Example:** `--mute-replay-warnings` |
 | **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable automatic network diagnostics on VPN connection and reconnection. <br> **Default:** `false` <br> **Example:** `true` |
 
 ## Supported Platforms
@@ -566,26 +601,26 @@ Consider using
 
 If you have any problems with or questions about this image, please contact me through a [GitHub issue][github-issues] or [email][email-link].
 
-[dockerhub-link]: https://hub.docker.com/r/azinchen/nordvpn
-[dockerhub-pulls]: https://img.shields.io/docker/pulls/azinchen/nordvpn?style=flat-square&logo=docker&logoColor=white
-[dockerhub-size]: https://img.shields.io/docker/image-size/azinchen/nordvpn/latest?style=flat-square&logo=docker&logoColor=white
-[dockerhub-stars]: https://img.shields.io/docker/stars/azinchen/nordvpn?style=flat-square&logo=docker&logoColor=white
-[github-link]: https://github.com/azinchen/nordvpn
-[github-issues]: https://github.com/azinchen/nordvpn/issues
-[github-releases]: https://github.com/azinchen/nordvpn/releases
-[github-actions]: https://github.com/azinchen/nordvpn/actions
-[github-stars]: https://img.shields.io/github/stars/azinchen/nordvpn?style=flat-square&logo=github&logoColor=white
-[github-forks]: https://img.shields.io/github/forks/azinchen/nordvpn?style=flat-square&logo=github&logoColor=white
-[github-release]: https://img.shields.io/github/v/release/azinchen/nordvpn?style=flat-square&logo=github&logoColor=white
-[github-releasedate]: https://img.shields.io/github/release-date/azinchen/nordvpn?style=flat-square&logo=github&logoColor=white
-[github-build]: https://img.shields.io/github/actions/workflow/status/azinchen/nordvpn/ci-build-deploy.yml?branch=master&style=flat-square&logo=github&logoColor=white&label=build
-[github-lastcommit]: https://img.shields.io/github/last-commit/azinchen/nordvpn?style=flat-square&logo=github&logoColor=white
-[license-badge]: https://img.shields.io/github/license/azinchen/nordvpn?style=flat-square&logo=opensourceinitiative&logoColor=white
-[license-link]: https://github.com/azinchen/nordvpn/blob/master/LICENSE
+[dockerhub-link]: https://hub.docker.com/r/azinchen/nordvpn-wg
+[dockerhub-pulls]: https://img.shields.io/docker/pulls/azinchen/nordvp-wg?style=flat-square&logo=docker&logoColor=white
+[dockerhub-size]: https://img.shields.io/docker/image-size/azinchen/nordvpn-wg/latest?style=flat-square&logo=docker&logoColor=white
+[dockerhub-stars]: https://img.shields.io/docker/stars/azinchen/nordvpn-wg?style=flat-square&logo=docker&logoColor=white
+[github-link]: https://github.com/azinchen/nordvpn-wg
+[github-issues]: https://github.com/azinchen/nordvpn-wg/issues
+[github-releases]: https://github.com/azinchen/nordvpn-wg/releases
+[github-actions]: https://github.com/azinchen/nordvpn-wg/actions
+[github-stars]: https://img.shields.io/github/stars/azinchen/nordvpn-wg?style=flat-square&logo=github&logoColor=white
+[github-forks]: https://img.shields.io/github/forks/azinchen/nordvpn-wg?style=flat-square&logo=github&logoColor=white
+[github-release]: https://img.shields.io/github/v/release/azinchen/nordvpn-wg?style=flat-square&logo=github&logoColor=white
+[github-releasedate]: https://img.shields.io/github/release-date/azinchen/nordvpn-wg?style=flat-square&logo=github&logoColor=white
+[github-build]: https://img.shields.io/github/actions/workflow/status/azinchen/nordvpn-wg/ci-build-deploy.yml?branch=main&style=flat-square&logo=github&logoColor=white&label=build
+[github-lastcommit]: https://img.shields.io/github/last-commit/azinchen/nordvpn-wg?style=flat-square&logo=github&logoColor=white
+[license-badge]: https://img.shields.io/github/license/azinchen/nordvpn-wg?style=flat-square&logo=opensourceinitiative&logoColor=white
+[license-link]: https://github.com/azinchen/nordvpn-wg/blob/main/LICENSE
 [multiarch-badge]: https://img.shields.io/badge/multi--arch-linux%2F386%20%7C%20linux%2Famd64%20%7C%20linux%2Farm%2Fv6%20%7C%20linux%2Farm%2Fv7%20%7C%20linux%2Farm64%20%7C%20linux%2Fppc64le%20%7C%20linux%2Friscv64%20%7C%20linux%2Fs390x-blue?style=flat-square&logo=docker&logoColor=white
-[openvpn-badge]: https://img.shields.io/badge/OpenVPN-supported-green?style=flat-square&logo=openvpn&logoColor=white
-[nordvpn-cities]: https://github.com/azinchen/nordvpn/blob/master/CITIES.md
-[nordvpn-countries]: https://github.com/azinchen/nordvpn/blob/master/COUNTRIES.md
-[nordvpn-groups]: https://github.com/azinchen/nordvpn/blob/master/GROUPS.md
-[nordvpn-technologies]: https://github.com/azinchen/nordvpn/blob/master/TECHNOLOGIES.md
+[wireguard-badge]: https://img.shields.io/badge/WireGuard-supported-green?style=flat-square&logo=wireguard&logoColor=white
+[nordvpn-cities]: https://github.com/azinchen/nordvpn-wg/blob/main/CITIES.md
+[nordvpn-countries]: https://github.com/azinchen/nordvpn-wg/blob/main/COUNTRIES.md
+[nordvpn-groups]: https://github.com/azinchen/nordvpn-wg/blob/main/GROUPS.md
+[nordvpn-technologies]: https://github.com/azinchen/nordvpn-wg/blob/main/TECHNOLOGIES.md
 [email-link]: mailto:alexander@zinchenko.com
