@@ -10,8 +10,8 @@ ENV PACKAGEVERSION="3.2.2.0"
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        tar=1.35-r3 \
-        xz=5.8.1-r0 \
+        tar=1.35-r4 \
+        xz=5.8.2-r0 \
         && \
     echo "**** create folders ****" && \
     mkdir -p /s6 && \
@@ -49,7 +49,7 @@ ARG IMAGE_VERSION=N/A \
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        jq=1.8.0-r0 \
+        jq=1.8.1-r0 \
         && \
     echo "**** end run statement ****"
 
@@ -100,14 +100,14 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
     apk --no-cache --no-progress add \
-        curl=8.14.1-r1 \
+        curl=8.17.0-r1 \
         iptables=1.8.11-r1 \
         iptables-legacy=1.8.11-r1 \
-        jq=1.8.0-r0 \
-        shadow=4.17.3-r0 \
-        shadow-login=4.17.3-r0 \
-        wireguard-tools=1.0.20250521-r0 \
-        bind-tools=9.20.13-r0 \
+        jq=1.8.1-r0 \
+        shadow=4.18.0-r0 \
+        shadow-login=4.18.0-r0 \
+        wireguard-tools=1.0.20250521-r1 \
+        bind-tools=9.20.18-r0 \
         && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
