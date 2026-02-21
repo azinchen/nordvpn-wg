@@ -1,6 +1,9 @@
 # s6 overlay builder
 FROM alpine:3.23.3 AS s6-builder
 
+ARG TARGETARCH
+ARG TARGETVARIANT
+
 ENV PACKAGE="just-containers/s6-overlay"
 ENV PACKAGEVERSION="3.2.2.0"
 
@@ -13,55 +16,89 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** create folders ****" && \
     mkdir -p /s6 && \
     echo "**** download ${PACKAGE} ****" && \
-    s6_arch=$(case $(uname -m) in \
-        i?86)           echo "i486"        ;; \
-        x86_64)         echo "x86_64"      ;; \
-        aarch64)        echo "aarch64"     ;; \
-        armv6l)         echo "arm"         ;; \
-        armv7l)         echo "armhf"       ;; \
-        ppc64le)        echo "powerpc64le" ;; \
-        riscv64)        echo "riscv64"     ;; \
-        s390x)          echo "s390x"       ;; \
-        *)              echo ""            ;; esac) && \
+    echo "Target arch: ${TARGETARCH}${TARGETVARIANT}" && \
+    # Map Docker TARGETARCH to s6-overlay architecture names
+    case "${TARGETARCH}${TARGETVARIANT}" in \
+        amd64)      s6_arch="x86_64" ;; \
+        arm64)      s6_arch="aarch64" ;; \
+        armv7)      s6_arch="arm" ;; \
+        armv6)      s6_arch="armhf" ;; \
+        386)        s6_arch="i686" ;; \
+        ppc64le)    s6_arch="powerpc64le" ;; \
+        riscv64)    s6_arch="riscv64" ;; \
+        s390x)      s6_arch="s390x" ;; \
+        *)          s6_arch="x86_64" ;; \
+    esac && \
     echo "Package ${PACKAGE} platform ${PACKAGEPLATFORM} version ${PACKAGEVERSION}" && \
-    wget -q "https://github.com/${PACKAGE}/releases/download/v${PACKAGEVERSION}/s6-overlay-noarch.tar.xz" -qO /tmp/s6-overlay-noarch.tar.xz && \
-    wget -q "https://github.com/${PACKAGE}/releases/download/v${PACKAGEVERSION}/s6-overlay-${s6_arch}.tar.xz" -qO /tmp/s6-overlay-binaries.tar.xz && \
+    s6_url_base="https://github.com/${PACKAGE}/releases/download/v${PACKAGEVERSION}" && \
+    wget -q "${s6_url_base}/s6-overlay-noarch.tar.xz" -qO /tmp/s6-overlay-noarch.tar.xz && \
+    wget -q "${s6_url_base}/s6-overlay-${s6_arch}.tar.xz" -qO /tmp/s6-overlay-binaries.tar.xz && \
+    wget -q "${s6_url_base}/s6-overlay-symlinks-noarch.tar.xz" -qO /tmp/s6-overlay-symlinks-noarch.tar.xz && \
+    wget -q "${s6_url_base}/s6-overlay-symlinks-arch.tar.xz" -qO /tmp/s6-overlay-symlinks-arch.tar.xz && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
-    tar -C /s6/ -Jxpf /tmp/s6-overlay-binaries.tar.xz
+    tar -C /s6/ -Jxpf /tmp/s6-overlay-binaries.tar.xz && \
+    tar -C /s6/ -Jxpf /tmp/s6-overlay-symlinks-noarch.tar.xz && \
+    tar -C /s6/ -Jxpf /tmp/s6-overlay-symlinks-arch.tar.xz
 
 # rootfs builder
 FROM alpine:3.23.3 AS rootfs-builder
 
+ARG IMAGE_VERSION=N/A \
+    BUILD_DATE=N/A
+
 RUN echo "**** install security fix packages ****" && \
+    echo "**** install mandatory packages ****" && \
+    apk --no-cache --no-progress add \
+        jq=1.8.0-r0 \
+        && \
     echo "**** end run statement ****"
 
 COPY root/ /rootfs/
-RUN chmod +x /rootfs/usr/local/bin/* && \
-    chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/run && \
-    chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/finish && \
-    chmod 644 /rootfs/etc/nordvpn/*.json
+RUN chmod +x /rootfs/usr/local/bin/* || true && \
+    chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/run  || true && \
+    chmod +x /rootfs/etc/s6-overlay/s6-rc.d/*/finish || true && \
+    chmod 644 /rootfs/usr/local/share/nordvpn/data/*.json && \
+    for f in /rootfs/usr/local/share/nordvpn/data/*.json; do \
+        jq -c . "$f" > "$f.tmp" && mv "$f.tmp" "$f"; \
+    done && \
+    safe_sed() { \
+        local pattern="$1"; \
+        local replacement="$2"; \
+        local file="$3"; \
+        local delim; \
+        for delim in '/' '|' '#' '@' '%' '^' '&' '*' '+' '-' '_' '=' ':' ';' '<' '>' ',' '.' '?' '~'; do \
+            if [ "${replacement%%*"$delim"*}" = "$replacement" ]; then \
+                sed -i "s${delim}${pattern}${delim}${replacement}${delim}g" "$file"; \
+                return; \
+            fi; \
+        done; \
+        echo "No safe delimiter found for $pattern in $file"; \
+    } && \
+    safe_sed "__IMAGE_VERSION__" "${IMAGE_VERSION}" /rootfs/usr/local/bin/entrypoint && \
+    safe_sed "__BUILD_DATE__" "${BUILD_DATE}" /rootfs/usr/local/bin/entrypoint
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
 FROM alpine:3.23.3
 
-LABEL maintainer="Alexander Zinchenko <alexander@zinchenko.com>"
+ARG TARGETPLATFORM
+ARG IMAGE_VERSION=N/A \
+    BUILD_DATE=N/A
 
-ARG IMAGE_VERSION=N/A
-ARG BUILD_DATE=N/A
+LABEL org.opencontainers.image.authors="Alexander Zinchenko <alexander@zinchenko.com>" \
+      org.opencontainers.image.description="WireGuard client docker container that routes other containers' traffic through NordVPN servers automatically." \
+      org.opencontainers.image.source="https://github.com/azinchen/nordvpn-wg" \
+      org.opencontainers.image.licenses="AGPL-3.0" \
+      org.opencontainers.image.title="NordVPN WireGuard Docker Container" \
+      org.opencontainers.image.url="https://github.com/azinchen/nordvpn-wg" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
 
-ENV IMAGE_VERSION=${IMAGE_VERSION} \
-    BUILD_DATE=${BUILD_DATE} \
-    NORDVPNAPI_IP=104.16.208.203;104.19.159.190 \
-    DNS=103.86.96.100,103.86.99.100 \
-    RANDOM_TOP=0 \
-    CHECK_CONNECTION_ATTEMPTS=5 \
-    CHECK_CONNECTION_ATTEMPT_INTERVAL=10 \
-    PATH=/command:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
+    echo "Target platform: ${TARGETPLATFORM}" && \
     apk --no-cache --no-progress add \
         curl=8.14.1-r1 \
         iptables=1.8.11-r1 \

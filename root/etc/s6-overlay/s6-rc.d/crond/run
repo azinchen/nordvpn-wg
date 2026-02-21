@@ -1,8 +1,0 @@
-#!/command/with-contenv sh
-# shellcheck shell=sh
-
-set -eu
-
-echo "[SERVICE-CROND] Starting crond service..."
-
-exec crond -f

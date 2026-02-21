@@ -3,10 +3,12 @@
 
 set -eu
 
-echo "[INIT-FIREWALL] Starting init-firewall script..."
-echo "[INIT-FIREWALL] Setting up firewall - everything has to go through the VPN"
-
 . /usr/local/bin/backend-functions
+
+SCRIPT_NAME="INIT-FIREWALL"
+
+log "$SCRIPT_NAME" "Starting firewall initialization"
+log "$SCRIPT_NAME" "Configuring firewall to route all traffic through VPN"
 
 # BusyBox-friendly helpers
 docker_network="$(ip addr show dev eth0 2>/dev/null | awk '/inet / {print $2; exit}')"
@@ -14,7 +16,7 @@ gw="$(ip route 2>/dev/null | awk '/default/ {print $3; exit}')"
 
 # ===================== IPv4 =====================
 if [ -n "$docker_network" ]; then
-    echo "[INIT-FIREWALL] IPv4 rules..."
+    log "$SCRIPT_NAME" "Setting up IPv4 firewall rules..."
 
     # Stateful fast-path (skip gracefully if conntrack match absent)
     run4_critical -A INPUT  -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
@@ -29,10 +31,10 @@ if [ -n "$docker_network" ]; then
     run4 -A OUTPUT -p udp --dport 51820 -j VPN-SERVER
 
     # NordVPN API bootstrap (TCP/443) by resolved IPs
-    if [ -n "$NORDVPNAPI_IP" ]; then
-        echo "[INIT-FIREWALL] Processing NordVPN API IPv4 addresses from NORDVPNAPI_IP variable: ${NORDVPNAPI_IP}"
+    if [ -n "$nordvpnapi_ip" ]; then
+        log "$SCRIPT_NAME" "Allowing NordVPN API access for IPs: ${nordvpnapi_ip}"
         oldIFS="$IFS"; IFS=',;'
-        for ip in $NORDVPNAPI_IP; do
+        for ip in $nordvpnapi_ip; do
             [ -z "$ip" ] && continue
             run4 -A OUTPUT -d "$ip" -p tcp --dport 443 -j ACCEPT
         done
@@ -40,10 +42,10 @@ if [ -n "$docker_network" ]; then
     fi
 
     # NETWORK rules (CIDRs). If present, restrict inbound to these nets; do NOT add the broad eth0 accept.
-    if [ -n "${NETWORK:-}" ]; then
-        echo "[INIT-FIREWALL] Processing custom IPv4 networks from NETWORK variable: ${NETWORK}"
+    if [ -n "${network:-}" ]; then
+        log "$SCRIPT_NAME" "Allowing access to custom networks: ${network}"
         oldIFS="$IFS"; IFS=',;'
-        for net in $NETWORK; do
+        for net in $network; do
             [ -z "$net" ] && continue
             # Best-effort route add (if not already present)
             if [ -n "$gw" ]; then
@@ -57,8 +59,8 @@ if [ -n "$docker_network" ]; then
         IFS="$oldIFS"
     fi
 else
-    echo "[INIT-FIREWALL] No IPv4 on eth0; skipping v4 rules."
+    log "$SCRIPT_NAME" "No IPv4 address on eth0, skipping IPv4 rules"
 fi
 
-echo "[INIT-FIREWALL] init-firewall script completed successfully"
+log "$SCRIPT_NAME" "Firewall initialization completed"
 exit 0

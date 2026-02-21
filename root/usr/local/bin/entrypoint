@@ -3,19 +3,23 @@
 
 set -eu
 
+. /usr/local/bin/backend-functions
+
+SCRIPT_NAME="ENTRYPOINT"
+
 # Display project information
-echo "======================================++============================================"
-echo "🚀 NordVPN Wireguard Docker Container"
-echo "========================================+++========================================="
-echo "📋 Description: Docker container for NordVPN with Wireguard and advanced networking"
+echo "===================================================================================="
+echo "🚀 NordVPN WireGuard Docker Container"
+echo "===================================================================================="
+echo "📋 Description: Docker container for NordVPN with WireGuard and advanced networking"
 echo "👤 Author: Alexander Zinchenko <alexander@zinchenko.com>"
 echo "🔗 Repository: https://github.com/azinchen/nordvpn-wg"
 echo "📚 Documentation: https://github.com/azinchen/nordvpn-wg#readme"
-echo "🏷️ Image Version: ${IMAGE_VERSION:-unknown}"
-echo "📅 Build Date: ${BUILD_DATE:-unknown}"
-echo "===========================================++======================================="
+echo "🏷️ Image Version: __IMAGE_VERSION__"
+echo "📅 Build Date: __BUILD_DATE__"
+echo "===================================================================================="
 
-echo "[ENTRYPOINT] Applying immediate security rules..."
+log "$SCRIPT_NAME" "Applying security rules"
 
 # ---- helpers ---------------------------------------------------------------
 
@@ -50,7 +54,7 @@ flush_nft_if_dirty_v4()
             iptables-nft -F 2>/dev/null || true
             iptables-nft -t nat -F 2>/dev/null || true
             iptables-nft -X 2>/dev/null || true
-            echo "[ENTRYPOINT] Flushed nft v4 tables to avoid mixed stacks"
+            log "$SCRIPT_NAME" "Flushed IPv4 nftables to avoid mixed stacks"
         fi
     fi
 }
@@ -63,7 +67,7 @@ flush_nft_if_dirty_v6()
             ip6tables-nft -F 2>/dev/null || true
             ip6tables-nft -t nat -F 2>/dev/null || true
             ip6tables-nft -X 2>/dev/null || true
-            echo "[ENTRYPOINT] Flushed nft v6 tables to avoid mixed stacks"
+            log "$SCRIPT_NAME" "Flushed IPv6 nftables to avoid mixed stacks"
         fi
     fi
 }
@@ -85,10 +89,10 @@ pick_ipv4_backend()
         fi
         [ -n "$_IPT" ] || { command -v iptables >/dev/null 2>&1 && try_policy iptables && _IPT="iptables"; }
     fi
-    [ -n "$_IPT" ] || { echo "[ENTRYPOINT] ERROR: no working iptables (IPv4) found"; exit 1; }
+    [ -n "$_IPT" ] || { log_error "$SCRIPT_NAME" "ERROR: no working iptables (IPv4) found"; exit 1; }
 
-    echo "[ENTRYPOINT] Kernel: $(uname -r)"
-    echo "[ENTRYPOINT] Using IPv4 backend: ${_IPT}"
+    log "$SCRIPT_NAME" "Kernel: $(uname -r)"
+    log "$SCRIPT_NAME" "Using iptables backend: ${_IPT}"
 }
 
 # ---- IPv6 backend picker: prefer nft on ≥4.18; else legacy -----------------
@@ -114,9 +118,9 @@ pick_ipv6_backend()
     [ -n "$_IP6T" ] || { command -v ip6tables >/dev/null 2>&1 && _IP6T="ip6tables"; } || true
 
     if [ -n "$_IP6T" ]; then
-        echo "[ENTRYPOINT] Using IPv6 backend: ${_IP6T}"
+        log "$SCRIPT_NAME" "Using ip6tables backend: ${_IP6T}"
     else
-        echo "[ENTRYPOINT] IPv6 backend unavailable (disabled or not installed)"
+        log "$SCRIPT_NAME" "IPv6 support unavailable"
     fi
 }
 
@@ -125,7 +129,7 @@ verify_ipv6_backend()
     # If we picked something for v6, make sure v6 tables actually exist and nat table is usable.
     if [ -n "$_IP6T" ]; then
         if ! ${_IP6T} -t filter -S >/dev/null 2>&1 || ! ${_IP6T} -t nat -F >/dev/null 2>&1; then
-            echo "[ENTRYPOINT] IPv6 tables unavailable in this namespace; skipping IPv6 rules"
+            log "$SCRIPT_NAME" "IPv6 tables unavailable in current namespace"
             _IP6T=""
         fi
     fi
@@ -147,7 +151,7 @@ mkdir -p /run/xt
 } > /run/xt/backend.env
 chmod 0644 /run/xt/backend.env
 
-. /usr/local/bin/backend-functions
+. /run/xt/backend.env
 
 # ---- secure defaults (v4 + v6 if available) --------------------------------
 
@@ -169,6 +173,6 @@ run6_critical -t nat    -F; run6_critical -t nat    -X
 run4 -A INPUT  -i lo -j ACCEPT
 run4 -A OUTPUT -o lo -j ACCEPT
 
-echo "[ENTRYPOINT] Critical security rules applied - all traffic blocked by default (IPv4/IPv6 where available)"
+log "$SCRIPT_NAME" "Security rules applied - all traffic blocked by default"
 
 exec /init "$@"

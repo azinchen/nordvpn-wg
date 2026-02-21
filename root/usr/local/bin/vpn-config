@@ -3,18 +3,13 @@
 
 set -eu
 
-echo "[VPN-CONFIG] Starting vpn-config script..."
+. /usr/local/bin/backend-functions
 
-# Set default values for environment variables
-COUNTRY="${COUNTRY:-}"
-CITY="${CITY:-}"
-GROUP="${GROUP:-}"
-RANDOM_TOP="${RANDOM_TOP:-0}"
+SCRIPT_NAME="VPN-CONFIG"
+
+log "$SCRIPT_NAME" "Starting VPN configuration"
 
 numericregex="^[0-9]+$"
-specific_server_regex="^[a-zA-Z]{2}[0-9]+$"
-
-wgfile="/etc/wireguard/wg0.conf"
 
 # Helper functions for pattern matching (sh-compatible)
 is_numeric()
@@ -58,11 +53,11 @@ getcountryid()
     input=$1
 
     if is_numeric "$input"; then
-        id=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .id' < "/etc/nordvpn/countries.json")
+        id=$(jq -r --argjson ID "$input" '.[] | select(.id == $ID) | .id' < "$countriesfile")
     else
-        id=$(jq -r --arg NAME "$input" 'select(.name == $NAME) | .id' < "/etc/nordvpn/countries.json")
+        id=$(jq -r --arg NAME "$input" '.[] | select(.name == $NAME) | .id' < "$countriesfile")
         if [ -z "$id" ]; then
-            id=$(jq -r --arg CODE "$input" 'select(.code == $CODE) | .id' < "/etc/nordvpn/countries.json")
+            id=$(jq -r --arg CODE "$input" '.[] | select(.code == $CODE) | .id' < "$countriesfile")
         fi
     fi
 
@@ -80,11 +75,11 @@ getcountryname()
     input=$1
 
     if is_numeric "$input"; then
-        name=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .name' < "/etc/nordvpn/countries.json")
+        name=$(jq -r --argjson ID "$input" '.[] | select(.id == $ID) | .name' < "$countriesfile")
     else
-        name=$(jq -r --arg NAME "$input" 'select(.name == $NAME) | .name' < "/etc/nordvpn/countries.json")
+        name=$(jq -r --arg NAME "$input" '.[] | select(.name == $NAME) | .name' < "$countriesfile")
         if [ -z "$name" ]; then
-            name=$(jq -r --arg CODE "$input" 'select(.code == $CODE) | .name' < "/etc/nordvpn/countries.json")
+            name=$(jq -r --arg CODE "$input" '.[] | select(.code == $CODE) | .name' < "$countriesfile")
         fi
     fi
 
@@ -102,11 +97,11 @@ getcityid()
     input=$1
 
     if is_numeric "$input"; then
-        id=$(jq -r --argjson ID "$input" 'select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | .id' < "/etc/nordvpn/countries.json" | head -n 1)
+        id=$(jq -r --argjson ID "$input" '.[] | select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | .id' < "$countriesfile" | head -n 1)
     else
-        id=$(jq -r --arg NAME "$input" 'select(.cities[]? | .name == $NAME) | .cities[] | select(.name == $NAME) | .id' < "/etc/nordvpn/countries.json" | head -n 1)
+        id=$(jq -r --arg NAME "$input" '.[] | select(.cities[]? | .name == $NAME) | .cities[] | select(.name == $NAME) | .id' < "$countriesfile" | head -n 1)
         if [ -z "$id" ]; then
-            id=$(jq -r --arg DNS_NAME "$input" 'select(.cities[]? | .dns_name == $DNS_NAME) | .cities[] | select(.dns_name == $DNS_NAME) | .id' < "/etc/nordvpn/countries.json" | head -n 1)
+            id=$(jq -r --arg DNS_NAME "$input" '.[] | select(.cities[]? | .dns_name == $DNS_NAME) | .cities[] | select(.dns_name == $DNS_NAME) | .id' < "$countriesfile" | head -n 1)
         fi
     fi
 
@@ -124,11 +119,11 @@ getcityname()
     input=$1
 
     if is_numeric "$input"; then
-        name=$(jq -r --argjson ID "$input" 'select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | .name' < "/etc/nordvpn/countries.json" | head -n 1)
+        name=$(jq -r --argjson ID "$input" '.[] | select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | .name' < "$countriesfile" | head -n 1)
     else
-        name=$(jq -r --arg NAME "$input" 'select(.cities[]? | .name == $NAME) | .cities[] | select(.name == $NAME) | .name' < "/etc/nordvpn/countries.json" | head -n 1)
+        name=$(jq -r --arg NAME "$input" '.[] | select(.cities[]? | .name == $NAME) | .cities[] | select(.name == $NAME) | .name' < "$countriesfile" | head -n 1)
         if [ -z "$name" ]; then
-            name=$(jq -r --arg DNS_NAME "$input" 'select(.cities[]? | .dns_name == $DNS_NAME) | .cities[] | select(.dns_name == $DNS_NAME) | .name' < "/etc/nordvpn/countries.json" | head -n 1)
+            name=$(jq -r --arg DNS_NAME "$input" '.[] | select(.cities[]? | .dns_name == $DNS_NAME) | .cities[] | select(.dns_name == $DNS_NAME) | .name' < "$countriesfile" | head -n 1)
         fi
     fi
 
@@ -152,7 +147,7 @@ getcitycoordinates()
     fi
 
     # Then get coordinates using the city ID
-    coords=$(jq -r --argjson ID "$cityid" 'select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | "\(.latitude),\(.longitude)"' < "/etc/nordvpn/countries.json" | head -n 1)
+    coords=$(jq -r --argjson ID "$cityid" '.[] | select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | "\(.latitude),\(.longitude)"' < "$countriesfile" | head -n 1)
 
     printf '%s' "$coords"
 
@@ -173,11 +168,11 @@ getgroupid()
     fi
 
     if is_numeric "$input"; then
-        id=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .id' < "/etc/nordvpn/groups.json")
+        id=$(jq -r --argjson ID "$input" '.[] | select(.id == $ID) | .id' < "$groupsfile")
     else
-        id=$(jq -r --arg TITLE "$input" 'select(.title == $TITLE) | .id' < "/etc/nordvpn/groups.json")
+        id=$(jq -r --arg TITLE "$input" '.[] | select(.title == $TITLE) | .id' < "$groupsfile")
         if [ -z "$id" ]; then
-            id=$(jq -r --arg IDENTIFIER "$input" 'select(.identifier == $IDENTIFIER) | .id' < "/etc/nordvpn/groups.json")
+            id=$(jq -r --arg IDENTIFIER "$input" '.[] | select(.identifier == $IDENTIFIER) | .id' < "$groupsfile")
         fi
     fi
 
@@ -195,11 +190,11 @@ getgrouptitle()
     input=$1
 
     if is_numeric "$input"; then
-        title=$(jq -r --argjson ID "$input" 'select(.id == $ID) | .title' < "/etc/nordvpn/groups.json")
+        title=$(jq -r --argjson ID "$input" '.[] | select(.id == $ID) | .title' < "$groupsfile")
     else
-        title=$(jq -r --arg TITLE "$input" 'select(.title == $TITLE) | .title' < "/etc/nordvpn/groups.json")
+        title=$(jq -r --arg TITLE "$input" '.[] | select(.title == $TITLE) | .title' < "$groupsfile")
         if [ -z "$title" ]; then
-            title=$(jq -r --arg IDENTIFIER "$input" 'select(.identifier == $IDENTIFIER) | .title' < "/etc/nordvpn/groups.json")
+            title=$(jq -r --arg IDENTIFIER "$input" '.[] | select(.identifier == $IDENTIFIER) | .title' < "$groupsfile")
         fi
     fi
 
@@ -234,7 +229,7 @@ nord_api_curl()
     shift 2>/dev/null || true
 
     oldIFS="$IFS"; IFS=',;'; _rc=1
-    for _ip in $NORDVPNAPI_IP; do
+    for _ip in $nordvpnapi_ip; do
         [ -n "$_ip" ] || continue
 
         curl -sG --connect-timeout 10 --max-time 30 \
@@ -254,29 +249,29 @@ tech_filter="--data-urlencode filters[servers_technologies][id]=35"
 
 # Validate group IDs and build filter strings
 group_filter=""
-if [ -n "$GROUP" ]; then
-    group_id=$(getgroupid "$GROUP")
+if [ -n "$group" ]; then
+    group_id=$(getgroupid "$group")
     if [ -z "$group_id" ]; then
-        echo "[VPN-CONFIG] Warning: Could not find group \"$GROUP\""
+        log_warning "$SCRIPT_NAME" "Could not find group \"$group\""
     else
         group_filter="--data-urlencode filters[servers_groups][id]=$group_id"
     fi
 else
-    echo "[VPN-CONFIG] No group filter specified"
+    log "$SCRIPT_NAME" "No group filter specified"
 fi
 
 test_response=$(nord_api_curl "v1/servers/recommendations" --data-urlencode "limit=1" 2>/dev/null || echo "")
 if [ -z "$test_response" ]; then
-    echo "[VPN-CONFIG] WARNING: API connectivity test failed - no response from NordVPN API"
+    log_warning "$SCRIPT_NAME" "API connectivity test failed - no response from NordVPN API"
 fi
 servers=""
 locations_count=0
 
 # Process COUNTRY if set
-if [ -n "$COUNTRY" ]; then
+if [ -n "$country" ]; then
     # Convert semicolon/comma separated list to space separated
-    oldIFS="$IFS"; IFS=',;'; _rc=1
-    for value in $COUNTRY; do
+    oldIFS="$IFS"; IFS=',;'
+    for value in $country; do
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
@@ -294,14 +289,14 @@ if [ -n "$COUNTRY" ]; then
                 # Execute curl with built parameters
                 serversincountry=$(eval "nord_api_curl \"v1/servers/recommendations\" $curl_params 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
                 if [ -n "$serversincountry" ]; then
-                    echo "[VPN-CONFIG] Request servers in \"$(getcountryname "$value")\", $(echo "$serversincountry" | jq -s 'length') servers received"
+                    log "$SCRIPT_NAME" "Fetched $(echo "$serversincountry" | jq -s 'length') servers for $(getcountryname "$value")"
                     echo "$serversincountry" | jq -r '[.name, .hostname, .load, .locations[0].country.name, .locations[0].country.city.name] | "\(.[1]): \(.[2])% load - \(.[3]), \(.[4]) (\(.[0]))"'
                     servers="$servers""$serversincountry"
                 else
-                    echo "[VPN-CONFIG] Warning: No servers returned for country \"$value\""
+                    log_warning "$SCRIPT_NAME" "No servers returned for country \"$value\""
                 fi
             else
-                echo "[VPN-CONFIG] Warning: Could not find country \"$value\""
+                log_warning "$SCRIPT_NAME" "Could not find country \"$value\""
             fi
         fi
     done
@@ -309,10 +304,10 @@ if [ -n "$COUNTRY" ]; then
 fi
 
 # Process CITY if set
-if [ -n "$CITY" ]; then
+if [ -n "$city" ]; then
     # Convert semicolon/comma separated list to space separated
     oldIFS="$IFS"; IFS=',;'
-    for value in $CITY; do
+    for value in $city; do
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
@@ -333,14 +328,14 @@ if [ -n "$CITY" ]; then
                 # Execute curl with built parameters
                 serversincity=$(eval "nord_api_curl \"v1/servers/recommendations\" $curl_params 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
                 if [ -n "$serversincity" ]; then
-                    echo "[VPN-CONFIG] Request servers in \"$(getcityname "$value")\", $(echo "$serversincity" | jq -s 'length') servers received"
+                    log "$SCRIPT_NAME" "Fetched $(echo "$serversincity" | jq -s 'length') servers for $(getcityname "$value")"
                     echo "$serversincity" | jq -r '[.name, .hostname, .load, .locations[0].country.name, .locations[0].country.city.name] | "\(.[1]): \(.[2])% load - \(.[3]), \(.[4]) (\(.[0]))"'
                     servers="$servers""$serversincity"
                 else
-                    echo "[VPN-CONFIG] Warning: No servers returned for city \"$value\""
+                    log_warning "$SCRIPT_NAME" "No servers returned for city \"$value\""
                 fi
             else
-                echo "[VPN-CONFIG] Warning: Could not find coordinates for city \"$value\""
+                log_warning "$SCRIPT_NAME" "Could not find coordinates for city \"$value\""
             fi
         fi
     done
@@ -351,12 +346,12 @@ poollength=0
 if [ -n "$servers" ]; then
     poollength=$(echo "$servers" | jq -s 'unique | length' 2>/dev/null || echo "0")
 else
-    echo "[VPN-CONFIG] No servers collected from any sources"
+    log "$SCRIPT_NAME" "No servers collected from any sources"
 fi
 
 # If no servers found, fallback to default recommended servers
 if [ "$poollength" -eq 0 ]; then
-    echo "[VPN-CONFIG] No servers found for specified criteria, requesting default recommended servers"
+    log "$SCRIPT_NAME" "No servers found for specified criteria, requesting default recommended servers"
     
     # Build curl parameters for fallback
     curl_params="$tech_filter"
@@ -367,17 +362,17 @@ if [ "$poollength" -eq 0 ]; then
     servers=$(eval "nord_api_curl \"v1/servers/recommendations\" $curl_params 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
     
     if [ -n "$servers" ]; then
-        echo "[VPN-CONFIG] Default recommended servers: $(echo "$servers" | jq -s 'length') servers received"
+        log "$SCRIPT_NAME" "Default recommended servers: $(echo "$servers" | jq -s 'length') servers received"
         echo "$servers" | jq -r '[.name, .hostname, .load, .locations[0].country.name, .locations[0].country.city.name] | "\(.[1]): \(.[2])% load - \(.[3]), \(.[4]) (\(.[0]))"'
         poollength=$(echo "$servers" | jq -s 'unique | length')
     else
-        echo "[VPN-CONFIG] CRITICAL ERROR: Failed to get fallback servers - sleeping infinite"
+        log_error "$SCRIPT_NAME" "CRITICAL: Failed to get fallback servers"
         sleep infinity
     fi
 fi
 
 # Only sort by load if multiple locations are specified, otherwise keep recommended order
-if [ \( -n "$COUNTRY" \) -o \( -n "$CITY" \) ] && [ "$locations_count" -gt 1 ] && [ "$poollength" -gt 0 ]; then
+if [ \( -n "$country" \) -o \( -n "$city" \) ] && [ "$locations_count" -gt 1 ] && [ "$poollength" -gt 0 ]; then
     # Multiple locations - sort by load and remove duplicates
     servers=$(echo "$servers" | jq -s -c 'unique | sort_by(.load) | .[]')
 else
@@ -385,24 +380,24 @@ else
     servers=$(echo "$servers" | jq -s -c '.[]')
 fi
 
-if [ "$RANDOM_TOP" -ne 0 ]; then
-    if [ "$RANDOM_TOP" -lt "$poollength" ]; then
-        filtered=$(echo "$servers" | head -n "$RANDOM_TOP" | shuf)
-        servers="$filtered"$(echo "$servers" | tail -n +"$((RANDOM_TOP + 1))")
+if [ "$random_top" -ne 0 ]; then
+    if [ "$random_top" -lt "$poollength" ]; then
+        filtered=$(echo "$servers" | head -n "$random_top" | shuf)
+        servers="$filtered"$(echo "$servers" | tail -n +"$((random_top + 1))")
     else
         servers=$(echo "$servers" | shuf)
     fi
 fi
 
-echo "[VPN-CONFIG] $poollength recommended servers in pool"
+log "$SCRIPT_NAME" "$poollength recommended servers in pool"
 if [ "$poollength" -ne 0 ]; then
-    echo "[VPN-CONFIG] --- Top 20 servers in filtered pool ---"
+    log "$SCRIPT_NAME" "--- Top 20 servers in filtered pool ---"
     echo "$servers" | jq -r '[.name, .hostname, .load, .locations[0].country.name, .locations[0].country.city.name] | "\(.[1]): \(.[2])% load - \(.[3]), \(.[4]) (\(.[0]))"' | head -n 20
-    echo "[VPN-CONFIG] ---------------------------------------"
+    log "$SCRIPT_NAME" "---------------------------------------"
 fi
 
 if [ "$poollength" -eq 0 ]; then
-    echo "[VPN-CONFIG] CRITICAL ERROR: list of selected servers is empty - sleeping infinite"
+    log_error "$SCRIPT_NAME" "CRITICAL: list of selected servers is empty"
     sleep infinity
 fi
 
@@ -414,10 +409,10 @@ serverkey=$(echo "$servers" | jq -r '.technologies[] | select(.id == 35) | .meta
 # Extract location information
 country_name=$(echo "$servers" | jq -r '.locations[0].country.name' | head -n 1)
 city_name=$(echo "$servers" | jq -r '.locations[0].country.city.name' | head -n 1)
-echo "[VPN-CONFIG] Select server \"$name\" hostname=\"$hostname\" ip=\"$serverip\" protocol=\"udp\" location=\"$country_name, $city_name\""
+log "$SCRIPT_NAME" "Selected server \"$name\" hostname=\"$hostname\" ip=\"$serverip\" location=\"$country_name, $city_name\""
 
 if [ -z "$serverkey" ] || [ "$serverkey" = "null" ]; then
-    echo "[VPN-CONFIG] CRITICAL ERROR: Could not extract WireGuard public key from server data - sleeping infinite"
+    log_error "$SCRIPT_NAME" "CRITICAL: Could not extract WireGuard public key from server data"
     sleep infinity
 fi
 
@@ -452,9 +447,9 @@ sync
 
 # Verify the config file was created successfully
 if [ ! -s "$wgfile" ]; then
-    echo "[VPN-CONFIG] CRITICAL ERROR: VPN config file was not created successfully - sleeping infinite"
+    log_error "$SCRIPT_NAME" "CRITICAL: VPN config file was not created successfully"
     sleep infinity
 fi
 
-echo "[VPN-CONFIG] vpn-config script completed successfully"
+log "$SCRIPT_NAME" "VPN configuration completed"
 exit 0

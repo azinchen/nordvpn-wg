@@ -1,0 +1,12 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eu
+
+. /usr/local/bin/backend-functions
+
+SCRIPT_NAME="SERVICE-CRON"
+
+log "$SCRIPT_NAME" "Starting cron service"
+
+exec crond -f

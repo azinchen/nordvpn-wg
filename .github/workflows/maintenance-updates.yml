@@ -22,10 +22,10 @@ on:
           - countries-json
           - groups-json
           - technologies-json
-          - openvpn-template
           - nordvpn-api-ips
           - packages
           - apk
+          - alpine
       force_update:
         description: 'Force update MD files even if content unchanged'
         required: false
@@ -42,12 +42,12 @@ jobs:
         file: 
           - name: "CITIES"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: '.[] | . as $parent | .cities[] | [$parent.name, $parent.code, $parent.id, $parent.serverCount, .name, .id, .serverCount] | "\(.[0]) | \(.[1]) | \(.[2]) | \(.[4]) | \(.[5]) | \(.[6])"'
-            header: "Country | Code | ID | City | ID | Servers"
+            jq_filter: '[.[] | . as $parent | .cities[] | {country: $parent.name, code: $parent.code, cid: $parent.id, city: .name, cityid: .id}] | sort_by(.country, .city) | .[] | "\(.country) | \(.code) | \(.cid) | \(.city) | \(.cityid)"'
+            header: "Country | Code | ID | City | ID"
           - name: "COUNTRIES"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: '.[] | [.name, .code, .id, .serverCount] | "\(.[0]) | \(.[1]) | \(.[2]) | \(.[3])"'
-            header: "Country | Code | ID | Servers"
+            jq_filter: 'sort_by(.name) | .[] | [.name, .code, .id] | "\(.[0]) | \(.[1]) | \(.[2])"'
+            header: "Country | Code | ID"
           - name: "TECHNOLOGIES"
             url: "https://api.nordvpn.com/v1/technologies"
             jq_filter: '.[] | [.name, .identifier, .id] | "\(.[0]) | \(.[1]) | \(.[2])"'
@@ -59,7 +59,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update ${{ matrix.file.name }}.md
         id: update-file
@@ -84,7 +84,7 @@ jobs:
             EXISTING_CONTENT=""
           fi
           
-          # Check force update or compare
+          # Update file if content changed or force update is enabled
           if [ "${{ github.event.inputs.force_update }}" == "true" ] || [ "$NEW_CONTENT" != "$EXISTING_CONTENT" ]; then
             echo "Last updated: $(date +%Y-%m-%d)" > "${{ matrix.file.name }}.md"
             echo "---" >> "${{ matrix.file.name }}.md"
@@ -97,6 +97,46 @@ jobs:
           DATE=$(date +%y%m%d)
           echo "update_date=${DATE}" >> $GITHUB_ENV
           echo "file_name=${{ matrix.file.name }}" >> $GITHUB_ENV
+
+      - name: Get diff summary for ${{ matrix.file.name }}.md
+        if: steps.update-file.outputs.has_changes == 'true'
+        id: diff-summary
+        shell: bash
+        run: |
+          # Get added and removed lines
+          ADDED=$(git diff --no-color ${{ matrix.file.name }}.md | grep -E '^\+' | grep -vE '^(\+\+\+|\+Last updated:|\+---|\+# List of|\+$|\+Country \||\+Technology \||\+Group \|)' | sed 's/^+//' || true)
+          REMOVED=$(git diff --no-color ${{ matrix.file.name }}.md | grep -E '^-' | grep -vE '^(---|\-Last updated:|\----|\-# List of|\-$|\-Country \||\-Technology \||\-Group \|)' | sed 's/^-//' || true)
+          
+          # Count changes properly (handle empty strings)
+          [ -n "$ADDED" ] && ADDED_COUNT=$(echo "$ADDED" | wc -l | tr -d ' ') || ADDED_COUNT=0
+          [ -n "$REMOVED" ] && REMOVED_COUNT=$(echo "$REMOVED" | wc -l | tr -d ' ') || REMOVED_COUNT=0
+          
+          # Check if file has any git changes (including date)
+          HAS_GIT_CHANGES=$(git diff --quiet ${{ matrix.file.name }}.md && echo "false" || echo "true")
+          
+          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
+          if [ "$ADDED_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
+            echo "**Added**: $ADDED_COUNT | **Removed**: $REMOVED_COUNT" >> $GITHUB_OUTPUT
+            if [ "$ADDED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ✅ Added ($ADDED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$ADDED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            if [ "$REMOVED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ❌ Removed ($REMOVED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$REMOVED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+          elif [ "$HAS_GIT_CHANGES" == "true" ]; then
+            echo "📅 Date updated only (no content changes)" >> $GITHUB_OUTPUT
+          else
+            echo "No content changes detected" >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request for ${{ matrix.file.name }}.md
         if: steps.update-file.outputs.has_changes == 'true'
@@ -115,6 +155,9 @@ jobs:
             
             This PR updates the ${{ matrix.file.name }}.md file with the latest data from NordVPN API.
             
+            ### Changes Summary:
+            ${{ steps.diff-summary.outputs.changes_summary }}
+            
             ---
             🤖 Auto-generated by [update-readme workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
 
@@ -125,7 +168,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update countries.json
         id: update-countries
@@ -134,15 +177,104 @@ jobs:
           echo "Fetching countries data from NordVPN API..."
           
           # Create directory if it doesn't exist
-          mkdir -p root/etc/nordvpn
+          mkdir -p root/usr/local/share/nordvpn/data
           
           # Download and process countries.json with beautiful formatting
+          # Sort countries by name and cities by name within each country
           curl -s "https://api.nordvpn.com/v1/servers/countries" \
-            | jq '.[] | del(.serverCount) | .cities = [.cities[]? | del(.serverCount, .hub_score)] | .' \
-            > root/etc/nordvpn/countries.json
+            | jq '[.[] | del(.serverCount) | .cities = ([.cities[]? | del(.serverCount, .hub_score)] | sort_by(.name))] | sort_by(.name)' \
+            > root/usr/local/share/nordvpn/data/countries.json
 
           UPDATE_DATE=$(date +%y%m%d)
           echo "update_date=${UPDATE_DATE}" >> $GITHUB_ENV
+
+      - name: Get diff summary for countries.json
+        id: diff-summary
+        shell: bash
+        run: |
+          # Use git diff to detect actual line changes (like CITIES.md does)
+          # This correctly detects ordering changes as added/removed
+          
+          # Get added and removed country lines from git diff
+          COUNTRIES_ADDED=$(git diff --no-color root/usr/local/share/nordvpn/data/countries.json | grep -E '^\+.*"name":' | grep -v '^\+\+\+' | sed 's/^+//' | jq -r '.name' 2>/dev/null || true)
+          COUNTRIES_REMOVED=$(git diff --no-color root/usr/local/share/nordvpn/data/countries.json | grep -E '^\-.*"name":' | grep -v '^\-\-\-' | sed 's/^-//' | jq -r '.name' 2>/dev/null || true)
+          
+          # Count changes properly (handle empty strings)
+          [ -n "$COUNTRIES_ADDED" ] && COUNTRIES_ADDED_COUNT=$(echo "$COUNTRIES_ADDED" | wc -l | tr -d ' ') || COUNTRIES_ADDED_COUNT=0
+          [ -n "$COUNTRIES_REMOVED" ] && COUNTRIES_REMOVED_COUNT=$(echo "$COUNTRIES_REMOVED" | wc -l | tr -d ' ') || COUNTRIES_REMOVED_COUNT=0
+          
+          # Get added and removed cities from git diff (look for city objects with dns_name)
+          CITIES_ADDED=$(git diff --no-color root/usr/local/share/nordvpn/data/countries.json | grep -E '^\+.*"dns_name":' | grep -v '^\+\+\+' | sed 's/^+//' | jq -r '.dns_name' 2>/dev/null || true)
+          CITIES_REMOVED=$(git diff --no-color root/usr/local/share/nordvpn/data/countries.json | grep -E '^\-.*"dns_name":' | grep -v '^\-\-\-' | sed 's/^-//' | jq -r '.dns_name' 2>/dev/null || true)
+          
+          # Count changes properly (handle empty strings)
+          [ -n "$CITIES_ADDED" ] && CITIES_ADDED_COUNT=$(echo "$CITIES_ADDED" | wc -l | tr -d ' ') || CITIES_ADDED_COUNT=0
+          [ -n "$CITIES_REMOVED" ] && CITIES_REMOVED_COUNT=$(echo "$CITIES_REMOVED" | wc -l | tr -d ' ') || CITIES_REMOVED_COUNT=0
+          
+          # For detailed output, extract full country/city info
+          # Get old and new file content for comparison
+          git show HEAD:root/usr/local/share/nordvpn/data/countries.json 2>/dev/null > /tmp/old_countries.json || echo "[]" > /tmp/old_countries.json
+          cp root/usr/local/share/nordvpn/data/countries.json /tmp/new_countries.json
+          
+          # Extract country list (unsorted) for position comparison
+          jq -r '.[] | "\(.name) (\(.code))"' /tmp/old_countries.json > /tmp/old_countries_list.txt
+          jq -r '.[] | "\(.name) (\(.code))"' /tmp/new_countries.json > /tmp/new_countries_list.txt
+          
+          # Extract city list (unsorted) for position comparison
+          jq -r '.[] | . as $parent | .cities[]? | "\($parent.name) | \($parent.code) | \($parent.id) | \(.name) | \(.id)"' /tmp/old_countries.json > /tmp/old_cities_list.txt
+          jq -r '.[] | . as $parent | .cities[]? | "\($parent.name) | \($parent.code) | \($parent.id) | \(.name) | \(.id)"' /tmp/new_countries.json > /tmp/new_cities_list.txt
+          
+          # Find actual additions and removals (items that exist in one but not the other, or changed position)
+          COUNTRIES_DIFF_ADDED=$(diff /tmp/old_countries_list.txt /tmp/new_countries_list.txt | grep '^>' | sed 's/^> //' || true)
+          COUNTRIES_DIFF_REMOVED=$(diff /tmp/old_countries_list.txt /tmp/new_countries_list.txt | grep '^<' | sed 's/^< //' || true)
+          
+          CITIES_DIFF_ADDED=$(diff /tmp/old_cities_list.txt /tmp/new_cities_list.txt | grep '^>' | sed 's/^> //' || true)
+          CITIES_DIFF_REMOVED=$(diff /tmp/old_cities_list.txt /tmp/new_cities_list.txt | grep '^<' | sed 's/^< //' || true)
+          
+          # Count diff changes
+          [ -n "$COUNTRIES_DIFF_ADDED" ] && COUNTRIES_DIFF_ADDED_COUNT=$(echo "$COUNTRIES_DIFF_ADDED" | wc -l | tr -d ' ') || COUNTRIES_DIFF_ADDED_COUNT=0
+          [ -n "$COUNTRIES_DIFF_REMOVED" ] && COUNTRIES_DIFF_REMOVED_COUNT=$(echo "$COUNTRIES_DIFF_REMOVED" | wc -l | tr -d ' ') || COUNTRIES_DIFF_REMOVED_COUNT=0
+          [ -n "$CITIES_DIFF_ADDED" ] && CITIES_DIFF_ADDED_COUNT=$(echo "$CITIES_DIFF_ADDED" | wc -l | tr -d ' ') || CITIES_DIFF_ADDED_COUNT=0
+          [ -n "$CITIES_DIFF_REMOVED" ] && CITIES_DIFF_REMOVED_COUNT=$(echo "$CITIES_DIFF_REMOVED" | wc -l | tr -d ' ') || CITIES_DIFF_REMOVED_COUNT=0
+          
+          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
+          # Check if there are any changes
+          if [ "$COUNTRIES_DIFF_ADDED_COUNT" -gt 0 ] || [ "$COUNTRIES_DIFF_REMOVED_COUNT" -gt 0 ] || [ "$CITIES_DIFF_ADDED_COUNT" -gt 0 ] || [ "$CITIES_DIFF_REMOVED_COUNT" -gt 0 ]; then
+            echo "**Countries**: +$COUNTRIES_DIFF_ADDED_COUNT/-$COUNTRIES_DIFF_REMOVED_COUNT | **Cities**: +$CITIES_DIFF_ADDED_COUNT/-$CITIES_DIFF_REMOVED_COUNT" >> $GITHUB_OUTPUT
+            
+            if [ "$COUNTRIES_DIFF_ADDED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ✅ Added Countries ($COUNTRIES_DIFF_ADDED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$COUNTRIES_DIFF_ADDED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            if [ "$COUNTRIES_DIFF_REMOVED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ❌ Removed Countries ($COUNTRIES_DIFF_REMOVED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$COUNTRIES_DIFF_REMOVED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            
+            if [ "$CITIES_DIFF_ADDED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ✅ Added Cities ($CITIES_DIFF_ADDED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$CITIES_DIFF_ADDED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            if [ "$CITIES_DIFF_REMOVED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ❌ Removed Cities ($CITIES_DIFF_REMOVED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$CITIES_DIFF_REMOVED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No country or city changes detected" >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request for countries.json
         uses: peter-evans/create-pull-request@v8.1.0
@@ -154,15 +286,14 @@ jobs:
           body: |
             ## 🌍 Countries Configuration Update
             
-            **File**: `root/etc/nordvpn/countries.json`
+            **File**: `root/usr/local/share/nordvpn/data/countries.json`
             **Date**: ${{ env.update_date }}
             **Source**: https://api.nordvpn.com/v1/servers/countries
             
-            ### Changes:
-            - Updated countries data from NordVPN API
-            - Beautifully formatted JSON with proper indentation
-            - Removed serverCount and hub_score fields (frequently changing metrics)
-            - Optimized for both readability and runtime performance
+            This PR updates the countries.json file with the latest data from NordVPN API.
+            
+            ### Changes Summary:
+            ${{ steps.diff-summary.outputs.changes_summary }}
             
             ---
             🤖 Auto-generated by [update-countries workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
@@ -174,7 +305,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update groups.json
         id: update-groups
@@ -183,15 +314,55 @@ jobs:
           echo "Fetching groups data from NordVPN API..."
           
           # Create directory if it doesn't exist
-          mkdir -p root/etc/nordvpn
+          mkdir -p root/usr/local/share/nordvpn/data
           
           # Download and process groups.json with beautiful formatting
           curl -s "https://api.nordvpn.com/v1/servers/groups" \
-            | jq '.[] | .' \
-            > root/etc/nordvpn/groups.json
+            | jq '.' \
+            > root/usr/local/share/nordvpn/data/groups.json
 
           UPDATE_DATE=$(date +%y%m%d)
           echo "update_date=${UPDATE_DATE}" >> $GITHUB_ENV
+
+      - name: Get diff summary for groups.json
+        id: diff-summary
+        shell: bash
+        run: |
+          # Get lists of groups before and after
+          if [ -f root/usr/local/share/nordvpn/data/groups.json ]; then
+            git show HEAD:root/usr/local/share/nordvpn/data/groups.json 2>/dev/null | jq -r '.[] | "\(.title) (\(.identifier))"' | sort > /tmp/old_groups.txt || touch /tmp/old_groups.txt
+          else
+            touch /tmp/old_groups.txt
+          fi
+          jq -r '.[] | "\(.title) (\(.identifier))"' root/usr/local/share/nordvpn/data/groups.json | sort > /tmp/new_groups.txt
+          
+          ADDED=$(comm -13 /tmp/old_groups.txt /tmp/new_groups.txt)
+          REMOVED=$(comm -23 /tmp/old_groups.txt /tmp/new_groups.txt)
+          
+          ADDED_COUNT=$(echo "$ADDED" | grep -c . || echo "0")
+          REMOVED_COUNT=$(echo "$REMOVED" | grep -c . || echo "0")
+          
+          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
+          if [ "$ADDED_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
+            echo "**Added**: $ADDED_COUNT groups | **Removed**: $REMOVED_COUNT groups" >> $GITHUB_OUTPUT
+            if [ "$ADDED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ✅ Added Groups ($ADDED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$ADDED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            if [ "$REMOVED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ❌ Removed Groups ($REMOVED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$REMOVED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No group changes detected" >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request for groups.json
         uses: peter-evans/create-pull-request@v8.1.0
@@ -203,7 +374,7 @@ jobs:
           body: |
             ## 🏷️ Groups Configuration Update
             
-            **File**: `root/etc/nordvpn/groups.json`
+            **File**: `root/usr/local/share/nordvpn/data/groups.json`
             **Date**: ${{ env.update_date }}
             **Source**: https://api.nordvpn.com/v1/servers/groups
             
@@ -211,6 +382,9 @@ jobs:
             - Updated server groups data from NordVPN API
             - Beautifully formatted JSON with proper indentation
             - Optimized for both readability and runtime performance
+            
+            ### Changes Summary:
+            ${{ steps.diff-summary.outputs.changes_summary }}
             
             ---
             🤖 Auto-generated by [update-groups workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
@@ -222,7 +396,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update technologies.json
         id: update-technologies
@@ -231,15 +405,55 @@ jobs:
           echo "Fetching technologies data from NordVPN API..."
           
           # Create directory if it doesn't exist
-          mkdir -p root/etc/nordvpn
+          mkdir -p root/usr/local/share/nordvpn/data
           
           # Download and process technologies.json with beautiful formatting
           curl -s "https://api.nordvpn.com/v1/technologies" \
-            | jq '.[] | .' \
-            > root/etc/nordvpn/technologies.json
+            | jq '.' \
+            > root/usr/local/share/nordvpn/data/technologies.json
 
           UPDATE_DATE=$(date +%y%m%d)
           echo "update_date=${UPDATE_DATE}" >> $GITHUB_ENV
+
+      - name: Get diff summary for technologies.json
+        id: diff-summary
+        shell: bash
+        run: |
+          # Get lists of technologies before and after
+          if [ -f root/usr/local/share/nordvpn/data/technologies.json ]; then
+            git show HEAD:root/usr/local/share/nordvpn/data/technologies.json 2>/dev/null | jq -r '.[] | "\(.name) (\(.identifier))"' | sort > /tmp/old_technologies.txt || touch /tmp/old_technologies.txt
+          else
+            touch /tmp/old_technologies.txt
+          fi
+          jq -r '.[] | "\(.name) (\(.identifier))"' root/usr/local/share/nordvpn/data/technologies.json | sort > /tmp/new_technologies.txt
+          
+          ADDED=$(comm -13 /tmp/old_technologies.txt /tmp/new_technologies.txt)
+          REMOVED=$(comm -23 /tmp/old_technologies.txt /tmp/new_technologies.txt)
+          
+          ADDED_COUNT=$(echo "$ADDED" | grep -c . || echo "0")
+          REMOVED_COUNT=$(echo "$REMOVED" | grep -c . || echo "0")
+          
+          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
+          if [ "$ADDED_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
+            echo "**Added**: $ADDED_COUNT technologies | **Removed**: $REMOVED_COUNT technologies" >> $GITHUB_OUTPUT
+            if [ "$ADDED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ✅ Added Technologies ($ADDED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$ADDED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+            if [ "$REMOVED_COUNT" -gt 0 ]; then
+              echo "" >> $GITHUB_OUTPUT
+              echo "#### ❌ Removed Technologies ($REMOVED_COUNT):" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+              echo "$REMOVED" >> $GITHUB_OUTPUT
+              echo '```' >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No technology changes detected" >> $GITHUB_OUTPUT
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request for technologies.json
         uses: peter-evans/create-pull-request@v8.1.0
@@ -251,7 +465,7 @@ jobs:
           body: |
             ## 🔧 Technologies Configuration Update
             
-            **File**: `root/etc/nordvpn/technologies.json`
+            **File**: `root/usr/local/share/nordvpn/data/technologies.json`
             **Date**: ${{ env.update_date }}
             **Source**: https://api.nordvpn.com/v1/technologies
             
@@ -260,75 +474,11 @@ jobs:
             - Beautifully formatted JSON with proper indentation
             - Optimized for both readability and runtime performance
             
+            ### Changes Summary:
+            ${{ steps.diff-summary.outputs.changes_summary }}
+            
             ---
             🤖 Auto-generated by [update-technologies workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
-
-  update-openvpn-template:
-    name: 📝 Update OpenVPN Template
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'configs' || github.event.inputs.update_type == 'openvpn-template' || github.event.inputs.update_type == '' }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5.0.0
-
-      - name: Update template.ovpn
-        id: update-template
-        shell: bash
-        run: |
-          echo "Downloading and updating OpenVPN template..."
-          
-          # Create directory if it doesn't exist
-          mkdir -p root/etc/nordvpn
-          
-          # Download and extract OpenVPN configs
-          wget -q https://downloads.nordcdn.com/configs/archives/servers/ovpn.zip -O /tmp/ovpn.zip
-          unzip -q /tmp/ovpn.zip -d /tmp/ovpn
-
-          # Use a random file as base template
-          RANDOM_FILE=$(find /tmp/ovpn -type f | shuf -n 1)
-          echo "📄 Using ${RANDOM_FILE} as base for template.ovpn"
-          
-          # Create template with placeholders
-          cp "${RANDOM_FILE}" root/etc/nordvpn/template.ovpn
-          sed -i '/proto /c\proto __PROTOCOL__' root/etc/nordvpn/template.ovpn
-          sed -i '/remote /c\remote __IP__ __PORT__' root/etc/nordvpn/template.ovpn
-          sed -i '/verify-x509-name /c\verify-x509-name CN=__X509_NAME__' root/etc/nordvpn/template.ovpn
-
-          # Add custom scripts
-          {
-            echo "script-security 2"
-            echo "up /etc/openvpn/up.sh"
-            echo "down /etc/openvpn/down.sh"
-          } >> root/etc/nordvpn/template.ovpn
-
-          UPDATE_DATE=$(date +%y%m%d)
-          echo "update_date=${UPDATE_DATE}" >> $GITHUB_ENV
-
-      - name: Create Pull Request for template.ovpn
-        uses: peter-evans/create-pull-request@v8.1.0
-        with:
-          branch: bot/update-openvpn-template
-          commit-message: "config: update OpenVPN template (${{ env.update_date }})"
-          delete-branch: true
-          title: "📝 Update OpenVPN template - ${{ env.update_date }}"
-          body: |
-            ## 📝 OpenVPN Template Update
-            
-            **File**: `root/etc/nordvpn/template.ovpn`
-            **Date**: ${{ env.update_date }}
-            **Source**: https://downloads.nordcdn.com/configs/archives/servers/ovpn.zip
-            
-            ### Changes:
-            - Updated base configuration from latest NordVPN servers
-            - Maintained placeholders for dynamic configuration:
-              - `__PROTOCOL__` for protocol selection
-              - `__IP__` and `__PORT__` for server connection
-              - `__X509_NAME__` for certificate verification
-            - Preserved custom script hooks for up/down events
-            
-            ---
-            🤖 Auto-generated by [update-openvpn-template workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
 
   update-nordvpn-api-ips:
     name: 🌍 Update NordVPN's API addresses
@@ -337,16 +487,22 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update NordVPN's API addresses
         id: nordvpn-api-ips
         shell: bash
         run: |
-          echo "Fetching countries data from NordVPN API..."
+          echo "Fetching NordVPN API addresses..."
 
           IPS=$(dig +short A api.nordvpn.com | sort -V | tr '\n' ';' | sed 's/;$//')
-          sed -i "s/^\(\s*\)NORDVPNAPI_IP=.*/\1NORDVPNAPI_IP=${IPS} \\\/" Dockerfile
+          echo "Found IPs: $IPS"
+          
+          # Escape special characters for sed
+          IPS_ESCAPED=$(echo "$IPS" | sed 's/[&/\]/\\&/g')
+          
+          # Update the backend-functions file with actual IP addresses
+          sed -i "s|nordvpnapi_ip=\"\${NORDVPNAPI_IP:-[^\"]*}\"|nordvpnapi_ip=\"\${NORDVPNAPI_IP:-${IPS_ESCAPED}}\"|" root/usr/local/bin/backend-functions
 
           UPDATE_DATE=$(date +%y%m%d)
           echo "update_date=${UPDATE_DATE}" >> $GITHUB_ENV
@@ -355,13 +511,13 @@ jobs:
         uses: peter-evans/create-pull-request@v8.1.0
         with:
           branch: bot/update-nordvpn-api-ips
-          commit-message: "config: update `NORDVPNAPI_IP` in Dockerfile (${{ env.update_date }})"
+          commit-message: "config: update `NORDVPNAPI_IP` in backend-functions (${{ env.update_date }})"
           delete-branch: true
-          title: "🌍 Update `NORDVPNAPI_IP` in Dockerfile - ${{ env.update_date }}"
+          title: "🌍 Update `NORDVPNAPI_IP` in backend-functions - ${{ env.update_date }}"
           body: |
             ## 🌍 NORDVPNAPI_IP Update
             
-            **File**: `Dockerfile`
+            **File**: `root/usr/local/bin/backend-functions`
             **Date**: ${{ env.update_date }}
             **Source**: `dig +short A api.nordvpn.com | tr '\n' ';' | sed 's/;$//'`
             
@@ -379,7 +535,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Update APK package versions
         id: update-apk
@@ -392,7 +548,6 @@ jobs:
           echo "update_date=${UPDATE_DATE}" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request for APK updates
-        if: steps.update-apk.outputs.has_updates == 'true'
         uses: peter-evans/create-pull-request@v8.1.0
         with:
           branch: bot/update-apk-packages
@@ -425,7 +580,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.2
 
       - name: Get latest version for ${{ matrix.repository }}
         id: get-version
@@ -466,3 +621,86 @@ jobs:
             
             ---
             🤖 Auto-generated by [update-packages workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)
+
+  update-alpine-version:
+    name: 🐧 Update Alpine Version
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'alpine' || github.event.inputs.update_type == '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Determine latest Alpine version
+        id: get-alpine
+        shell: bash
+        run: |
+          echo "Fetching latest Alpine tags from Docker Hub..."
+          # Fetch tags and select the highest semantic version (major.minor.patch)
+          TAGS=$(curl -s 'https://registry.hub.docker.com/v2/repositories/library/alpine/tags?page_size=200' \
+            | jq -r '.results[].name' \
+            | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | sed -E 's/^([0-9]+\.[0-9]+)$/\1.0/' \
+            | sort -V)
+
+          if [ -z "$TAGS" ]; then
+            echo "Failed to fetch Alpine tags" >&2
+            exit 1
+          fi
+
+          LATEST=$(echo "$TAGS" | tail -n1)
+          echo "Latest Alpine version: $LATEST"
+
+          # Capture current version from Dockerfile before change
+          CURRENT=$(grep -E '^FROM[[:space:]]+alpine:' Dockerfile | head -n1 | sed -E 's/.*alpine:([^[:space:]]+).*/\1/')
+          echo "Current Alpine version in Dockerfile: $CURRENT"
+
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          DATE=$(date +%y%m%d)
+          echo "update_date=${DATE}" >> $GITHUB_ENV
+
+      - name: Update Dockerfile if newer version available
+        id: update-dockerfile
+        if: ${{ steps.get-alpine.outputs.latest != '' && steps.get-alpine.outputs.latest != steps.get-alpine.outputs.current }}
+        shell: bash
+        run: |
+          LATEST='${{ steps.get-alpine.outputs.latest }}'
+          echo "Updating all FROM alpine:* lines to alpine:${LATEST}..."
+          # Replace every FROM alpine:<tag> with the latest version, preserving trailing parts (e.g., AS stage)
+          sed -i -E "s/^(FROM[[:space:]]+alpine:)[^[:space:]]+/\1${LATEST}/g" Dockerfile
+          echo "updated=true" >> $GITHUB_OUTPUT
+          echo "new_version=${LATEST}" >> $GITHUB_OUTPUT
+
+      - name: Update APK package versions
+        id: update-apk
+        if: steps.update-dockerfile.outputs.updated == 'true'
+        shell: bash
+        run: |
+          echo "Updating APK package versions for new Alpine base..."
+          chmod +x ./scripts/update-apk-versions.sh
+          ./scripts/update-apk-versions.sh Dockerfile
+
+      - name: Create Pull Request for Alpine bump
+        if: steps.update-dockerfile.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v8.1.0
+        with:
+          branch: bot/update-alpine
+          commit-message: "deps: bump Alpine to v${{ steps.get-alpine.outputs.latest }} (${{ env.update_date }})"
+          delete-branch: true
+          title: "🐧 Bump Alpine to v${{ steps.get-alpine.outputs.latest }} - ${{ env.update_date }}"
+          body: |
+            ## 🐧 Alpine Base Image Update
+
+            **File**: `Dockerfile`
+            **Date**: ${{ env.update_date }}
+            **Source**: Docker Hub `library/alpine` tags
+
+            ### Change
+            - Current: `${{ steps.get-alpine.outputs.current }}`
+            - New: `${{ steps.get-alpine.outputs.latest }}`
+
+            This PR updates all `FROM alpine:*` lines to the latest stable Alpine tag.
+
+            ---
+            🤖 Auto-generated by [update-alpine workflow](https://github.com/${{ github.repository }}/actions/workflows/maintenance-updates.yml)

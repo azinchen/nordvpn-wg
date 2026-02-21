@@ -1,0 +1,24 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eu
+
+. /usr/local/bin/backend-functions
+
+SCRIPT_NAME="SERVICE-NORDVPN"
+
+log "$SCRIPT_NAME" "Stopping NordVPN service"
+
+if wg show wg0 >/dev/null 2>&1; then
+    log "$SCRIPT_NAME" "Disconnecting WireGuard"
+    wg-quick down wg0 || true
+else
+    log "$SCRIPT_NAME" "Interface wg0 not found, skipping wg-quick down"
+fi
+rm -f "$wgfile"
+
+log "$SCRIPT_NAME" "Cleaning up VPN firewall rules"
+run4 -F VPN-SERVER
+
+log "$SCRIPT_NAME" "NordVPN service stopped"
+exit 0
