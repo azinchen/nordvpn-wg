@@ -1,4 +1,4 @@
-Last updated: 2026-03-22
+Last updated: 2026-03-26
 ---
 # List of CITIES with NordVPN servers
 
@@ -148,6 +148,7 @@ United Kingdom | GB | 227 | Edinburgh | 2975852
 United Kingdom | GB | 227 | Glasgow | 2978888
 United Kingdom | GB | 227 | London | 2989907
 United Kingdom | GB | 227 | Manchester | 2991110
+United States | US | 228 | Albuquerque | 8957066
 United States | US | 228 | Anchorage | 8736005
 United States | US | 228 | Ashburn | 9103211
 United States | US | 228 | Atlanta | 8792429
@@ -182,11 +183,13 @@ United States | US | 228 | McAllen | 9086162
 United States | US | 228 | Miami | 8787782
 United States | US | 228 | Milwaukee | 9144572
 United States | US | 228 | Minneapolis | 8915105
+United States | US | 228 | Montgomery | 8730710
 United States | US | 228 | Nashua | 8948549
 United States | US | 228 | Nashville | 9071273
 United States | US | 228 | New Haven | 8775974
 United States | US | 228 | New Orleans | 8863781
 United States | US | 228 | New York | 8971718
+United States | US | 228 | Oklahoma City | 9013061
 United States | US | 228 | Omaha | 8943887
 United States | US | 228 | Phoenix | 8741960
 United States | US | 228 | Pittsburgh | 9036872
