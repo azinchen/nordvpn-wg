@@ -1,4 +1,4 @@
-Last updated: 2026-03-28
+Last updated: 2026-04-01
 ---
 # List of CITIES with NordVPN servers
 
@@ -141,6 +141,7 @@ Sweden | SE | 208 | Stockholm | 7852919
 Switzerland | CH | 209 | Zurich | 1171814
 Taiwan | TW | 211 | Taipei | 8544365
 Tajikistan | TJ | 212 | Dushanbe | 8269814
+Tanzania | TZ | 213 | Dodoma | 8554790
 Thailand | TH | 214 | Bangkok | 8121638
 Togo | TG | 215 | Lome | 8091425
 Trinidad and Tobago | TT | 218 | Port of Spain | 9521887
@@ -213,3 +214,4 @@ Uzbekistan | UZ | 231 | Tashkent | 9166826
 Venezuela | VE | 233 | Caracas | 9176843
 Vietnam | VN | 234 | Hanoi | 9270302
 Vietnam | VN | 234 | Ho Chi Minh City | 9271799
+Yemen | YE | 239 | Sanaa | 9367184
