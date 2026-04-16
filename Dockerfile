@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.23.3 AS s6-builder
+FROM alpine:3.23.4 AS s6-builder
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -41,7 +41,7 @@ RUN echo "**** install security fix packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-symlinks-arch.tar.xz
 
 # rootfs builder
-FROM alpine:3.23.3 AS rootfs-builder
+FROM alpine:3.23.4 AS rootfs-builder
 
 ARG IMAGE_VERSION=N/A \
     BUILD_DATE=N/A
@@ -79,7 +79,7 @@ RUN chmod +x /rootfs/usr/local/bin/* || true && \
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 
 ARG TARGETPLATFORM
 ARG IMAGE_VERSION=N/A \
