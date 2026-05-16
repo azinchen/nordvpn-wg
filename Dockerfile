@@ -100,7 +100,7 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
     apk --no-cache --no-progress add \
-        curl=8.17.0-r1 \
+        curl=8.19.0-r0 \
         iptables=1.8.11-r1 \
         iptables-legacy=1.8.11-r1 \
         jq=1.8.1-r0 \
