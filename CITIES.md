@@ -1,4 +1,4 @@
-Last updated: 2026-04-01
+Last updated: 2026-06-04
 ---
 # List of CITIES with NordVPN servers
 
@@ -28,13 +28,18 @@ Bermuda | BM | 24 | Hamilton | 809078
 Bhutan | BT | 25 | Thimphu | 989699
 Bolivia | BO | 26 | La Paz | 838514
 Bosnia and Herzegovina | BA | 27 | Sarajevo | 556823
+Botswana | BW | 28 | Gaborone | 989990
 Brazil | BR | 30 | Sao Paulo | 890249
 Brunei Darussalam | BN | 32 | Bandar Seri Begawan | 809132
 Bulgaria | BG | 33 | Sofia | 777368
+Burkina Faso | BF | 34 | Ouagadougou | 716276
 Cambodia | KH | 36 | Phnom Penh | 4658987
+Cameroon | CM | 37 | Yaounde | 1257194
+Canada | CA | 38 | Calgary | 1041023
 Canada | CA | 38 | Montreal | 1048463
 Canada | CA | 38 | Toronto | 1054250
 Canada | CA | 38 | Vancouver | 1054610
+Cape Verde | CV | 39 | Praia | 2093513
 Cayman Islands | KY | 40 | George Town | 4922303
 Chad | TD | 42 | NDjamena | 8075072
 Chile | CL | 43 | Santiago | 1227092
@@ -58,6 +63,7 @@ France | FR | 74 | Bordeaux | 2767493
 France | FR | 74 | Marseille | 2867102
 France | FR | 74 | Paris | 2886284
 France | FR | 74 | Strasbourg | 2929151
+Gambia | GM | 79 | Banjul | 3086063
 Georgia | GE | 80 | Tbilisi | 3032063
 Germany | DE | 81 | Berlin | 2181458
 Germany | DE | 81 | Frankfurt | 2215709
@@ -88,6 +94,7 @@ Jordan | JO | 109 | Amman | 4581203
 Kazakhstan | KZ | 110 | Astana | 4925732
 Kenya | KE | 111 | Nairobi | 4646603
 Kuwait | KW | 116 | Kuwait City | 9521894
+Kyrgyzstan | KG | 117 | Bishkek | 4649336
 Lao People's Democratic Republic | LA | 118 | Vientiane | 5015876
 Latvia | LV | 119 | Riga | 5192828
 Lebanon | LB | 120 | Beirut | 5022080
@@ -95,7 +102,10 @@ Libyan Arab Jamahiriya | LY | 123 | Tripoli | 5206697
 Liechtenstein | LI | 124 | Vaduz | 5037212
 Lithuania | LT | 125 | Vilnius | 5166932
 Luxembourg | LU | 126 | Luxembourg | 9521876
+Madagascar | MG | 129 | Antananarivo | 5346515
+Malawi | MW | 130 | Lilongwe | 5563772
 Malaysia | MY | 131 | Kuala Lumpur | 5820143
+Maldives | MV | 132 | Male | 5556524
 Malta | MT | 134 | Valletta | 5554481
 Mauritania | MR | 137 | Nouakchott | 5551598
 Mauritius | MU | 138 | Port Louis | 5556011
@@ -125,8 +135,10 @@ Puerto Rico | PR | 176 | San Juan | 9521884
 Qatar | QA | 177 | Doha | 6940529
 Romania | RO | 179 | Bucharest | 6953096
 Rwanda | RW | 181 | Kigali | 7723910
+Saint Lucia | LC | 184 | Castries | 5036603
 Senegal | SN | 191 | Dakar | 7924958
 Serbia | RS | 192 | Belgrade | 7030907
+Sierra Leone | SL | 194 | Freetown | 7906196
 Singapore | SG | 195 | Singapore | 7867982
 Slovakia | SK | 196 | Bratislava | 7884305
 Slovenia | SI | 197 | Ljubljana | 7874306
@@ -215,3 +227,4 @@ Venezuela | VE | 233 | Caracas | 9176843
 Vietnam | VN | 234 | Hanoi | 9270302
 Vietnam | VN | 234 | Ho Chi Minh City | 9271799
 Yemen | YE | 239 | Sanaa | 9367184
+Zambia | ZM | 240 | Lusaka | 9427058
