@@ -180,13 +180,13 @@
         "id": 5,
         "name": "Victoria",
         "code": "VIC",
-        "serverCount": 70
+        "serverCount": 69
       },
       {
         "id": 6,
         "name": "Western Australia",
         "code": "WA",
-        "serverCount": 43
+        "serverCount": 42
       }
     ]
   },
@@ -555,7 +555,7 @@
         "id": 17,
         "name": "Quebec",
         "code": "QC",
-        "serverCount": 175
+        "serverCount": 177
       }
     ]
   },
@@ -2509,7 +2509,7 @@
         "id": 38,
         "name": "England",
         "code": "ENG",
-        "serverCount": 1050
+        "serverCount": 1051
       },
       {
         "id": 39,
@@ -3018,7 +3018,7 @@
         "id": 50,
         "name": "Florida",
         "code": "FL",
-        "serverCount": 248
+        "serverCount": 249
       },
       {
         "id": 51,
@@ -3156,7 +3156,7 @@
         "id": 73,
         "name": "New York",
         "code": "NY",
-        "serverCount": 712
+        "serverCount": 710
       },
       {
         "id": 74,
