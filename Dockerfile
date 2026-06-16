@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.23.4 AS s6-builder
+FROM alpine:3.24.1 AS s6-builder
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -10,7 +10,7 @@ ENV PACKAGEVERSION="3.2.3.0"
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        tar=1.35-r4 \
+        tar=1.35-r5 \
         xz=5.8.3-r0 \
         && \
     echo "**** create folders ****" && \
@@ -41,7 +41,7 @@ RUN echo "**** install security fix packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-symlinks-arch.tar.xz
 
 # rootfs builder
-FROM alpine:3.23.4 AS rootfs-builder
+FROM alpine:3.24.1 AS rootfs-builder
 
 ARG IMAGE_VERSION=N/A \
     BUILD_DATE=N/A
@@ -79,7 +79,7 @@ RUN chmod +x /rootfs/usr/local/bin/* || true && \
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.23.4
+FROM alpine:3.24.1
 
 ARG TARGETPLATFORM
 ARG IMAGE_VERSION=N/A \
@@ -100,13 +100,13 @@ RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
     apk --no-cache --no-progress add \
-        curl=8.19.0-r0 \
-        iptables=1.8.11-r1 \
-        iptables-legacy=1.8.11-r1 \
+        curl=8.20.0-r1 \
+        iptables=1.8.13-r0 \
+        iptables-legacy=1.8.13-r0 \
         jq=1.8.1-r0 \
-        shadow=4.18.0-r0 \
-        shadow-login=4.18.0-r0 \
-        wireguard-tools=1.0.20250521-r1 \
+        shadow=4.18.0-r1 \
+        shadow-login=4.18.0-r1 \
+        wireguard-tools=1.0.20260223-r0 \
         bind-tools=9.20.23-r0 \
         && \
     echo "**** cleanup ****" && \
