@@ -186,7 +186,7 @@
         "id": 6,
         "name": "Western Australia",
         "code": "WA",
-        "serverCount": 42
+        "serverCount": 43
       }
     ]
   },
@@ -549,7 +549,7 @@
         "id": 15,
         "name": "Ontario",
         "code": "ON",
-        "serverCount": 239
+        "serverCount": 238
       },
       {
         "id": 17,
@@ -998,7 +998,7 @@
         "id": 28,
         "name": "Hesse",
         "code": "HE",
-        "serverCount": 339
+        "serverCount": 340
       }
     ]
   },
@@ -2994,13 +2994,13 @@
         "id": 46,
         "name": "California",
         "code": "CA",
-        "serverCount": 428
+        "serverCount": 429
       },
       {
         "id": 47,
         "name": "Colorado",
         "code": "CO",
-        "serverCount": 129
+        "serverCount": 128
       },
       {
         "id": 48,
@@ -3018,7 +3018,7 @@
         "id": 50,
         "name": "Florida",
         "code": "FL",
-        "serverCount": 249
+        "serverCount": 250
       },
       {
         "id": 51,
@@ -3090,7 +3090,7 @@
         "id": 62,
         "name": "Massachusetts",
         "code": "MA",
-        "serverCount": 80
+        "serverCount": 81
       },
       {
         "id": 63,
@@ -3156,7 +3156,7 @@
         "id": 73,
         "name": "New York",
         "code": "NY",
-        "serverCount": 710
+        "serverCount": 708
       },
       {
         "id": 74,
@@ -3186,7 +3186,7 @@
         "id": 78,
         "name": "Oregon",
         "code": "OR",
-        "serverCount": 10
+        "serverCount": 9
       },
       {
         "id": 79,
@@ -3240,7 +3240,7 @@
         "id": 87,
         "name": "Virginia",
         "code": "VA",
-        "serverCount": 158
+        "serverCount": 156
       },
       {
         "id": 88,
