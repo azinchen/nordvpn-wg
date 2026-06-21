@@ -6,6 +6,7 @@
     "cities": [
       {
         "id": 98270,
+        "identifier": "af_kabul",
         "name": "Kabul",
         "latitude": 34.516667,
         "longitude": 69.183333,
@@ -22,6 +23,7 @@
     "cities": [
       {
         "id": 308615,
+        "identifier": "al_tirana",
         "name": "Tirana",
         "latitude": 41.3275,
         "longitude": 19.8188889,
@@ -38,6 +40,7 @@
     "cities": [
       {
         "id": 2438216,
+        "identifier": "dz_algiers",
         "name": "Algiers",
         "latitude": 36.7630556,
         "longitude": 3.0505556,
@@ -54,6 +57,7 @@
     "cities": [
       {
         "id": 20,
+        "identifier": "ad_andorra-la-vella",
         "name": "Andorra la Vella",
         "latitude": 42.5,
         "longitude": 1.5166667,
@@ -70,6 +74,7 @@
     "cities": [
       {
         "id": 351407,
+        "identifier": "ao_luanda",
         "name": "Luanda",
         "latitude": -8.836804,
         "longitude": 13.233174,
@@ -86,6 +91,7 @@
     "cities": [
       {
         "id": 384866,
+        "identifier": "ar_buenos-aires",
         "name": "Buenos Aires",
         "latitude": -34.5875,
         "longitude": -58.6725,
@@ -102,6 +108,7 @@
     "cities": [
       {
         "id": 322385,
+        "identifier": "am_yerevan",
         "name": "Yerevan",
         "latitude": 40.1811111,
         "longitude": 44.5136111,
@@ -118,6 +125,7 @@
     "cities": [
       {
         "id": 452717,
+        "identifier": "au_adelaide",
         "name": "Adelaide",
         "latitude": -34.928661,
         "longitude": 138.598633,
@@ -126,6 +134,7 @@
       },
       {
         "id": 456494,
+        "identifier": "au_brisbane",
         "name": "Brisbane",
         "latitude": -27.47101,
         "longitude": 153.024292,
@@ -134,6 +143,7 @@
       },
       {
         "id": 470813,
+        "identifier": "au_melbourne",
         "name": "Melbourne",
         "latitude": -37.813938,
         "longitude": 144.963425,
@@ -142,6 +152,7 @@
       },
       {
         "id": 475799,
+        "identifier": "au_perth",
         "name": "Perth",
         "latitude": -31.95224,
         "longitude": 115.861397,
@@ -150,6 +161,7 @@
       },
       {
         "id": 479570,
+        "identifier": "au_sydney",
         "name": "Sydney",
         "latitude": -33.861481,
         "longitude": 151.205475,
@@ -180,7 +192,7 @@
         "id": 5,
         "name": "Victoria",
         "code": "VIC",
-        "serverCount": 69
+        "serverCount": 70
       },
       {
         "id": 6,
@@ -197,6 +209,7 @@
     "cities": [
       {
         "id": 448799,
+        "identifier": "at_vienna",
         "name": "Vienna",
         "latitude": 48.2,
         "longitude": 16.366667,
@@ -213,6 +226,7 @@
     "cities": [
       {
         "id": 490037,
+        "identifier": "az_baku",
         "name": "Baku",
         "latitude": 40.395278,
         "longitude": 49.882222,
@@ -229,6 +243,7 @@
     "cities": [
       {
         "id": 988382,
+        "identifier": "bs_nassau",
         "name": "Nassau",
         "latitude": 25.078056,
         "longitude": -77.338611,
@@ -245,6 +260,7 @@
     "cities": [
       {
         "id": 789398,
+        "identifier": "bh_manama",
         "name": "Manama",
         "latitude": 26.2361111,
         "longitude": 50.5830556,
@@ -261,6 +277,7 @@
     "cities": [
       {
         "id": 594935,
+        "identifier": "bd_dhaka",
         "name": "Dhaka",
         "latitude": 23.7230556,
         "longitude": 90.4086111,
@@ -277,6 +294,7 @@
     "cities": [
       {
         "id": 567650,
+        "identifier": "bb_bridgetown",
         "name": "Bridgetown",
         "latitude": 13.1,
         "longitude": -59.6166667,
@@ -293,6 +311,7 @@
     "cities": [
       {
         "id": 654293,
+        "identifier": "be_brussels",
         "name": "Brussels",
         "latitude": 50.833333,
         "longitude": 4.333333,
@@ -309,6 +328,7 @@
     "cities": [
       {
         "id": 1037459,
+        "identifier": "bz_belmopan",
         "name": "Belmopan",
         "latitude": 17.25,
         "longitude": -88.7666667,
@@ -325,6 +345,7 @@
     "cities": [
       {
         "id": 809078,
+        "identifier": "bm_hamilton",
         "name": "Hamilton",
         "latitude": 32.2941667,
         "longitude": -64.7838889,
@@ -341,6 +362,7 @@
     "cities": [
       {
         "id": 989699,
+        "identifier": "bt_thimphu",
         "name": "Thimphu",
         "latitude": 27.472222,
         "longitude": 89.636111,
@@ -357,6 +379,7 @@
     "cities": [
       {
         "id": 838514,
+        "identifier": "bo_la-paz",
         "name": "La Paz",
         "latitude": -16.5,
         "longitude": -68.15,
@@ -373,6 +396,7 @@
     "cities": [
       {
         "id": 556823,
+        "identifier": "ba_sarajevo",
         "name": "Sarajevo",
         "latitude": 43.85,
         "longitude": 18.3833333,
@@ -389,6 +413,7 @@
     "cities": [
       {
         "id": 989990,
+        "identifier": "bw_gaborone",
         "name": "Gaborone",
         "latitude": -24.6463889,
         "longitude": 25.9119444,
@@ -405,6 +430,7 @@
     "cities": [
       {
         "id": 890249,
+        "identifier": "br_sao-paulo",
         "name": "Sao Paulo",
         "latitude": -23.533333,
         "longitude": -46.616667,
@@ -421,6 +447,7 @@
     "cities": [
       {
         "id": 809132,
+        "identifier": "bn_bandar-seri-begawan",
         "name": "Bandar Seri Begawan",
         "latitude": 4.8833333,
         "longitude": 114.9333333,
@@ -437,6 +464,7 @@
     "cities": [
       {
         "id": 777368,
+        "identifier": "bg_sofia",
         "name": "Sofia",
         "latitude": 42.6833333,
         "longitude": 23.3166667,
@@ -453,6 +481,7 @@
     "cities": [
       {
         "id": 716276,
+        "identifier": "bf_ouagadougou",
         "name": "Ouagadougou",
         "latitude": 12.3702778,
         "longitude": -1.5247222,
@@ -469,6 +498,7 @@
     "cities": [
       {
         "id": 4658987,
+        "identifier": "kh_phnom-penh",
         "name": "Phnom Penh",
         "latitude": 11.55,
         "longitude": 104.9166667,
@@ -485,6 +515,7 @@
     "cities": [
       {
         "id": 1257194,
+        "identifier": "cm_yaounde",
         "name": "Yaounde",
         "latitude": 3.8666667,
         "longitude": 11.5166667,
@@ -501,6 +532,7 @@
     "cities": [
       {
         "id": 1041023,
+        "identifier": "ca_calgary",
         "name": "Calgary",
         "latitude": 51.083333,
         "longitude": -114.083333,
@@ -509,6 +541,7 @@
       },
       {
         "id": 1048463,
+        "identifier": "ca_montreal",
         "name": "Montreal",
         "latitude": 45.5,
         "longitude": -73.583333,
@@ -517,6 +550,7 @@
       },
       {
         "id": 1054250,
+        "identifier": "ca_toronto",
         "name": "Toronto",
         "latitude": 43.666667,
         "longitude": -79.416667,
@@ -525,6 +559,7 @@
       },
       {
         "id": 1054610,
+        "identifier": "ca_vancouver",
         "name": "Vancouver",
         "latitude": 49.25,
         "longitude": -123.133333,
@@ -549,7 +584,7 @@
         "id": 15,
         "name": "Ontario",
         "code": "ON",
-        "serverCount": 238
+        "serverCount": 239
       },
       {
         "id": 17,
@@ -566,6 +601,7 @@
     "cities": [
       {
         "id": 2093513,
+        "identifier": "cv_praia",
         "name": "Praia",
         "latitude": 14.9166667,
         "longitude": -23.5166667,
@@ -582,6 +618,7 @@
     "cities": [
       {
         "id": 4922303,
+        "identifier": "ky_george-town",
         "name": "George Town",
         "latitude": 19.3,
         "longitude": -81.3833333,
@@ -598,6 +635,7 @@
     "cities": [
       {
         "id": 8075072,
+        "identifier": "td_ndjamena",
         "name": "NDjamena",
         "latitude": 12.1130556,
         "longitude": 15.0491667,
@@ -614,6 +652,7 @@
     "cities": [
       {
         "id": 1227092,
+        "identifier": "cl_santiago",
         "name": "Santiago",
         "latitude": -33.45,
         "longitude": -70.666667,
@@ -630,6 +669,7 @@
     "cities": [
       {
         "id": 1980695,
+        "identifier": "co_bogota",
         "name": "Bogota",
         "latitude": 4.649178,
         "longitude": -74.062827,
@@ -646,6 +686,7 @@
     "cities": [
       {
         "id": 4698371,
+        "identifier": "km_moroni",
         "name": "Moroni",
         "latitude": -11.7041667,
         "longitude": 43.2402778,
@@ -662,6 +703,7 @@
     "cities": [
       {
         "id": 2062994,
+        "identifier": "cr_san-jose",
         "name": "San Jose",
         "latitude": 9.893385,
         "longitude": -84.105407,
@@ -678,6 +720,7 @@
     "cities": [
       {
         "id": 1212512,
+        "identifier": "ci_yamoussoukro",
         "name": "Yamoussoukro",
         "latitude": 6.820548,
         "longitude": -5.276741,
@@ -694,6 +737,7 @@
     "cities": [
       {
         "id": 3308120,
+        "identifier": "hr_zagreb",
         "name": "Zagreb",
         "latitude": 45.8,
         "longitude": 16.0,
@@ -710,6 +754,7 @@
     "cities": [
       {
         "id": 2099627,
+        "identifier": "cy_nicosia",
         "name": "Nicosia",
         "latitude": 35.1666667,
         "longitude": 33.3666667,
@@ -726,6 +771,7 @@
     "cities": [
       {
         "id": 2144945,
+        "identifier": "cz_prague",
         "name": "Prague",
         "latitude": 50.083333,
         "longitude": 14.466667,
@@ -742,6 +788,7 @@
     "cities": [
       {
         "id": 2382515,
+        "identifier": "dk_copenhagen",
         "name": "Copenhagen",
         "latitude": 55.666667,
         "longitude": 12.583333,
@@ -758,6 +805,7 @@
     "cities": [
       {
         "id": 2434841,
+        "identifier": "do_santo-domingo",
         "name": "Santo Domingo",
         "latitude": 18.4666667,
         "longitude": -69.9,
@@ -774,6 +822,7 @@
     "cities": [
       {
         "id": 2485688,
+        "identifier": "ec_quito",
         "name": "Quito",
         "latitude": -0.2166667,
         "longitude": -78.5,
@@ -790,6 +839,7 @@
     "cities": [
       {
         "id": 2528003,
+        "identifier": "eg_cairo",
         "name": "Cairo",
         "latitude": 30.05,
         "longitude": 31.25,
@@ -806,6 +856,7 @@
     "cities": [
       {
         "id": 7990847,
+        "identifier": "sv_san-salvador",
         "name": "San Salvador",
         "latitude": 13.7086111,
         "longitude": -89.2030556,
@@ -822,6 +873,7 @@
     "cities": [
       {
         "id": 2514182,
+        "identifier": "ee_tallinn",
         "name": "Tallinn",
         "latitude": 59.4338889,
         "longitude": 24.7280556,
@@ -838,6 +890,7 @@
     "cities": [
       {
         "id": 2660744,
+        "identifier": "et_addis-ababa",
         "name": "Addis Ababa",
         "latitude": 9.024325,
         "longitude": 38.749226,
@@ -854,6 +907,7 @@
     "cities": [
       {
         "id": 2743211,
+        "identifier": "fj_suva",
         "name": "Suva",
         "latitude": -18.1333333,
         "longitude": 178.4166667,
@@ -870,6 +924,7 @@
     "cities": [
       {
         "id": 2704343,
+        "identifier": "fi_helsinki",
         "name": "Helsinki",
         "latitude": 60.175556,
         "longitude": 24.934167,
@@ -886,6 +941,7 @@
     "cities": [
       {
         "id": 2767493,
+        "identifier": "fr_bordeaux",
         "name": "Bordeaux",
         "latitude": 44.840439,
         "longitude": -0.5805,
@@ -894,6 +950,7 @@
       },
       {
         "id": 2867102,
+        "identifier": "fr_marseille",
         "name": "Marseille",
         "latitude": 43.285413,
         "longitude": 5.37606,
@@ -902,6 +959,7 @@
       },
       {
         "id": 2886284,
+        "identifier": "fr_paris",
         "name": "Paris",
         "latitude": 48.866667,
         "longitude": 2.333333,
@@ -910,6 +968,7 @@
       },
       {
         "id": 2929151,
+        "identifier": "fr_strasbourg",
         "name": "Strasbourg",
         "latitude": 48.600381,
         "longitude": 7.787355,
@@ -926,6 +985,7 @@
     "cities": [
       {
         "id": 3086063,
+        "identifier": "gm_banjul",
         "name": "Banjul",
         "latitude": 13.4530556,
         "longitude": -16.5775,
@@ -942,6 +1002,7 @@
     "cities": [
       {
         "id": 3032063,
+        "identifier": "ge_tbilisi",
         "name": "Tbilisi",
         "latitude": 41.725,
         "longitude": 44.7908333,
@@ -958,6 +1019,7 @@
     "cities": [
       {
         "id": 2181458,
+        "identifier": "de_berlin",
         "name": "Berlin",
         "latitude": 52.516667,
         "longitude": 13.4,
@@ -966,6 +1028,7 @@
       },
       {
         "id": 2215709,
+        "identifier": "de_frankfurt",
         "name": "Frankfurt",
         "latitude": 50.116667,
         "longitude": 8.683333,
@@ -974,6 +1037,7 @@
       },
       {
         "id": 2234906,
+        "identifier": "de_hamburg",
         "name": "Hamburg",
         "latitude": 53.55,
         "longitude": 10.0,
@@ -992,7 +1056,7 @@
         "id": 27,
         "name": "Hamburg",
         "code": "HH",
-        "serverCount": 28
+        "serverCount": 29
       },
       {
         "id": 28,
@@ -1009,6 +1073,7 @@
     "cities": [
       {
         "id": 3040355,
+        "identifier": "gh_accra",
         "name": "Accra",
         "latitude": 5.55,
         "longitude": -0.2166667,
@@ -1025,6 +1090,7 @@
     "cities": [
       {
         "id": 3131903,
+        "identifier": "gr_athens",
         "name": "Athens",
         "latitude": 37.9833333,
         "longitude": 23.7333333,
@@ -1041,6 +1107,7 @@
     "cities": [
       {
         "id": 3085001,
+        "identifier": "gl_nuuk",
         "name": "Nuuk",
         "latitude": 64.1833333,
         "longitude": -51.75,
@@ -1057,6 +1124,7 @@
     "cities": [
       {
         "id": 8808314,
+        "identifier": "gu_hagatna",
         "name": "Hagatna",
         "latitude": 13.4741667,
         "longitude": 144.7477778,
@@ -1073,6 +1141,7 @@
     "cities": [
       {
         "id": 3202463,
+        "identifier": "gt_guatemala-city",
         "name": "Guatemala City",
         "latitude": 14.621111,
         "longitude": -90.526944,
@@ -1089,6 +1158,7 @@
     "cities": [
       {
         "id": 3270551,
+        "identifier": "hn_tegucigalpa",
         "name": "Tegucigalpa",
         "latitude": 14.1,
         "longitude": -87.2166667,
@@ -1105,6 +1175,7 @@
     "cities": [
       {
         "id": 3232931,
+        "identifier": "hk_hong-kong",
         "name": "Hong Kong",
         "latitude": 22.2833333,
         "longitude": 114.15,
@@ -1121,6 +1192,7 @@
     "cities": [
       {
         "id": 3348344,
+        "identifier": "hu_budapest",
         "name": "Budapest",
         "latitude": 47.5,
         "longitude": 19.083333,
@@ -1137,6 +1209,7 @@
     "cities": [
       {
         "id": 4509791,
+        "identifier": "is_reykjavik",
         "name": "Reykjavik",
         "latitude": 64.15,
         "longitude": -21.95,
@@ -1153,6 +1226,7 @@
     "cities": [
       {
         "id": 4041548,
+        "identifier": "in_mumbai",
         "name": "Mumbai",
         "latitude": 18.975,
         "longitude": 72.825833,
@@ -1169,6 +1243,7 @@
     "cities": [
       {
         "id": 3560288,
+        "identifier": "id_jakarta",
         "name": "Jakarta",
         "latitude": -6.174444,
         "longitude": 106.829444,
@@ -1185,6 +1260,7 @@
     "cities": [
       {
         "id": 4093955,
+        "identifier": "iq_baghdad",
         "name": "Baghdad",
         "latitude": 33.3386111,
         "longitude": 44.3938889,
@@ -1201,6 +1277,7 @@
     "cities": [
       {
         "id": 3939200,
+        "identifier": "ie_dublin",
         "name": "Dublin",
         "latitude": 53.3330556,
         "longitude": -6.2488889,
@@ -1217,6 +1294,7 @@
     "cities": [
       {
         "id": 3965405,
+        "identifier": "im_douglas",
         "name": "Douglas",
         "latitude": 54.15,
         "longitude": -4.483333,
@@ -1233,6 +1311,7 @@
     "cities": [
       {
         "id": 3964220,
+        "identifier": "il_tel-aviv",
         "name": "Tel Aviv",
         "latitude": 32.066667,
         "longitude": 34.766667,
@@ -1249,6 +1328,7 @@
     "cities": [
       {
         "id": 4542737,
+        "identifier": "it_milan",
         "name": "Milan",
         "latitude": 45.466667,
         "longitude": 9.2,
@@ -1257,6 +1337,7 @@
       },
       {
         "id": 4548074,
+        "identifier": "it_palermo",
         "name": "Palermo",
         "latitude": 38.116667,
         "longitude": 13.366667,
@@ -1265,6 +1346,7 @@
       },
       {
         "id": 4555808,
+        "identifier": "it_rome",
         "name": "Rome",
         "latitude": 41.8902,
         "longitude": 12.4922,
@@ -1281,6 +1363,7 @@
     "cities": [
       {
         "id": 4576328,
+        "identifier": "jm_kingston",
         "name": "Kingston",
         "latitude": 18.0,
         "longitude": -76.8,
@@ -1297,6 +1380,7 @@
     "cities": [
       {
         "id": 4621847,
+        "identifier": "jp_osaka",
         "name": "Osaka",
         "latitude": 34.6937,
         "longitude": 135.5023,
@@ -1305,6 +1389,7 @@
       },
       {
         "id": 4633349,
+        "identifier": "jp_tokyo",
         "name": "Tokyo",
         "latitude": 35.685,
         "longitude": 139.751389,
@@ -1321,6 +1406,7 @@
     "cities": [
       {
         "id": 4572281,
+        "identifier": "je_saint-helier",
         "name": "Saint Helier",
         "latitude": 49.183333,
         "longitude": -2.1,
@@ -1337,6 +1423,7 @@
     "cities": [
       {
         "id": 4581203,
+        "identifier": "jo_amman",
         "name": "Amman",
         "latitude": 31.95,
         "longitude": 35.933333,
@@ -1353,6 +1440,7 @@
     "cities": [
       {
         "id": 4925732,
+        "identifier": "kz_astana",
         "name": "Astana",
         "latitude": 51.181111,
         "longitude": 71.427778,
@@ -1369,6 +1457,7 @@
     "cities": [
       {
         "id": 4646603,
+        "identifier": "ke_nairobi",
         "name": "Nairobi",
         "latitude": -1.2833333,
         "longitude": 36.8166667,
@@ -1385,6 +1474,7 @@
     "cities": [
       {
         "id": 9521894,
+        "identifier": "kw_kuwait-city",
         "name": "Kuwait City",
         "latitude": 29.3759,
         "longitude": 47.9774,
@@ -1401,6 +1491,7 @@
     "cities": [
       {
         "id": 4649336,
+        "identifier": "kg_bishkek",
         "name": "Bishkek",
         "latitude": 42.8730556,
         "longitude": 74.6002778,
@@ -1417,6 +1508,7 @@
     "cities": [
       {
         "id": 5015876,
+        "identifier": "la_vientiane",
         "name": "Vientiane",
         "latitude": 17.966667,
         "longitude": 102.6,
@@ -1433,6 +1525,7 @@
     "cities": [
       {
         "id": 5192828,
+        "identifier": "lv_riga",
         "name": "Riga",
         "latitude": 56.95,
         "longitude": 24.1,
@@ -1449,6 +1542,7 @@
     "cities": [
       {
         "id": 5022080,
+        "identifier": "lb_beirut",
         "name": "Beirut",
         "latitude": 33.8719444,
         "longitude": 35.5097222,
@@ -1465,6 +1559,7 @@
     "cities": [
       {
         "id": 5206697,
+        "identifier": "ly_tripoli",
         "name": "Tripoli",
         "latitude": 32.8925,
         "longitude": 13.18,
@@ -1481,6 +1576,7 @@
     "cities": [
       {
         "id": 5037212,
+        "identifier": "li_vaduz",
         "name": "Vaduz",
         "latitude": 47.1333333,
         "longitude": 9.5166667,
@@ -1497,6 +1593,7 @@
     "cities": [
       {
         "id": 5166932,
+        "identifier": "lt_vilnius",
         "name": "Vilnius",
         "latitude": 54.6833333,
         "longitude": 25.3166667,
@@ -1513,6 +1610,7 @@
     "cities": [
       {
         "id": 9521876,
+        "identifier": "lu_luxembourg",
         "name": "Luxembourg",
         "latitude": 49.6117,
         "longitude": 6.13,
@@ -1529,6 +1627,7 @@
     "cities": [
       {
         "id": 5346515,
+        "identifier": "mg_antananarivo",
         "name": "Antananarivo",
         "latitude": -18.9166667,
         "longitude": 47.5166667,
@@ -1545,6 +1644,7 @@
     "cities": [
       {
         "id": 5563772,
+        "identifier": "mw_lilongwe",
         "name": "Lilongwe",
         "latitude": -13.9833333,
         "longitude": 33.7833333,
@@ -1561,6 +1661,7 @@
     "cities": [
       {
         "id": 5820143,
+        "identifier": "my_kuala-lumpur",
         "name": "Kuala Lumpur",
         "latitude": 3.166667,
         "longitude": 101.7,
@@ -1577,6 +1678,7 @@
     "cities": [
       {
         "id": 5556524,
+        "identifier": "mv_male",
         "name": "Male",
         "latitude": 4.1666667,
         "longitude": 73.5,
@@ -1593,6 +1695,7 @@
     "cities": [
       {
         "id": 5554481,
+        "identifier": "mt_valletta",
         "name": "Valletta",
         "latitude": 35.899722,
         "longitude": 14.514722,
@@ -1609,6 +1712,7 @@
     "cities": [
       {
         "id": 5551598,
+        "identifier": "mr_nouakchott",
         "name": "Nouakchott",
         "latitude": 18.0863889,
         "longitude": -15.9752778,
@@ -1625,6 +1729,7 @@
     "cities": [
       {
         "id": 5556011,
+        "identifier": "mu_port-louis",
         "name": "Port Louis",
         "latitude": -20.1619444,
         "longitude": 57.4988889,
@@ -1641,6 +1746,7 @@
     "cities": [
       {
         "id": 5677037,
+        "identifier": "mx_mexico",
         "name": "Mexico",
         "latitude": 19.434167,
         "longitude": -99.138611,
@@ -1657,6 +1763,7 @@
     "cities": [
       {
         "id": 5295179,
+        "identifier": "md_chisinau",
         "name": "Chisinau",
         "latitude": 47.005556,
         "longitude": 28.8575,
@@ -1673,6 +1780,7 @@
     "cities": [
       {
         "id": 5292332,
+        "identifier": "mc_monte-carlo",
         "name": "Monte Carlo",
         "latitude": 43.739722,
         "longitude": 7.427222,
@@ -1689,6 +1797,7 @@
     "cities": [
       {
         "id": 5543669,
+        "identifier": "mn_ulaanbaatar",
         "name": "Ulaanbaatar",
         "latitude": 47.9166667,
         "longitude": 106.9166667,
@@ -1705,6 +1814,7 @@
     "cities": [
       {
         "id": 5318561,
+        "identifier": "me_podgorica",
         "name": "Podgorica",
         "latitude": 42.441111,
         "longitude": 19.263611,
@@ -1721,6 +1831,7 @@
     "cities": [
       {
         "id": 5271254,
+        "identifier": "ma_rabat",
         "name": "Rabat",
         "latitude": 34.013784,
         "longitude": -6.844268,
@@ -1737,6 +1848,7 @@
     "cities": [
       {
         "id": 5870336,
+        "identifier": "mz_maputo",
         "name": "Maputo",
         "latitude": -25.9652778,
         "longitude": 32.5891667,
@@ -1753,6 +1865,7 @@
     "cities": [
       {
         "id": 9521893,
+        "identifier": "mm_naypyidaw",
         "name": "Naypyidaw",
         "latitude": 19.7475,
         "longitude": 96.115,
@@ -1769,6 +1882,7 @@
     "cities": [
       {
         "id": 6142175,
+        "identifier": "np_kathmandu",
         "name": "Kathmandu",
         "latitude": 27.7166667,
         "longitude": 85.3166667,
@@ -1785,6 +1899,7 @@
     "cities": [
       {
         "id": 6076868,
+        "identifier": "nl_amsterdam",
         "name": "Amsterdam",
         "latitude": 52.35,
         "longitude": 4.916667,
@@ -1801,6 +1916,7 @@
     "cities": [
       {
         "id": 6144239,
+        "identifier": "nz_auckland",
         "name": "Auckland",
         "latitude": -36.866667,
         "longitude": 174.766667,
@@ -1817,6 +1933,7 @@
     "cities": [
       {
         "id": 6010328,
+        "identifier": "ng_lagos",
         "name": "Lagos",
         "latitude": 6.453056,
         "longitude": 3.395833,
@@ -1833,6 +1950,7 @@
     "cities": [
       {
         "id": 5386019,
+        "identifier": "mk_skopje",
         "name": "Skopje",
         "latitude": 42.0,
         "longitude": 21.4333333,
@@ -1849,6 +1967,7 @@
     "cities": [
       {
         "id": 6127364,
+        "identifier": "no_oslo",
         "name": "Oslo",
         "latitude": 59.916667,
         "longitude": 10.75,
@@ -1865,6 +1984,7 @@
     "cities": [
       {
         "id": 6600485,
+        "identifier": "pk_karachi",
         "name": "Karachi",
         "latitude": 24.9056,
         "longitude": 67.0822,
@@ -1881,6 +2001,7 @@
     "cities": [
       {
         "id": 6176273,
+        "identifier": "pa_panama-city",
         "name": "Panama City",
         "latitude": 8.9666667,
         "longitude": -79.5333333,
@@ -1897,6 +2018,7 @@
     "cities": [
       {
         "id": 6292406,
+        "identifier": "pg_port-moresby",
         "name": "Port Moresby",
         "latitude": -9.4647222,
         "longitude": 147.1925,
@@ -1913,6 +2035,7 @@
     "cities": [
       {
         "id": 9521890,
+        "identifier": "py_asuncion",
         "name": "Asuncion",
         "latitude": -25.3,
         "longitude": -57.633333,
@@ -1929,6 +2052,7 @@
     "cities": [
       {
         "id": 6222584,
+        "identifier": "pe_lima",
         "name": "Lima",
         "latitude": -12.05,
         "longitude": -77.05,
@@ -1945,6 +2069,7 @@
     "cities": [
       {
         "id": 6391379,
+        "identifier": "ph_manila",
         "name": "Manila",
         "latitude": 14.6042,
         "longitude": 120.9822,
@@ -1961,6 +2086,7 @@
     "cities": [
       {
         "id": 6863429,
+        "identifier": "pl_warsaw",
         "name": "Warsaw",
         "latitude": 52.25,
         "longitude": 21.0,
@@ -1977,6 +2103,7 @@
     "cities": [
       {
         "id": 6906665,
+        "identifier": "pt_lisbon",
         "name": "Lisbon",
         "latitude": 38.716667,
         "longitude": -9.133333,
@@ -1993,6 +2120,7 @@
     "cities": [
       {
         "id": 9521884,
+        "identifier": "pr_san-juan",
         "name": "San Juan",
         "latitude": 18.406389,
         "longitude": -66.063889,
@@ -2009,6 +2137,7 @@
     "cities": [
       {
         "id": 6940529,
+        "identifier": "qa_doha",
         "name": "Doha",
         "latitude": 25.286667,
         "longitude": 51.533333,
@@ -2025,6 +2154,7 @@
     "cities": [
       {
         "id": 6953096,
+        "identifier": "ro_bucharest",
         "name": "Bucharest",
         "latitude": 44.433333,
         "longitude": 26.1,
@@ -2041,6 +2171,7 @@
     "cities": [
       {
         "id": 7723910,
+        "identifier": "rw_kigali",
         "name": "Kigali",
         "latitude": -1.9536111,
         "longitude": 30.0605556,
@@ -2057,6 +2188,7 @@
     "cities": [
       {
         "id": 5036603,
+        "identifier": "lc_castries",
         "name": "Castries",
         "latitude": 14.0,
         "longitude": -61.0,
@@ -2073,6 +2205,7 @@
     "cities": [
       {
         "id": 7924958,
+        "identifier": "sn_dakar",
         "name": "Dakar",
         "latitude": 14.6708333,
         "longitude": -17.4380556,
@@ -2089,6 +2222,7 @@
     "cities": [
       {
         "id": 7030907,
+        "identifier": "rs_belgrade",
         "name": "Belgrade",
         "latitude": 44.818611,
         "longitude": 20.468056,
@@ -2105,6 +2239,7 @@
     "cities": [
       {
         "id": 7906196,
+        "identifier": "sl_freetown",
         "name": "Freetown",
         "latitude": 8.49,
         "longitude": -13.2341667,
@@ -2121,6 +2256,7 @@
     "cities": [
       {
         "id": 7867982,
+        "identifier": "sg_singapore",
         "name": "Singapore",
         "latitude": 1.2930556,
         "longitude": 103.8558333,
@@ -2137,6 +2273,7 @@
     "cities": [
       {
         "id": 7884305,
+        "identifier": "sk_bratislava",
         "name": "Bratislava",
         "latitude": 48.15,
         "longitude": 17.1166667,
@@ -2153,6 +2290,7 @@
     "cities": [
       {
         "id": 7874306,
+        "identifier": "si_ljubljana",
         "name": "Ljubljana",
         "latitude": 46.0552778,
         "longitude": 14.5144444,
@@ -2169,6 +2307,7 @@
     "cities": [
       {
         "id": 7971170,
+        "identifier": "so_mogadishu",
         "name": "Mogadishu",
         "latitude": 2.0666667,
         "longitude": 45.3666667,
@@ -2185,6 +2324,7 @@
     "cities": [
       {
         "id": 9383693,
+        "identifier": "za_johannesburg",
         "name": "Johannesburg",
         "latitude": -26.205171,
         "longitude": 28.049815,
@@ -2201,6 +2341,7 @@
     "cities": [
       {
         "id": 4879586,
+        "identifier": "kr_seoul",
         "name": "Seoul",
         "latitude": 37.5985,
         "longitude": 126.9783,
@@ -2217,6 +2358,7 @@
     "cities": [
       {
         "id": 2572757,
+        "identifier": "es_barcelona",
         "name": "Barcelona",
         "latitude": 41.398371,
         "longitude": 2.1741,
@@ -2225,6 +2367,7 @@
       },
       {
         "id": 2619989,
+        "identifier": "es_madrid",
         "name": "Madrid",
         "latitude": 40.408566,
         "longitude": -3.69222,
@@ -2241,6 +2384,7 @@
     "cities": [
       {
         "id": 5043197,
+        "identifier": "lk_colombo",
         "name": "Colombo",
         "latitude": 6.9319444,
         "longitude": 79.8477778,
@@ -2257,6 +2401,7 @@
     "cities": [
       {
         "id": 7976870,
+        "identifier": "sr_paramaribo",
         "name": "Paramaribo",
         "latitude": 5.8333333,
         "longitude": -55.1666667,
@@ -2273,6 +2418,7 @@
     "cities": [
       {
         "id": 7852919,
+        "identifier": "se_stockholm",
         "name": "Stockholm",
         "latitude": 59.333333,
         "longitude": 18.05,
@@ -2289,6 +2435,7 @@
     "cities": [
       {
         "id": 1171814,
+        "identifier": "ch_zurich",
         "name": "Zurich",
         "latitude": 47.366667,
         "longitude": 8.55,
@@ -2305,6 +2452,7 @@
     "cities": [
       {
         "id": 8544365,
+        "identifier": "tw_taipei",
         "name": "Taipei",
         "latitude": 25.0391667,
         "longitude": 121.525,
@@ -2321,6 +2469,7 @@
     "cities": [
       {
         "id": 8269814,
+        "identifier": "tj_dushanbe",
         "name": "Dushanbe",
         "latitude": 38.56,
         "longitude": 68.7738889,
@@ -2337,6 +2486,7 @@
     "cities": [
       {
         "id": 8554790,
+        "identifier": "tz_dodoma",
         "name": "Dodoma",
         "latitude": -6.1833333,
         "longitude": 35.75,
@@ -2353,6 +2503,7 @@
     "cities": [
       {
         "id": 8121638,
+        "identifier": "th_bangkok",
         "name": "Bangkok",
         "latitude": 13.753979,
         "longitude": 100.501444,
@@ -2369,6 +2520,7 @@
     "cities": [
       {
         "id": 8091425,
+        "identifier": "tg_lome",
         "name": "Lome",
         "latitude": 6.1319444,
         "longitude": 1.2227778,
@@ -2385,6 +2537,7 @@
     "cities": [
       {
         "id": 9521887,
+        "identifier": "tt_port-of-spain",
         "name": "Port of Spain",
         "latitude": 10.666667,
         "longitude": -61.516667,
@@ -2401,6 +2554,7 @@
     "cities": [
       {
         "id": 8295401,
+        "identifier": "tn_tunis",
         "name": "Tunis",
         "latitude": 36.806112,
         "longitude": 10.171078,
@@ -2417,6 +2571,7 @@
     "cities": [
       {
         "id": 8401790,
+        "identifier": "tr_istanbul",
         "name": "Istanbul",
         "latitude": 41.018611,
         "longitude": 28.964722,
@@ -2433,6 +2588,7 @@
     "cities": [
       {
         "id": 8626766,
+        "identifier": "ua_kyiv",
         "name": "Kyiv",
         "latitude": 50.433333,
         "longitude": 30.516667,
@@ -2449,6 +2605,7 @@
     "cities": [
       {
         "id": 728,
+        "identifier": "ae_dubai",
         "name": "Dubai",
         "latitude": 25.258172,
         "longitude": 55.304717,
@@ -2457,6 +2614,7 @@
       },
       {
         "id": 800,
+        "identifier": "ae_fujairah",
         "name": "Fujairah",
         "latitude": 25.116412,
         "longitude": 56.341408,
@@ -2473,6 +2631,7 @@
     "cities": [
       {
         "id": 2975852,
+        "identifier": "gb_edinburgh",
         "name": "Edinburgh",
         "latitude": 55.95,
         "longitude": -3.2,
@@ -2481,6 +2640,7 @@
       },
       {
         "id": 2978888,
+        "identifier": "gb_glasgow",
         "name": "Glasgow",
         "latitude": 55.833333,
         "longitude": -4.25,
@@ -2489,6 +2649,7 @@
       },
       {
         "id": 2989907,
+        "identifier": "gb_london",
         "name": "London",
         "latitude": 51.514125,
         "longitude": -0.093689,
@@ -2497,6 +2658,7 @@
       },
       {
         "id": 2991110,
+        "identifier": "gb_manchester",
         "name": "Manchester",
         "latitude": 53.5,
         "longitude": -2.216667,
@@ -2509,13 +2671,13 @@
         "id": 38,
         "name": "England",
         "code": "ENG",
-        "serverCount": 1051
+        "serverCount": 1055
       },
       {
         "id": 39,
         "name": "Scotland",
         "code": "SCT",
-        "serverCount": 96
+        "serverCount": 97
       }
     ]
   },
@@ -2526,6 +2688,7 @@
     "cities": [
       {
         "id": 8957066,
+        "identifier": "us_albuquerque",
         "name": "Albuquerque",
         "latitude": 35.0844444,
         "longitude": -106.6505556,
@@ -2534,6 +2697,7 @@
       },
       {
         "id": 8736005,
+        "identifier": "us_anchorage",
         "name": "Anchorage",
         "latitude": 61.2180556,
         "longitude": -149.9002778,
@@ -2542,6 +2706,7 @@
       },
       {
         "id": 9103211,
+        "identifier": "us_ashburn",
         "name": "Ashburn",
         "latitude": 39.0436111,
         "longitude": -77.4877778,
@@ -2550,6 +2715,7 @@
       },
       {
         "id": 8792429,
+        "identifier": "us_atlanta",
         "name": "Atlanta",
         "latitude": 33.7488889,
         "longitude": -84.3880556,
@@ -2558,6 +2724,7 @@
       },
       {
         "id": 8873894,
+        "identifier": "us_baltimore",
         "name": "Baltimore",
         "latitude": 39.2902778,
         "longitude": -76.6125,
@@ -2566,6 +2733,7 @@
       },
       {
         "id": 8937212,
+        "identifier": "us_billings",
         "name": "Billings",
         "latitude": 45.7833333,
         "longitude": -108.5,
@@ -2574,6 +2742,7 @@
       },
       {
         "id": 8810342,
+        "identifier": "us_boise",
         "name": "Boise",
         "latitude": 43.6136111,
         "longitude": -116.2025,
@@ -2582,6 +2751,7 @@
       },
       {
         "id": 8895305,
+        "identifier": "us_boston",
         "name": "Boston",
         "latitude": 42.3583333,
         "longitude": -71.0602778,
@@ -2590,6 +2760,7 @@
       },
       {
         "id": 8963153,
+        "identifier": "us_buffalo",
         "name": "Buffalo",
         "latitude": 42.8863889,
         "longitude": -78.8786111,
@@ -2598,6 +2769,7 @@
       },
       {
         "id": 9099731,
+        "identifier": "us_burlington",
         "name": "Burlington",
         "latitude": 44.4758333,
         "longitude": -73.2125,
@@ -2606,6 +2778,7 @@
       },
       {
         "id": 9050567,
+        "identifier": "us_charleston",
         "name": "Charleston",
         "latitude": 32.7763889,
         "longitude": -79.9311111,
@@ -2614,6 +2787,7 @@
       },
       {
         "id": 8980922,
+        "identifier": "us_charlotte",
         "name": "Charlotte",
         "latitude": 35.2269444,
         "longitude": -80.8433333,
@@ -2622,6 +2796,7 @@
       },
       {
         "id": 9147794,
+        "identifier": "us_cheyenne",
         "name": "Cheyenne",
         "latitude": 41.14,
         "longitude": -104.8197222,
@@ -2630,6 +2805,7 @@
       },
       {
         "id": 8815352,
+        "identifier": "us_chicago",
         "name": "Chicago",
         "latitude": 41.85,
         "longitude": -87.65,
@@ -2638,6 +2814,7 @@
       },
       {
         "id": 8997560,
+        "identifier": "us_columbus",
         "name": "Columbus",
         "latitude": 39.9611111,
         "longitude": -82.9988889,
@@ -2646,6 +2823,7 @@
       },
       {
         "id": 9080300,
+        "identifier": "us_dallas",
         "name": "Dallas",
         "latitude": 32.7833333,
         "longitude": -96.8,
@@ -2654,6 +2832,7 @@
       },
       {
         "id": 8770934,
+        "identifier": "us_denver",
         "name": "Denver",
         "latitude": 39.7391667,
         "longitude": -104.9841667,
@@ -2662,6 +2841,7 @@
       },
       {
         "id": 8835473,
+        "identifier": "us_des-moines",
         "name": "Des Moines",
         "latitude": 41.6005556,
         "longitude": -93.6088889,
@@ -2670,6 +2850,7 @@
       },
       {
         "id": 8903312,
+        "identifier": "us_detroit",
         "name": "Detroit",
         "latitude": 42.3313889,
         "longitude": -83.0458333,
@@ -2678,6 +2859,7 @@
       },
       {
         "id": 8993042,
+        "identifier": "us_fargo",
         "name": "Fargo",
         "latitude": 46.8772222,
         "longitude": -96.7894444,
@@ -2686,6 +2868,7 @@
       },
       {
         "id": 8808860,
+        "identifier": "us_honolulu",
         "name": "Honolulu",
         "latitude": 21.3069444,
         "longitude": -157.8583333,
@@ -2694,6 +2877,7 @@
       },
       {
         "id": 9083687,
+        "identifier": "us_houston",
         "name": "Houston",
         "latitude": 29.7630556,
         "longitude": -95.3630556,
@@ -2702,6 +2886,7 @@
       },
       {
         "id": 9134528,
+        "identifier": "us_huntington",
         "name": "Huntington",
         "latitude": 38.4191667,
         "longitude": -82.4452778,
@@ -2710,6 +2895,7 @@
       },
       {
         "id": 8828528,
+        "identifier": "us_indianapolis",
         "name": "Indianapolis",
         "latitude": 39.7683333,
         "longitude": -86.1580556,
@@ -2718,6 +2904,7 @@
       },
       {
         "id": 8920961,
+        "identifier": "us_jackson",
         "name": "Jackson",
         "latitude": 32.2986111,
         "longitude": -90.1847222,
@@ -2726,6 +2913,7 @@
       },
       {
         "id": 8930717,
+        "identifier": "us_kansas-city",
         "name": "Kansas City",
         "latitude": 39.0997222,
         "longitude": -94.5783333,
@@ -2734,6 +2922,7 @@
       },
       {
         "id": 8945963,
+        "identifier": "us_las-vegas",
         "name": "Las Vegas",
         "latitude": 36.175,
         "longitude": -115.1363889,
@@ -2742,6 +2931,7 @@
       },
       {
         "id": 8869646,
+        "identifier": "us_lewiston",
         "name": "Lewiston",
         "latitude": 44.1002778,
         "longitude": -70.2152778,
@@ -2750,6 +2940,7 @@
       },
       {
         "id": 8749055,
+        "identifier": "us_little-rock",
         "name": "Little Rock",
         "latitude": 34.7463889,
         "longitude": -92.2894444,
@@ -2758,6 +2949,7 @@
       },
       {
         "id": 8761958,
+        "identifier": "us_los-angeles",
         "name": "Los Angeles",
         "latitude": 34.0522222,
         "longitude": -118.2427778,
@@ -2766,6 +2958,7 @@
       },
       {
         "id": 8852234,
+        "identifier": "us_louisville",
         "name": "Louisville",
         "latitude": 38.2541667,
         "longitude": -85.7594444,
@@ -2774,6 +2967,7 @@
       },
       {
         "id": 9086162,
+        "identifier": "us_mcallen",
         "name": "McAllen",
         "latitude": 26.2030556,
         "longitude": -98.2297222,
@@ -2782,6 +2976,7 @@
       },
       {
         "id": 8787782,
+        "identifier": "us_miami",
         "name": "Miami",
         "latitude": 25.7738889,
         "longitude": -80.1938889,
@@ -2790,6 +2985,7 @@
       },
       {
         "id": 9144572,
+        "identifier": "us_milwaukee",
         "name": "Milwaukee",
         "latitude": 43.0388889,
         "longitude": -87.9063889,
@@ -2798,6 +2994,7 @@
       },
       {
         "id": 8915105,
+        "identifier": "us_minneapolis",
         "name": "Minneapolis",
         "latitude": 44.98,
         "longitude": -93.2636111,
@@ -2806,6 +3003,7 @@
       },
       {
         "id": 8730710,
+        "identifier": "us_montgomery",
         "name": "Montgomery",
         "latitude": 32.3666667,
         "longitude": -86.3,
@@ -2814,6 +3012,7 @@
       },
       {
         "id": 8948549,
+        "identifier": "us_nashua",
         "name": "Nashua",
         "latitude": 42.7652778,
         "longitude": -71.4680556,
@@ -2822,6 +3021,7 @@
       },
       {
         "id": 9071273,
+        "identifier": "us_nashville",
         "name": "Nashville",
         "latitude": 36.1658333,
         "longitude": -86.7844444,
@@ -2830,6 +3030,7 @@
       },
       {
         "id": 8775974,
+        "identifier": "us_new-haven",
         "name": "New Haven",
         "latitude": 41.3080556,
         "longitude": -72.9286111,
@@ -2838,6 +3039,7 @@
       },
       {
         "id": 8863781,
+        "identifier": "us_new-orleans",
         "name": "New Orleans",
         "latitude": 29.9544444,
         "longitude": -90.075,
@@ -2846,6 +3048,7 @@
       },
       {
         "id": 8971718,
+        "identifier": "us_new-york",
         "name": "New York",
         "latitude": 40.7141667,
         "longitude": -74.0063889,
@@ -2854,6 +3057,7 @@
       },
       {
         "id": 9013061,
+        "identifier": "us_oklahoma-city",
         "name": "Oklahoma City",
         "latitude": 35.4675,
         "longitude": -97.5161111,
@@ -2862,6 +3066,7 @@
       },
       {
         "id": 8943887,
+        "identifier": "us_omaha",
         "name": "Omaha",
         "latitude": 41.2586111,
         "longitude": -95.9375,
@@ -2870,6 +3075,7 @@
       },
       {
         "id": 8741960,
+        "identifier": "us_phoenix",
         "name": "Phoenix",
         "latitude": 33.4483333,
         "longitude": -112.0733333,
@@ -2878,6 +3084,7 @@
       },
       {
         "id": 9036872,
+        "identifier": "us_pittsburgh",
         "name": "Pittsburgh",
         "latitude": 40.4405556,
         "longitude": -79.9961111,
@@ -2886,6 +3093,7 @@
       },
       {
         "id": 9017738,
+        "identifier": "us_portland",
         "name": "Portland",
         "latitude": 45.5236111,
         "longitude": -122.675,
@@ -2894,6 +3102,7 @@
       },
       {
         "id": 9048614,
+        "identifier": "us_providence",
         "name": "Providence",
         "latitude": 41.8238889,
         "longitude": -71.4133333,
@@ -2902,6 +3111,7 @@
       },
       {
         "id": 8934551,
+        "identifier": "us_saint-louis",
         "name": "Saint Louis",
         "latitude": 38.6272222,
         "longitude": -90.1977778,
@@ -2910,6 +3120,7 @@
       },
       {
         "id": 9097865,
+        "identifier": "us_salt-lake-city",
         "name": "Salt Lake City",
         "latitude": 40.7608333,
         "longitude": -111.8902778,
@@ -2918,6 +3129,7 @@
       },
       {
         "id": 8766359,
+        "identifier": "us_san-francisco",
         "name": "San Francisco",
         "latitude": 37.7698135,
         "longitude": -122.4660005,
@@ -2926,6 +3138,7 @@
       },
       {
         "id": 9128402,
+        "identifier": "us_seattle",
         "name": "Seattle",
         "latitude": 47.6063889,
         "longitude": -122.3308333,
@@ -2934,6 +3147,7 @@
       },
       {
         "id": 9061658,
+        "identifier": "us_sioux-falls",
         "name": "Sioux Falls",
         "latitude": 43.55,
         "longitude": -96.7,
@@ -2942,6 +3156,7 @@
       },
       {
         "id": 8956166,
+        "identifier": "us_trenton",
         "name": "Trenton",
         "latitude": 40.2169444,
         "longitude": -74.7433333,
@@ -2950,6 +3165,7 @@
       },
       {
         "id": 8845130,
+        "identifier": "us_wichita",
         "name": "Wichita",
         "latitude": 37.6922222,
         "longitude": -97.3372222,
@@ -2958,6 +3174,7 @@
       },
       {
         "id": 8781776,
+        "identifier": "us_wilmington",
         "name": "Wilmington",
         "latitude": 39.7458333,
         "longitude": -75.5469444,
@@ -2994,7 +3211,7 @@
         "id": 46,
         "name": "California",
         "code": "CA",
-        "serverCount": 429
+        "serverCount": 428
       },
       {
         "id": 47,
@@ -3090,7 +3307,7 @@
         "id": 62,
         "name": "Massachusetts",
         "code": "MA",
-        "serverCount": 81
+        "serverCount": 82
       },
       {
         "id": 63,
@@ -3126,7 +3343,7 @@
         "id": 68,
         "name": "Nebraska",
         "code": "NE",
-        "serverCount": 39
+        "serverCount": 40
       },
       {
         "id": 69,
@@ -3156,7 +3373,7 @@
         "id": 73,
         "name": "New York",
         "code": "NY",
-        "serverCount": 708
+        "serverCount": 709
       },
       {
         "id": 74,
@@ -3186,7 +3403,7 @@
         "id": 78,
         "name": "Oregon",
         "code": "OR",
-        "serverCount": 9
+        "serverCount": 10
       },
       {
         "id": 79,
@@ -3240,7 +3457,7 @@
         "id": 87,
         "name": "Virginia",
         "code": "VA",
-        "serverCount": 156
+        "serverCount": 158
       },
       {
         "id": 88,
@@ -3275,6 +3492,7 @@
     "cities": [
       {
         "id": 9150812,
+        "identifier": "uy_montevideo",
         "name": "Montevideo",
         "latitude": -34.8580556,
         "longitude": -56.1708333,
@@ -3291,6 +3509,7 @@
     "cities": [
       {
         "id": 9166826,
+        "identifier": "uz_tashkent",
         "name": "Tashkent",
         "latitude": 41.3166667,
         "longitude": 69.25,
@@ -3307,6 +3526,7 @@
     "cities": [
       {
         "id": 9176843,
+        "identifier": "ve_caracas",
         "name": "Caracas",
         "latitude": 10.5,
         "longitude": -66.9166667,
@@ -3323,6 +3543,7 @@
     "cities": [
       {
         "id": 9270302,
+        "identifier": "vn_hanoi",
         "name": "Hanoi",
         "latitude": 21.033333,
         "longitude": 105.85,
@@ -3331,6 +3552,7 @@
       },
       {
         "id": 9271799,
+        "identifier": "vn_ho-chi-minh-city",
         "name": "Ho Chi Minh City",
         "latitude": 10.75,
         "longitude": 106.666667,
@@ -3347,6 +3569,7 @@
     "cities": [
       {
         "id": 9367184,
+        "identifier": "ye_sanaa",
         "name": "Sanaa",
         "latitude": 15.3547222,
         "longitude": 44.2066667,
@@ -3363,6 +3586,7 @@
     "cities": [
       {
         "id": 9427058,
+        "identifier": "zm_lusaka",
         "name": "Lusaka",
         "latitude": -15.4166667,
         "longitude": 28.2833333,
