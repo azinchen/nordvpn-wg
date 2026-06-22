@@ -19,8 +19,6 @@ nordvpnapi_ip="${NORDVPNAPI_IP:-104.16.208.203;104.19.159.190}"
 network="${NETWORK:-}"
 forward_from="${FORWARD_FROM:-}"
 dns="${DNS:-103.86.96.100;103.86.99.100}"
-puid=${PUID:-912}
-pgid=${PGID:-912}
 
 # Common file paths
 wgfile="/etc/wireguard/wg0.conf"
