@@ -42,11 +42,11 @@ jobs:
         file: 
           - name: "CITIES"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: '[.[] | . as $parent | .cities[] | {country: $parent.name, code: $parent.code, cid: $parent.id, city: .name, cityid: .id}] | sort_by(.country, .city) | .[] | "\(.country) | \(.code) | \(.cid) | \(.city) | \(.cityid)"'
-            header: "Country | Code | ID | City | ID"
+            jq_filter: '[.[] | . as $parent | .cities[] | . as $city | {country: $parent.name, code: $parent.code, cid: $parent.id, city: ($city.name + (if ($virtual | index($city.id)) then " *" else "" end)), cityid: $city.id, lat: $city.latitude, lon: $city.longitude}] | sort_by(.country, .city) | .[] | "\(.country) | \(.code) | \(.cid) | \(.city) | \(.cityid) | [\(.lat),\(.lon)](https://www.google.com/maps?q=\(.lat),\(.lon))"'
+            header: "Country | Code | ID | City | ID | Map"
           - name: "COUNTRIES"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: 'sort_by(.name) | .[] | [.name, .code, .id] | "\(.[0]) | \(.[1]) | \(.[2])"'
+            jq_filter: 'sort_by(.name) | .[] | . as $c | "\($c.name)\(if ($virtual | index($c.id)) then " **" elif ($partial | index($c.id)) then " *" else "" end) | \($c.code) | \($c.id)"'
             header: "Country | Code | ID"
           - name: "TECHNOLOGIES"
             url: "https://api.nordvpn.com/v1/technologies"
@@ -65,12 +65,36 @@ jobs:
         id: update-file
         shell: bash
         run: |
+          # Build the table body. CITIES and COUNTRIES additionally mark virtual
+          # locations (servers NordVPN advertises but whose physical hardware is
+          # hosted elsewhere) and get an explanatory legend at the top. The virtual
+          # flag lives on the /v1/servers endpoint (specifications ->
+          # virtual_location), not on /v1/servers/countries.
+          LEGEND=$'\n'
+          if [ "${{ matrix.file.name }}" == "CITIES" ]; then
+            LEGEND=$'\n> Cities marked with `*` are virtual locations: NordVPN advertises a server at this location but its physical hardware is hosted elsewhere.\n\n'
+            # limit=0 returns the full server list (no cap); omitting limit defaults to only 100.
+            VIRTUAL_IDS=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
+              | jq -c '[.[] | select(any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true")) | .locations[0].country.city.id] | unique')
+            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" '${{ matrix.file.jq_filter }}')
+          elif [ "${{ matrix.file.name }}" == "COUNTRIES" ]; then
+            LEGEND=$'\n> Countries marked with `**` host only virtual servers (advertised by NordVPN at this location but whose physical hardware is hosted elsewhere); countries marked with `*` host a mix of virtual and physical servers. Unmarked countries host only physical servers.\n\n'
+            # limit=0 returns the full server list (no cap); omitting limit defaults to only 100.
+            # Classify each country by whether all, some, or none of its servers are virtual.
+            CLASSIFY=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
+              | jq -c '[.[] | {cid: .locations[0].country.id, v: (any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true"))}] | group_by(.cid) | map({cid: .[0].cid, total: length, virt: (map(select(.v)) | length)}) | {virtual_only: ([.[] | select(.virt==.total) | .cid] | unique), partial: ([.[] | select(.virt>0 and .virt<.total) | .cid] | unique)}')
+            VIRTUAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.virtual_only // []')
+            PARTIAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.partial // []')
+            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" --argjson partial "${PARTIAL_IDS:-[]}" '${{ matrix.file.jq_filter }}')
+          else
+            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r '${{ matrix.file.jq_filter }}')
+          fi
+
           # Generate new content without timestamp
           NEW_CONTENT="# List of ${{ matrix.file.name }} with NordVPN servers
-          
-          ${{ matrix.file.header }}
+          ${LEGEND}${{ matrix.file.header }}
           $(echo "${{ matrix.file.header }}" | sed 's/[^|]/-/g')
-          $(curl -s "${{ matrix.file.url }}" | jq -r '${{ matrix.file.jq_filter }}')"
+          ${BODY}"
           
           # Check if file exists and extract existing content without timestamp
           if [ -f "${{ matrix.file.name }}.md" ]; then
@@ -180,9 +204,16 @@ jobs:
           mkdir -p root/usr/local/share/nordvpn/data
           
           # Download and process countries.json with beautiful formatting
-          # Sort countries by name and cities by name within each country
+          # Whitelist only the fields we need: country id/name/code/cities,
+          # and per-city id/name/latitude/longitude/dns_name.
+          # Sort countries by name and cities by name within each country.
           curl -s "https://api.nordvpn.com/v1/servers/countries" \
-            | jq '[.[] | del(.serverCount) | .cities = ([.cities[]? | del(.serverCount, .hub_score)] | sort_by(.name))] | sort_by(.name)' \
+            | jq '[.[] | {
+                id,
+                name,
+                code,
+                cities: ([.cities[]? | {id, name, latitude, longitude, dns_name}] | sort_by(.name))
+              }] | sort_by(.name)' \
             > root/usr/local/share/nordvpn/data/countries.json
 
           UPDATE_DATE=$(date +%y%m%d)
