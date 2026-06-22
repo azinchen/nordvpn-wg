@@ -20,7 +20,7 @@ WireGuard (NordLynx) client docker container that routes other containers' traff
 
 - **🚀 Easy Setup** — Route any container's traffic through VPN with `--net=container:vpn`
 - **⚡ NordLynx (WireGuard)** — Fast, modern tunnel using NordVPN's WireGuard implementation
-- **🔑 Token-Based Setup** — Just provide a NordVPN access token; the container fetches your WireGuard key from the API ([details][wiki-token])
+- **🔑 Token-Based Setup** — Provide a NordVPN access token; the key is fetched automatically ([details][wiki-token])
 - **🌍 Smart Server Selection** — Auto-select servers by country, city, group, or specific hostname ([details][wiki-server])
 - **⚖️ Load Balancing** — Intelligent sorting by server load when multiple locations specified
 - **🔄 Auto-Reconnection** — Periodic server switching and health monitoring ([details][wiki-reconnect])
