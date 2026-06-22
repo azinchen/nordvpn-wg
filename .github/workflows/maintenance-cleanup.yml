@@ -62,8 +62,8 @@ jobs:
         run: |
           echo "Repository: ${{ github.repository }}"
           echo "Owner: ${{ github.repository_owner }}"
-          echo "GHCR package will be: nordvpn"
-          echo "Docker Hub repo will be: ${{ github.repository_owner }}/nordvpn"
+          echo "GHCR package will be: nordvpn-wg"
+          echo "Docker Hub repo will be: ${{ github.repository_owner }}/nordvpn-wg"
           echo "Docker Hub cleanup: ${{ steps.check_dockerhub.outputs.dockerhub_available == 'true' && 'enabled' || 'disabled (secrets missing)' }}"
 
       - name: Download registry pruner script
@@ -116,7 +116,7 @@ jobs:
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
             --ghcr-token ${{ github.token }} \
-            --ghcr-package nordvpn \
+            --ghcr-package nordvpn-wg \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
             ${PROTECT_ARG}
@@ -128,7 +128,7 @@ jobs:
               --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
               --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
               --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
-              --docker-repo nordvpn \
+              --docker-repo nordvpn-wg \
               --max-release-days ${{ steps.params.outputs.max_release_days }} \
               --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
               ${PROTECT_ARG}
@@ -153,7 +153,7 @@ jobs:
             --ghcr-owner-type users \
             --ghcr-owner ${{ github.repository_owner }} \
             --ghcr-token ${{ github.token }} \
-            --ghcr-package nordvpn \
+            --ghcr-package nordvpn-wg \
             --max-release-days ${{ steps.params.outputs.max_release_days }} \
             --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
             ${PROTECT_ARG} \
@@ -167,7 +167,7 @@ jobs:
               --docker-user ${{ secrets.DOCKERHUB_USERNAME }} \
               --docker-pass ${{ secrets.DOCKERHUB_TOKEN }} \
               --docker-namespace ${{ secrets.DOCKERHUB_USERNAME }} \
-              --docker-repo nordvpn \
+              --docker-repo nordvpn-wg \
               --max-release-days ${{ steps.params.outputs.max_release_days }} \
               --max-dev-days ${{ steps.params.outputs.max_dev_days }} \
               ${PROTECT_ARG} \
@@ -189,9 +189,9 @@ jobs:
           echo "  - GHCR cleanup: enabled"
           echo "  - Docker Hub cleanup: ${{ steps.check_dockerhub.outputs.dockerhub_available == 'true' && 'enabled' || 'skipped (secrets missing)' }}"
           echo "Registries processed:"
-          echo "  - GHCR: ghcr.io/${{ github.repository_owner }}/nordvpn"
+          echo "  - GHCR: ghcr.io/${{ github.repository_owner }}/nordvpn-wg"
           if [ "${{ steps.check_dockerhub.outputs.dockerhub_available }}" == "true" ]; then
-            echo "  - Docker Hub: ${{ secrets.DOCKERHUB_USERNAME }}/nordvpn"
+            echo "  - Docker Hub: ${{ secrets.DOCKERHUB_USERNAME }}/nordvpn-wg"
           else
             echo "  - Docker Hub: skipped"
           fi
