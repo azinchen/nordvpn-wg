@@ -40,7 +40,7 @@ WireGuard client docker container that routes other containers' traffic through 
   - [Security Features](#security-features)
   - [Container Registries](#container-registries)
   - [Firewall backends (nft vs legacy)](#firewall-backends-nft-vs-legacy)
-  - [Getting WireGuard Private Key](#getting-wireguard-private-key)
+  - [Getting a Token](#getting-a-token)
 - [Configuration Options](#configuration-options)
   - [Server Selection](#server-selection)
   - [IPv6 behavior](#ipv6-behavior)
@@ -69,18 +69,20 @@ WireGuard client docker container that routes other containers' traffic through 
 
 ### Basic Usage
 
+Provide a NordVPN access `TOKEN`; the container fetches your WireGuard key from the NordVPN API automatically. See [Getting a Token](#getting-a-token) for how to obtain one.
+
 **From Docker Hub:**
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
-           -e PRIVATE_KEY=your_private_key_here \
-           azinchen/nordvpn
+           -e TOKEN=your_nordvpn_token_here \
+           azinchen/nordvpn-wg
 ```
 
 **From GitHub Container Registry:**
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
-           -e PRIVATE_KEY=your_private_key_here \
-           ghcr.io/azinchen/nordvpn
+           -e TOKEN=your_nordvpn_token_here \
+           ghcr.io/azinchen/nordvpn-wg
 ```
 
 Route other containers through VPN:
@@ -105,7 +107,7 @@ docker run --net=container:vpn -d your/application
   ```
   **Note**: `SYS_ADMIN` capability is required for sysctl modifications. If issues persist, `privileged: true` can be used as a last resort.
 - **Linux kernel** with WireGuard support (kernel 5.6+ recommended, or wireguard.ko module)
-- **NordVPN WireGuard Private Key** (obtained via access token method as described below)
+- **NordVPN access token** (`TOKEN`) — see [below](#getting-a-token)
 - The image includes both nftables and **iptables‑legacy** and auto‑selects the working backend at runtime for firewall management — no manual config needed.
 
 ### Security Features
@@ -134,8 +136,8 @@ Because `NETWORK` remains open when the VPN is down, this is **not a strict kill
 
 The image is available from two registries:
 
-- **Docker Hub**: `azinchen/nordvpn` — Main distribution, publicly accessible
-- **GitHub Container Registry**: `ghcr.io/azinchen/nordvpn` — Alternative source, same image
+- **Docker Hub**: `azinchen/nordvpn-wg` — Main distribution, publicly accessible
+- **GitHub Container Registry**: `ghcr.io/azinchen/nordvpn-wg` — Alternative source, same image
 
 Both registries contain identical images. Use whichever is more convenient for your setup.
 
@@ -163,49 +165,29 @@ or on older systems:
 [ENTRYPOINT] Using IPv4 backend: iptables-legacy
 ```
 
-### Getting WireGuard Private Key
+### Getting a Token
 
-To get your PRIVATE_KEY you will need to get an access token from the NordVPN website and then use the https://github.com/bubuntux/nordvpn container.
+The container needs a NordVPN **access token**. Generate one and pass it as `TOKEN`:
 
 1. Log in to https://nordvpn.com/
 2. On the left side, click on NordVPN
 3. In the middle, under Manual setup, click on Set up NordVPN manually and go through the verification process
 4. On the new page, in the middle, in the Access token box, click on Generate new token
-5. In the Generate new token? pop-up box, select Set to expire in 30 days and click Generate token
+5. In the Generate new token? pop-up box, select an expiry and click Generate token
 6. In the Copy access token pop-up box, click the Copy link to copy your token
-7. From your computer where Docker is installed, run the below command and replace `{{{TOKEN}}}` with what you copied from step 6 above:
+
+Pass it to the container:
 
 ```bash
-docker run --rm --cap-add=NET_ADMIN -e TOKEN={{{TOKEN}}} ghcr.io/bubuntux/nordvpn:get_private_key
+-e TOKEN=your_nordvpn_token_here
 ```
 
-Docker will do its thing and spit out your PRIVATE_KEY:
+On every (re)connect the container uses the token to read your account's NordLynx (WireGuard) private key from the NordVPN API (`https://api.nordvpn.com/v1/users/services/credentials`). The key is **not** persisted to disk — it is fetched fresh each time it is needed. Because the token is read at connect time, make sure it stays valid (choose a long enough expiry, or update `TOKEN` and restart before it lapses).
 
-```
-user@hostname:~/docker> docker run --rm --cap-add=NET_ADMIN -e TOKEN=[redacted] ghcr.io/bubuntux/nordvpn:get_private_key
-Unable to find image 'ghcr.io/bubuntux/nordvpn:get_private_key' locally
-get_private_key: Pulling from bubuntux/nordvpn
-06d39c85623a: Pull complete 
-3e1c241a05c8: Pull complete 
-0077b26e8dce: Pull complete 
-Digest: sha256:0d91aabb4511d400b01e930654950729a4e859d3c250f61664662b0ed7027c56
-Status: Downloaded newer image for ghcr.io/bubuntux/nordvpn:get_private_key
-Waiting for daemon to start up...
-A new version of NordVPN is available! Please update the application.
-Welcome to NordVPN! You can now connect to VPN by using 'nordvpn connect'.
-A new version of NordVPN is available! Please update the application.
-Technology is already set to 'NORDLYNX'.
-A new version of NordVPN is available! Please update the application.
-Connecting to United States #5831 (us5831.nordvpn.com)
-You are connected to United States #5831 (us5831.nordvpn.com)!
-############################################################
-IP: 10.5.0.2/32
-Private Key: [!!! THIS IS YOUR PRIVATE_KEY YOU NEED !!!]
-＼(＾O＾)／############################################################
-user@hostname:~/docker> 
-```
-
-8. Copy everything after `Private Key:` (note the space after `:`) to the end of the line -- this is your PRIVATE_KEY
+> **Tip:** to inspect what the API returns for your token (the WireGuard key plus your OpenVPN `username`/`password`, which this container does **not** use):
+> ```bash
+> curl -s -u token:your_nordvpn_token_here https://api.nordvpn.com/v1/users/services/credentials | jq
+> ```
 
 **Note**: This is different from your regular NordVPN login credentials and is specifically for WireGuard connections.
 
@@ -217,12 +199,12 @@ Filter NordVPN servers using location and server criteria:
 
 ```bash
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun \
-           -e PRIVATE_KEY=your_private_key_here \
+           -e TOKEN=your_nordvpn_token_here \
            -e COUNTRY="United States;CA;153" \
            -e CITY="New York;2619989;es1234" \
            -e GROUP="Standard VPN servers" \
            -e RANDOM_TOP=5 \
-           azinchen/nordvpn
+           azinchen/nordvpn-wg
 ```
 
 **Location Specification Options:**
@@ -254,7 +236,7 @@ docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
            --sysctl net.ipv6.conf.all.disable_ipv6=1 \
            --sysctl net.ipv6.conf.default.disable_ipv6=1 \
            --sysctl net.ipv6.conf.eth0.disable_ipv6=1 \
-           azinchen/nordvpn
+           azinchen/nordvpn-wg
 ```
 
 **docker-compose:**
@@ -262,7 +244,7 @@ docker run -d --cap-add=NET_ADMIN --device /dev/net/tun --name vpn \
 ```yaml
 services:
   vpn:
-    image: azinchen/nordvpn
+    image: azinchen/nordvpn-wg
     sysctls:
       net.ipv6.conf.all.disable_ipv6: "1"
       net.ipv6.conf.default.disable_ipv6: "1"
@@ -318,8 +300,8 @@ ip route | awk '!/ (docker0|br-)/ && /src/ {print $1}'
 # Configure container with local network access
 docker run -d --cap-add=NET_ADMIN --device /dev/net/tun \
            -e NETWORK=192.168.1.0/24 \
-           -e PRIVATE_KEY=your_private_key_here \
-           azinchen/nordvpn
+           -e TOKEN=your_nordvpn_token_here \
+           azinchen/nordvpn-wg
 ```
 
 - Docker subnets are **not** auto‑allowed. If containers sharing the VPN namespace need to talk to each other or to services on your LAN/host, include those CIDRs in `NETWORK`.
@@ -332,7 +314,7 @@ docker run -d --cap-add=NET_ADMIN --device /dev/net/tun \
 version: "3.8"
 services:
   vpn:
-    image: azinchen/nordvpn:latest
+    image: azinchen/nordvpn-wg:latest
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
@@ -340,7 +322,7 @@ services:
     devices:
       - /dev/net/tun
     environment:
-      - PRIVATE_KEY=your_private_key_here
+      - TOKEN=your_nordvpn_token_here
       - COUNTRY=United States;CA;38
       - CITY=New York;Los Angeles;Toronto
       - RANDOM_TOP=10
@@ -383,7 +365,7 @@ version: "3.8"
 services:
   # VPN Container with health monitoring
   vpn:
-    image: azinchen/nordvpn:latest
+    image: azinchen/nordvpn-wg:latest
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
@@ -391,7 +373,7 @@ services:
     devices:
       - /dev/net/tun
     environment:
-      - PRIVATE_KEY=your_private_key_here
+      - TOKEN=your_nordvpn_token_here
       - COUNTRY=Netherlands;DE;209
       - CITY=Amsterdam;Berlin;Frankfurt
       - GROUP=Standard VPN servers
@@ -461,7 +443,7 @@ services:
 version: "3.8"
 services:
   vpn:
-    image: azinchen/nordvpn:latest
+    image: azinchen/nordvpn-wg:latest
     container_name: nordvpn
     cap_add:
       - NET_ADMIN
@@ -469,7 +451,7 @@ services:
     devices:
       - /dev/net/tun
     environment:
-      - PRIVATE_KEY=your_private_key_here
+      - TOKEN=your_nordvpn_token_here
       - COUNTRY=CA;38
       - CITY=Toronto;Montreal
       - NETWORK=192.168.1.0/24
@@ -507,8 +489,8 @@ services:
 docker run -d --name vpn \
            --cap-add=NET_ADMIN \
            --device /dev/net/tun \
-           -e PRIVATE_KEY=your_private_key_here \
-           azinchen/nordvpn
+           -e TOKEN=your_nordvpn_token_here \
+           azinchen/nordvpn-wg
 
 # Run application through VPN
 docker run -d --name app --net=container:vpn nginx
@@ -521,14 +503,14 @@ docker run -d --name vpn \
            --device /dev/net/tun \
            -p 8080:8080 \
            -p 9091:9091 \
-           -e PRIVATE_KEY=your_private_key_here \
+           -e TOKEN=your_nordvpn_token_here \
            -e COUNTRY="Germany;NL;202" \
            -e CITY="Amsterdam;6076868;uk2567" \
            -e GROUP="Standard VPN servers" \
            -e RANDOM_TOP=3 \
            -e RECREATE_VPN_CRON="0 */6 * * *" \
            -e NETWORK=192.168.1.0/24 \
-           azinchen/nordvpn
+           azinchen/nordvpn-wg
 
 # Applications using VPN (access via host ports)
 docker run -d --name webapp --net=container:vpn \
@@ -543,7 +525,8 @@ docker run -d --name api-service --net=container:vpn \
 
 | Variable | Details |
 |---|---|
-| **PRIVATE_KEY** | **Required** — NordVPN WireGuard private key. <br> **Default:** — <br> **Example:** `your_private_key_here` |
+| **TOKEN** | **Required** — NordVPN access token. The container reads your WireGuard key from the NordVPN API on every (re)connect (not cached). <br> **Default:** — <br> **Example:** `your_nordvpn_token_here` |
+| **DNS** | DNS servers written to the container's `resolv.conf` (resolution goes through the tunnel); semicolon‑ or comma‑separated. <br> **Default:** `103.86.96.100;103.86.99.100` (NordVPN) <br> **Example:** `1.1.1.1,9.9.9.9` |
 | **COUNTRY** | Filter by countries: names, codes, IDs, or specific server hostnames ([list][nordvpn-countries]). Use semicolons to separate multiple values. <br> **Default:** All countries <br> **Example:** `United States;CA;228;es1234` |
 | **CITY** | Filter by cities: names, IDs, or specific server hostnames ([list][nordvpn-cities]). Use semicolons to separate multiple values. <br> **Default:** All cities <br> **Example:** `New York;8971718;uk2567` |
 | **GROUP** | Filter by server group ([list][nordvpn-groups]). <br> **Default:** Not defined <br> **Example:** `Standard VPN servers` |
@@ -586,7 +569,7 @@ docker compose up -d --force-recreate
 
 ### With plain Docker (no Compose)
 ```bash
-docker pull azinchen/nordvpn:latest   # or ghcr.io/azinchen/nordvpn:latest
+docker pull azinchen/nordvpn-wg:latest   # or ghcr.io/azinchen/nordvpn-wg:latest
 docker stop vpn && docker rm vpn
 # Re-run your "vpn" container with the same args as before...
 # Then restart each dependent container:
@@ -602,7 +585,7 @@ Consider using
 If you have any problems with or questions about this image, please contact me through a [GitHub issue][github-issues] or [email][email-link].
 
 [dockerhub-link]: https://hub.docker.com/r/azinchen/nordvpn-wg
-[dockerhub-pulls]: https://img.shields.io/docker/pulls/azinchen/nordvp-wg?style=flat-square&logo=docker&logoColor=white
+[dockerhub-pulls]: https://img.shields.io/docker/pulls/azinchen/nordvpn-wg?style=flat-square&logo=docker&logoColor=white
 [dockerhub-size]: https://img.shields.io/docker/image-size/azinchen/nordvpn-wg/latest?style=flat-square&logo=docker&logoColor=white
 [dockerhub-stars]: https://img.shields.io/docker/stars/azinchen/nordvpn-wg?style=flat-square&logo=docker&logoColor=white
 [github-link]: https://github.com/azinchen/nordvpn-wg

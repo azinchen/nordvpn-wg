@@ -242,6 +242,22 @@ nord_api_curl()
     return $_rc
 }
 
+# ---- Resolve the WireGuard private key ----
+# Derive the key from the NordVPN access TOKEN via the API on every run (not cached).
+if [ -z "${TOKEN:-}" ]; then
+    log_error "$SCRIPT_NAME" "CRITICAL: TOKEN is not set"
+    sleep infinity
+fi
+
+log "$SCRIPT_NAME" "Fetching WireGuard private key from NordVPN API using TOKEN"
+private_key="$(nord_api_curl "v1/users/services/credentials" -u "token:${TOKEN}" 2>/dev/null \
+    | jq -r '.nordlynx_private_key // empty' 2>/dev/null || echo "")"
+
+if [ -z "$private_key" ]; then
+    log_error "$SCRIPT_NAME" "CRITICAL: could not obtain WireGuard private key from NordVPN API (check TOKEN)"
+    sleep infinity
+fi
+
 servers=""
 locations_count=0
 
@@ -423,10 +439,11 @@ umask 077
 {
     echo "# Local network interface configuration"
     echo "[Interface]"
-    echo "PrivateKey = ${PRIVATE_KEY}"                # Your private key
+    echo "PrivateKey = ${private_key}"                # Your private key (fetched via TOKEN)
     echo "ListenPort = ${LISTEN_PORT:-51820}"         # Port for WireGuard (default: 51820)
     echo "Address = ${ADDRESS:-10.5.0.2/32}"          # Local VPN IP address (default: 10.5.0.2/32)
-    echo "DNS = ${DNS}"                               # Default DNS servers for VPN
+    # DNS intentionally omitted: wg-quick's resolvconf fails in Docker; resolv.conf
+    # is managed directly in svc-nordvpn/run from $dns instead.
     echo "Table = ${TABLE:-}"                         # Optional routing table
     echo "PreUp = ${PRE_UP:-}"                        # Script to run before interface is up
     echo "PostUp = ${POST_UP:-}"                      # Script to run after interface is up
