@@ -136,28 +136,6 @@ getcityname()
     return 0
 }
 
-getcitycoordinates()
-{
-    input=$1
-
-    # First get the city ID using existing function
-    cityid=$(getcityid "$input")
-    if [ -z "$cityid" ]; then
-        return 1
-    fi
-
-    # Then get coordinates using the city ID
-    coords=$(jq -r --argjson ID "$cityid" '.[] | select(.cities[]? | .id == $ID) | .cities[] | select(.id == $ID) | "\(.latitude),\(.longitude)"' < "$countriesfile" | head -n 1)
-
-    printf '%s' "$coords"
-
-    if [ -z "$coords" ] || [ "$coords" = "null,null" ]; then
-        return 1
-    fi
-
-    return 0
-}
-
 getgroupid()
 {
     input=$1
@@ -327,20 +305,17 @@ if [ -n "$city" ]; then
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
-        if is_specific_server "$value" ]; then
+        if is_specific_server "$value"; then
             servers="$servers$(handle_specific_server "$value")"
         elif [ -n "$value" ]; then
-            coords=$(getcitycoordinates "$value")
-            if [ -n "$coords" ]; then
-                latitude=$(echo "$coords" | cut -d',' -f1)
-                longitude=$(echo "$coords" | cut -d',' -f2)
-                
+            cityid=$(getcityid "$value" || true)
+            if [ -n "$cityid" ]; then
                 # Build curl parameters
-                curl_params="$tech_filter --data-urlencode coordinates[latitude]=$latitude --data-urlencode coordinates[longitude]=$longitude"
+                curl_params="$tech_filter --data-urlencode filters[country_city_id]=$cityid"
                 if [ -n "$group_filter" ]; then
                     curl_params="$curl_params $group_filter"
                 fi
-                
+
                 # Execute curl with built parameters
                 serversincity=$(eval "nord_api_curl \"v1/servers/recommendations\" $curl_params 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
                 if [ -n "$serversincity" ]; then
@@ -351,7 +326,7 @@ if [ -n "$city" ]; then
                     log_warning "$SCRIPT_NAME" "No servers returned for city \"$value\""
                 fi
             else
-                log_warning "$SCRIPT_NAME" "Could not find coordinates for city \"$value\""
+                log_warning "$SCRIPT_NAME" "Could not find city \"$value\""
             fi
         fi
     done

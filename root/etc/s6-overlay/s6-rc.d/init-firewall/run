@@ -28,7 +28,7 @@ if [ -n "$docker_network" ]; then
 
     # Create named chain for VPN Server rules
     run4 -N VPN-SERVER
-    run4 -A OUTPUT -p udp --dport 51820 -j VPN-SERVER
+    run4 -A OUTPUT -o eth0 -p udp --dport 51820 -j VPN-SERVER
 
     # NordVPN API bootstrap (TCP/443) by resolved IPs
     if [ -n "$nordvpnapi_ip" ]; then
@@ -55,6 +55,23 @@ if [ -n "$docker_network" ]; then
             run4 -A INPUT -i eth0 -s "$net" -j ACCEPT
             # Allow outbound to this network only
             run4 -A OUTPUT -o eth0 -d "$net" -j ACCEPT
+        done
+        IFS="$oldIFS"
+    fi
+
+    # FORWARD_FROM rules (CIDRs). Downstream subnets allowed to route OUT through
+    # the tunnel (e.g. a VPN server living behind us). Traffic must arrive already
+    # SNATed into one of these nets so no return route is required. Semicolon- or
+    # comma-separated; only FORWARD is opened — INPUT/OUTPUT stay locked, so if the
+    # tunnel is down these rules cannot match and nothing leaks.
+    if [ -n "${forward_from:-}" ]; then
+        log "$SCRIPT_NAME" "Allowing tunnel forwarding from: ${forward_from}"
+        oldIFS="$IFS"; IFS=',;'
+        for net in $forward_from; do
+            [ -z "$net" ] && continue
+            run4_critical -A FORWARD -s "$net" -o wg0 -j ACCEPT
+            run4_critical -A FORWARD -d "$net" -i wg0 \
+                -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
         done
         IFS="$oldIFS"
     fi
