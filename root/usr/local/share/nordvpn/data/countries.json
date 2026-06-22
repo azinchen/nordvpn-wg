@@ -186,7 +186,7 @@
         "id": 3,
         "name": "South Australia",
         "code": "SA",
-        "serverCount": 17
+        "serverCount": 16
       },
       {
         "id": 5,
@@ -3463,7 +3463,7 @@
         "id": 88,
         "name": "Washington",
         "code": "WA",
-        "serverCount": 206
+        "serverCount": 205
       },
       {
         "id": 89,
