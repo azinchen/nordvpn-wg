@@ -39,8 +39,7 @@ WireGuard (NordLynx) client docker container that routes other containers' traff
 
 ```bash
 docker run -d --name vpn \
-           --cap-add=NET_ADMIN --cap-add=SYS_ADMIN \
-           --device /dev/net/tun \
+           --cap-add=NET_ADMIN \
            --sysctl net.ipv4.conf.all.src_valid_mark=1 \
            -e TOKEN=your_nordvpn_token_here \
            azinchen/nordvpn-wg
@@ -55,8 +54,8 @@ Also available from GitHub Container Registry: `ghcr.io/azinchen/nordvpn-wg`
 
 ### Requirements
 
-- Docker with `--cap-add=NET_ADMIN`, `--cap-add=SYS_ADMIN`, `--device /dev/net/tun`, and `--sysctl net.ipv4.conf.all.src_valid_mark=1` (or `privileged: true`)
-- A Linux kernel with WireGuard support (5.6+ built in, or the `wireguard` module)
+- Docker with `--cap-add=NET_ADMIN` and `--sysctl net.ipv4.conf.all.src_valid_mark=1` (or `privileged: true`)
+- A Linux kernel with WireGuard support — 5.6+ (built in) or the `wireguard` module loaded on the host. This image uses kernel WireGuard (no userspace fallback), so `/dev/net/tun` is **not** required.
 - A **NordVPN access token** (not your regular account login)
 
 ### Getting a Token
@@ -76,9 +75,6 @@ services:
     image: azinchen/nordvpn-wg:latest
     cap_add:
       - NET_ADMIN
-      - SYS_ADMIN
-    devices:
-      - /dev/net/tun
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     environment:
