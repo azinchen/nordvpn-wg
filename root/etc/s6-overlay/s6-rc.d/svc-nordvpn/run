@@ -28,7 +28,10 @@ if run4 $PIN_SPEC 2>/dev/null; then
 fi
 
 log "$SCRIPT_NAME" "Launching WireGuard..."
-wg-quick down wg0 || true
+# Tear down any stale interface first so bring-up is idempotent on reconnects.
+# Guard on existence so the first connect doesn't log the cosmetic
+# "wg0' is not a WireGuard interface" error.
+ip link show wg0 >/dev/null 2>&1 && wg-quick down wg0 || true
 wg-quick up wg0
 
 # Configure DNS resolution through the VPN tunnel. Docker's embedded resolver
