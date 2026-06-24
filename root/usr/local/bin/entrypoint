@@ -14,7 +14,7 @@ echo "==========================================================================
 echo "📋 Description: Docker container for NordVPN with WireGuard and advanced networking"
 echo "👤 Author: Alexander Zinchenko <alexander@zinchenko.com>"
 echo "🔗 Repository: https://github.com/azinchen/nordvpn-wg"
-echo "📚 Documentation: https://github.com/azinchen/nordvpn-wg#readme"
+echo "📚 Documentation: https://github.com/azinchen/nordvpn-wg/wiki"
 echo "🏷️ Image Version: __IMAGE_VERSION__"
 echo "📅 Build Date: __BUILD_DATE__"
 echo "===================================================================================="
