@@ -9,11 +9,30 @@ SCRIPT_NAME="VPN-RECONNECT"
 
 log "$SCRIPT_NAME" "Starting VPN reconnection"
 
-log "$SCRIPT_NAME" "Stopping NordVPN service"
-s6-rc stop svc-nordvpn
-sleep 2
-log "$SCRIPT_NAME" "Starting NordVPN service"
-s6-rc start svc-nordvpn
+# Select a new server and write the new config while the CURRENT tunnel stays
+# up. This is the slow part (NordVPN API calls + load sorting), and doing it
+# before any teardown means it no longer counts as downtime. --fail-fast makes
+# vpn-config exit (instead of blocking) on error, and its write is atomic, so a
+# failed selection leaves the existing connection and config untouched.
+log "$SCRIPT_NAME" "Selecting server and preparing new config (current tunnel stays up)"
+if ! vpn-config --fail-fast; then
+    log_error "$SCRIPT_NAME" "Server selection/config failed; keeping current connection"
+    exit 1
+fi
 
-log "$SCRIPT_NAME" "VPN reconnection completed"
-exit 0
+# Now apply the freshly written config: refresh the firewall pinhole and swap
+# the interface. The only downtime is this wg-quick down/up (~1-2s) instead of
+# the whole selection.
+log "$SCRIPT_NAME" "Applying new config (swapping tunnel)"
+if ! apply_wireguard_config "$SCRIPT_NAME"; then
+    log_error "$SCRIPT_NAME" "Failed to apply new WireGuard config"
+    exit 1
+fi
+
+if is_vpn_connected; then
+    log "$SCRIPT_NAME" "VPN reconnection completed"
+    exit 0
+fi
+
+log_error "$SCRIPT_NAME" "wg0 not present after reconnect"
+exit 1

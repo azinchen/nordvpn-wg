@@ -7,6 +7,24 @@ set -eu
 
 SCRIPT_NAME="VPN-CONFIG"
 
+# Failure behavior. By default the script blocks forever on a fatal error: it
+# runs as an s6 service step, so blocking keeps the supervisor (and container)
+# alive instead of crash-looping. Called with --fail-fast (by vpn-reconnect,
+# where the current tunnel is still up) it exits non-zero instead, leaving the
+# existing connection and $wgfile untouched.
+FAIL_FAST=0
+case "${1:-}" in
+    --fail-fast) FAIL_FAST=1 ;;
+esac
+
+fail()
+{
+    if [ "$FAIL_FAST" -eq 1 ]; then
+        exit 1
+    fi
+    sleep infinity
+}
+
 log "$SCRIPT_NAME" "Starting VPN configuration"
 
 numericregex="^[0-9]+$"
@@ -224,7 +242,7 @@ nord_api_curl()
 # Derive the key from the NordVPN access TOKEN via the API on every run (not cached).
 if [ -z "${TOKEN:-}" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: TOKEN is not set"
-    sleep infinity
+    fail
 fi
 
 log "$SCRIPT_NAME" "Fetching WireGuard private key from NordVPN API using TOKEN"
@@ -233,7 +251,7 @@ private_key="$(nord_api_curl "v1/users/services/credentials" -u "token:${TOKEN}"
 
 if [ -z "$private_key" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: could not obtain WireGuard private key from NordVPN API (check TOKEN)"
-    sleep infinity
+    fail
 fi
 
 servers=""
@@ -358,7 +376,7 @@ if [ "$poollength" -eq 0 ]; then
         poollength=$(echo "$servers" | jq -s 'unique | length')
     else
         log_error "$SCRIPT_NAME" "CRITICAL: Failed to get fallback servers"
-        sleep infinity
+        fail
     fi
 fi
 
@@ -389,7 +407,7 @@ fi
 
 if [ "$poollength" -eq 0 ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: list of selected servers is empty"
-    sleep infinity
+    fail
 fi
 
 serverip=$(echo "$servers" | jq -r '.station' | head -n 1)
@@ -404,13 +422,15 @@ log "$SCRIPT_NAME" "Selected server \"$name\" hostname=\"$hostname\" ip=\"$serve
 
 if [ -z "$serverkey" ] || [ "$serverkey" = "null" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: Could not extract WireGuard public key from server data"
-    sleep infinity
+    fail
 fi
 
 # Set file permissions so only the owner can read/write the config file
 umask 077
 
-# Create and write WireGuard VPN configuration to /etc/wireguard/wg0.conf
+# Create and write WireGuard VPN configuration to /etc/wireguard/wg0.conf.
+# Write to a temp file and move it into place atomically, so a failure here can
+# never leave a half-written config or clobber the one a live tunnel is using.
 {
     echo "# Local network interface configuration"
     echo "[Interface]"
@@ -432,16 +452,18 @@ umask 077
     echo "PublicKey = ${serverkey}"                   # Peer public key
     echo "AllowedIPs = ${ALLOWED_IPS:-0.0.0.0/0}"     # Allowed IPs via VPN (default: everything)
     echo "PersistentKeepalive = ${PERSISTENT_KEEP_ALIVE:-25}" # Keepalive interval (default: 25 seconds)
-} > "$wgfile"
+} > "${wgfile}.tmp"
 
-# Flush filesystem buffers to disk to ensure changes are saved
-sync
-
-# Verify the config file was created successfully
-if [ ! -s "$wgfile" ]; then
+# Verify the new config was written before swapping it in
+if [ ! -s "${wgfile}.tmp" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: VPN config file was not created successfully"
-    sleep infinity
+    rm -f "${wgfile}.tmp"
+    fail
 fi
+
+# Move into place atomically and flush to disk
+mv "${wgfile}.tmp" "$wgfile"
+sync
 
 log "$SCRIPT_NAME" "VPN configuration completed"
 exit 0
