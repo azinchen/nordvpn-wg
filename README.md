@@ -16,7 +16,7 @@
 
 WireGuard (NordLynx) client docker container that routes other containers' traffic through NordVPN servers automatically.
 
-> **Prefer OpenVPN?** This is the WireGuard sibling of [**azinchen/nordvpn**](https://github.com/azinchen/nordvpn) — the same auto-routing NordVPN container over OpenVPN (including XOR traffic obfuscation). Both share the same configuration model and feature set.
+> **Prefer OpenVPN?** This has a sibling project, [**azinchen/nordvpn**](https://github.com/azinchen/nordvpn) — the same auto-routing NordVPN container over OpenVPN (including XOR traffic obfuscation). Both share the same configuration model and feature set.
 
 ## ✨ Key Features
 
