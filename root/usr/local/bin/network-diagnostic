@@ -235,6 +235,22 @@ echo "Peer Endpoint         : $TRUSTED_PEER"
 echo "Proto/Local Port      : $PROTO/$LPORT"
 echo
 
+echo "### Project configuration (effective)"
+echo "COUNTRY                 : ${country:-<unset>}"
+echo "CITY                    : ${city:-<unset>}"
+echo "GROUP                   : ${group:-<unset>}"
+echo "RANDOM_TOP              : ${random_top:-0}"
+echo "DNS                     : ${dns:-<unset>}"
+echo "NETWORK                 : ${network:-<unset>}"
+echo "FORWARD_FROM            : ${forward_from:-<unset>}"
+echo "NORDVPNAPI_IP           : ${nordvpnapi_ip:-<unset>}"
+echo "RECREATE_VPN_CRON       : ${recreate_vpn_cron:-<disabled>}"
+echo "CHECK_CONNECTION_CRON   : ${check_connection_cron:-<disabled>}"
+echo "CHECK_CONNECTION_URL    : ${check_connection_url:-<unset>}"
+echo "NETWORK_DIAGNOSTIC      : ${network_diagnostic_enabled:-false}"
+echo "Firewall backend (IPT)  : ${IPT:-<unknown>}${IP6T:+ / $IP6T}"
+echo
+
 echo "### ip addr show $DEV_IF"
 ip addr show "$DEV_IF" 2>/dev/null || true
 echo
@@ -255,16 +271,52 @@ echo "### ip link (up)"
 ip -brief link show up 2>/dev/null || true
 echo
 
-echo "### ip route (main)"
+echo "### $DEV_IF interface stats (ip -s link)"
+ip -s link show "$DEV_IF" 2>/dev/null || echo "[info] no $DEV_IF interface"
+echo
+
+echo "### WireGuard fwmark ($DEV_IF)"
+if [ -n "$WG_BIN" ]; then
+    FWMARK="$(wg show "$DEV_IF" fwmark 2>/dev/null || printf '')"
+    echo "${FWMARK:-[info] no fwmark set}"
+else
+    echo "[info] wg not available"
+fi
+echo
+
+# wg-quick (full tunnel) installs policy routing rather than a plain default route:
+#   wg set wg0 fwmark 51820
+#   ip rule add not fwmark 51820 table 51820
+#   ip rule add table main suppress_prefixlength 0
+#   ip route add 0.0.0.0/0 dev wg0 table 51820
+# The blocks below surface every piece of that for both address families.
+
+echo "### ip route (main table)"
 ip route show 2>/dev/null || true
 echo
 
-echo "### ip rule"
-ip rule show 2>/dev/null || true
+echo "### ip rule (IPv4 policy rules)"
+ip -4 rule show 2>/dev/null || true
 echo
 
-echo "### ip route table 51820"
+echo "### ip -6 rule (IPv6 policy rules)"
+ip -6 rule show 2>/dev/null || echo "[info] no IPv6 policy rules"
+echo
+
+echo "### ip route table 51820 (IPv4 WireGuard table)"
 ip route show table 51820 2>/dev/null || true
+echo
+
+echo "### ip -6 route table 51820 (IPv6 WireGuard table)"
+ip -6 route show table 51820 2>/dev/null || echo "[info] no IPv6 WireGuard routes"
+echo
+
+echo "### ip route show table all (every IPv4 routing table)"
+ip route show table all 2>/dev/null || true
+echo
+
+echo "### ip -6 route show table all (every IPv6 routing table)"
+ip -6 route show table all 2>/dev/null || echo "[info] no IPv6 routes"
 echo
 
 # Default route / split-default detection
@@ -352,6 +404,28 @@ echo
 
 print_dns_geo
 
+# Forward-resolution test: confirm a normal name lookup works through the tunnel.
+# DNS behind the kill switch is a known sharp edge (Docker's 127.0.0.11 is
+# unreachable), so verify it actually resolves rather than only geolocating NSes.
+echo "### DNS resolution test"
+DNS_TEST_HOST="nordvpn.com"
+DNS_RES=""
+if command -v getent >/dev/null 2>&1; then
+    DNS_RES="$(getent hosts "$DNS_TEST_HOST" 2>/dev/null | awk '{print $1}' | tr '\n' ' ')"
+fi
+if [ -z "$DNS_RES" ] && command -v nslookup >/dev/null 2>&1; then
+    DNS_RES="$(nslookup "$DNS_TEST_HOST" 2>/dev/null | awk '/^Address: ?/{print $NF}' | tr '\n' ' ')"
+fi
+if [ -z "$DNS_RES" ]; then
+    DNS_RES="$(dig +timeout=3 +short "$DNS_TEST_HOST" 2>/dev/null | tr '\n' ' ')"
+fi
+if [ -n "$DNS_RES" ]; then
+    echo "[ok] $DNS_TEST_HOST resolved to: $DNS_RES"
+else
+    echo "[warn] could not resolve $DNS_TEST_HOST (DNS may be broken behind the kill switch)"
+fi
+echo
+
 # Resolver identity (with fallbacks)
 NS_ACTIVE="$(awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null)"
 if [ -n "$NS_ACTIVE" ]; then
@@ -398,6 +472,25 @@ else
         echo "[ok] Route to $PUBLIC_TEST_IPv4 goes via $DEV_IF"
     else
         echo "[warn] Route to $PUBLIC_TEST_IPv4 uses ${ROUTE_DEV:-<none>} (expected $DEV_IF)"
+    fi
+
+    # Handshake freshness: tunnel interface can be up while the peer never
+    # completes a handshake (stale endpoint / rate-limiting) — the classic
+    # "0 B received" NordLynx failure. Flag it explicitly.
+    if [ -n "$WG_BIN" ]; then
+        HS_TS="$(wg show "$DEV_IF" latest-handshakes 2>/dev/null | awk 'NR==1{print $2}')"
+        NOW="$(date +%s 2>/dev/null || echo 0)"
+        if [ -z "$HS_TS" ] || [ "$HS_TS" = "0" ]; then
+            echo "[warn] No WireGuard handshake yet (peer unreachable, stale endpoint, or rate-limited)"
+        else
+            HS_AGE=$((NOW - HS_TS))
+            [ "$HS_AGE" -lt 0 ] && HS_AGE=0
+            if [ "$HS_AGE" -le 180 ]; then
+                echo "[ok] Last handshake ${HS_AGE}s ago"
+            else
+                echo "[warn] Last handshake ${HS_AGE}s ago (stale; tunnel may be down)"
+            fi
+        fi
     fi
 fi
 
