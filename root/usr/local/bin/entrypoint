@@ -23,17 +23,6 @@ log "$SCRIPT_NAME" "Applying security rules"
 
 # ---- helpers ---------------------------------------------------------------
 
-kernel_ge_4_18()
-{
-    ver="$(uname -r | awk -F- '{print $1}')"    # e.g., 4.4.0 or 6.8.0
-    major="$(echo "$ver" | awk -F. '{print $1}')"
-    minor="$(echo "$ver" | awk -F. '{print $2}')"
-    [ -n "$minor" ] || minor=0
-    if [ "$major" -gt 4 ]; then return 0; fi
-    if [ "$major" -lt 4 ]; then return 1; fi
-    [ "$minor" -ge 18 ]
-}
-
 try_policy()
 {
     _bin="$1"
@@ -72,46 +61,32 @@ flush_nft_if_dirty_v6()
     fi
 }
 
-# ---- IPv4 backend picker: prefer nft on ≥4.18; else legacy -----------------
+# ---- IPv4 backend picker: prefer nft, fall back to legacy ------------------
 
 pick_ipv4_backend()
 {
     _IPT=""
-    if kernel_ge_4_18; then
-        if command -v iptables >/dev/null 2>&1 && iptables -V 2>&1 | grep -qi "(nf_tables)"; then
-            try_policy iptables && _IPT="iptables"
-        fi
-        [ -n "$_IPT" ] || { command -v iptables-legacy >/dev/null 2>&1 && try_policy iptables-legacy && _IPT="iptables-legacy"; }
-        [ -n "$_IPT" ] || { command -v iptables >/dev/null 2>&1 && try_policy iptables && _IPT="iptables"; }
-    else
-        if command -v iptables-legacy >/dev/null 2>&1; then
-            try_policy iptables-legacy && _IPT="iptables-legacy"
-        fi
-        [ -n "$_IPT" ] || { command -v iptables >/dev/null 2>&1 && try_policy iptables && _IPT="iptables"; }
+    if command -v iptables >/dev/null 2>&1 && iptables -V 2>&1 | grep -qi "(nf_tables)"; then
+        try_policy iptables && _IPT="iptables"
     fi
+    [ -n "$_IPT" ] || { command -v iptables-legacy >/dev/null 2>&1 && try_policy iptables-legacy && _IPT="iptables-legacy"; }
+    [ -n "$_IPT" ] || { command -v iptables >/dev/null 2>&1 && try_policy iptables && _IPT="iptables"; }
     [ -n "$_IPT" ] || { log_error "$SCRIPT_NAME" "ERROR: no working iptables (IPv4) found"; exit 1; }
 
     log "$SCRIPT_NAME" "Kernel: $(uname -r)"
     log "$SCRIPT_NAME" "Using iptables backend: ${_IPT}"
 }
 
-# ---- IPv6 backend picker: prefer nft on ≥4.18; else legacy -----------------
+# ---- IPv6 backend picker: prefer nft, fall back to legacy ------------------
 
 pick_ipv6_backend()
 {
     _IP6T=""
-    if kernel_ge_4_18; then
-        if command -v ip6tables >/dev/null 2>&1 && ip6tables -V 2>&1 | grep -qi "(nf_tables)"; then
-            try_policy ip6tables && _IP6T="ip6tables"
-        fi
-        [ -n "$_IP6T" ] || { command -v ip6tables-legacy >/dev/null 2>&1 && try_policy ip6tables-legacy && _IP6T="ip6tables-legacy"; } || true
-        [ -n "$_IP6T" ] || { command -v ip6tables >/dev/null 2>&1 && try_policy ip6tables && _IP6T="ip6tables"; } || true
-    else
-        if command -v ip6tables-legacy >/dev/null 2>&1; then
-            try_policy ip6tables-legacy && _IP6T="ip6tables-legacy"
-        fi
-        [ -n "$_IP6T" ] || { command -v ip6tables >/dev/null 2>&1 && try_policy ip6tables && _IP6T="ip6tables"; } || true
+    if command -v ip6tables >/dev/null 2>&1 && ip6tables -V 2>&1 | grep -qi "(nf_tables)"; then
+        try_policy ip6tables && _IP6T="ip6tables"
     fi
+    [ -n "$_IP6T" ] || { command -v ip6tables-legacy >/dev/null 2>&1 && try_policy ip6tables-legacy && _IP6T="ip6tables-legacy"; } || true
+    [ -n "$_IP6T" ] || { command -v ip6tables >/dev/null 2>&1 && try_policy ip6tables && _IP6T="ip6tables"; } || true
 
     # Last-resort: if a binary exists at all, use it (even if probe failed)
     [ -n "$_IP6T" ] || { command -v ip6tables-legacy >/dev/null 2>&1 && _IP6T="ip6tables-legacy"; } || true
