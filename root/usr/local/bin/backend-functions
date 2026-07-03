@@ -5,12 +5,13 @@
 [ -r /run/xt/backend.env ] && . /run/xt/backend.env
 
 # Create lowercase copies of environment variables
+to_bool() { case "${1:-}" in true|1) echo "true" ;; *) echo "false" ;; esac; }
 country="${COUNTRY:-}"
 city="${CITY:-}"
 group="${GROUP:-}"
 random_top="${RANDOM_TOP:-0}"
-network_diagnostic_enabled="${NETWORK_DIAGNOSTIC_ENABLED:-false}"
-healthcheck_enabled="${HEALTHCHECK_ENABLED:-false}"
+network_diagnostic_enabled="$(to_bool "${NETWORK_DIAGNOSTIC_ENABLED:-}")"
+healthcheck_enabled="$(to_bool "${HEALTHCHECK_ENABLED:-}")"
 check_connection_attempts="${CHECK_CONNECTION_ATTEMPTS:-5}"
 check_connection_url="${CHECK_CONNECTION_URL:-https://www.google.com}"
 check_connection_attempt_interval="${CHECK_CONNECTION_ATTEMPT_INTERVAL:-10}"
