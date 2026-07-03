@@ -31,6 +31,11 @@ fi
 
 if is_vpn_connected; then
     log "$SCRIPT_NAME" "VPN reconnection completed"
+    # Run network diagnostic if enabled
+    if [ "$network_diagnostic_enabled" = "true" ]; then
+        log "$SCRIPT_NAME" "Running network diagnostic..."
+        network-diagnostic
+    fi
     exit 0
 fi
 
