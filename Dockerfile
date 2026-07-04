@@ -107,7 +107,7 @@ RUN echo "**** install security fix packages ****" && \
         shadow=4.18.0-r1 \
         shadow-login=4.18.0-r1 \
         wireguard-tools=1.0.20260223-r0 \
-        bind-tools=9.20.23-r0 \
+        bind-tools=9.20.24-r0 \
         && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
