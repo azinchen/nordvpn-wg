@@ -97,6 +97,9 @@ LABEL org.opencontainers.image.authors="Alexander Zinchenko <alexander@zinchenko
 ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install security fix packages ****" && \
+    apk --no-cache --no-progress add \
+        c-ares=1.34.8-r0 \
+        && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
     apk --no-cache --no-progress add \
