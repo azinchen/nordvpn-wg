@@ -37,6 +37,14 @@ if [ -n "$docker_network" ]; then
         for ip in $nordvpnapi_ip; do
             [ -z "$ip" ] && continue
             run4 -A OUTPUT -d "$ip" -p tcp --dport 443 -j ACCEPT
+            # Pin a host route via eth0 so API traffic stays off the tunnel.
+            # wg-quick's policy routing sends everything through wg0, but its
+            # 'suppress_prefixlength 0' rule lets specific main-table routes
+            # win. Without this route a dead tunnel makes the API unreachable,
+            # and vpn-reconnect can never fetch the key/server list to recover.
+            if [ -n "$gw" ]; then
+                ip route add "$ip" via "$gw" dev eth0 2>/dev/null || true
+            fi
         done
         IFS="$oldIFS"
     fi
