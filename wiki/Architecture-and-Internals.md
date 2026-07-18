@@ -20,12 +20,13 @@ entrypoint (container start)
 
 Location: `/usr/local/bin/entrypoint`
 
-1. Tests nft and legacy iptables backends by toggling a chain policy (`DROP` ↔ `ACCEPT` on `OUTPUT`)
-2. If the preferred backend fails, tests the fallback
-3. If legacy is selected and nft tables already contain rules, flushes nft tables to avoid mixed stacks
-4. Exports selected backends (`IPT`, `IP6T`) to `/run/xt/backend.env`
-5. Sets `INPUT`, `OUTPUT`, `FORWARD` to `DROP` on both IPv4 and IPv6
-6. Allows loopback traffic
+1. Tests nft and legacy iptables backends by toggling a chain policy (`DROP` ↔ `ACCEPT` on `OUTPUT`) and piping an empty ruleset through `iptables-restore -n`
+2. If the preferred backend fails, tests the fallback (a policy-only probe is kept as a last resort)
+3. Repoints the unprefixed names (`iptables`, `iptables-restore`, `iptables-save` and `ip6tables` counterparts) at the selected backend so `wg-quick` uses the same stack; with `ALLOW_MISSING_IPTABLES_RULES=true` the restore names become tolerant wrappers (see [Firewall Backends](Firewall-Backends))
+4. If legacy is selected and nft tables already contain rules, flushes nft tables to avoid mixed stacks
+5. Exports selected backends (`IPT`, `IP6T`) to `/run/xt/backend.env`
+6. Sets `INPUT`, `OUTPUT`, `FORWARD` to `DROP` on both IPv4 and IPv6
+7. Allows loopback traffic
 
 Backend preference:
 
