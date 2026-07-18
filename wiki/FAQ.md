@@ -54,10 +54,10 @@ The kill switch blocks all traffic except `NETWORK` CIDRs and NordVPN API IPs. I
 ## Compatibility
 
 **Q: Does this work on Raspberry Pi?**
-Yes. The image supports `arm/v6`, `arm/v7`, and `arm64`. Docker pulls the correct architecture automatically. WireGuard support requires a reasonably recent kernel (5.6+ has it built in; older kernels need the `wireguard` module).
+Yes. The image supports `arm/v6`, `arm/v7`, and `arm64`. Docker pulls the correct architecture automatically. Kernel WireGuard is used when available (5.6+ built in, or the `wireguard` module); kernels without it fall back to userspace `wireguard-go` automatically — add `--device /dev/net/tun` for that case (see [Permissions](Permissions)).
 
 **Q: Does this work on Synology / QNAP NAS?**
-Generally yes, but some NAS devices have older kernels or limited iptables/WireGuard support. The container auto-detects nft vs legacy backends. Check logs for `[ENTRYPOINT] Using IPv4 backend:` to verify.
+Generally yes, but some NAS devices have older kernels or limited iptables/WireGuard support. The container auto-detects nft vs legacy backends (check logs for `[ENTRYPOINT] Using IPv4 backend:`), and NAS kernels without the WireGuard module use the automatic `wireguard-go` fallback — pass `--device /dev/net/tun` for that (see [Permissions](Permissions)).
 
 **Q: What's the difference between Docker Hub and GHCR images?**
 They are identical. Use whichever registry is more convenient: `azinchen/nordvpn-wg` (Docker Hub) or `ghcr.io/azinchen/nordvpn-wg` (GitHub Container Registry).

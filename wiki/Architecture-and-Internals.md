@@ -70,7 +70,7 @@ Location: `/etc/s6-overlay/s6-rc.d/svc-nordvpn/run`
 
 1. Calls `vpn-config` to generate `wg0.conf`
 2. Adds a temporary pinhole in the `VPN-SERVER` chain for the server IP (UDP/51820 on eth0)
-3. Brings the tunnel up with `wg-quick up wg0`
+3. Brings the tunnel up with `wg-quick up wg0` (kernel WireGuard when available; on kernels without the module `wg-quick` automatically launches userspace `wireguard-go`, which needs `/dev/net/tun` — see [Permissions](Permissions))
 4. Writes `/etc/resolv.conf` from `$dns` (Docker's embedded resolver is unreachable behind
    the kill switch)
 5. Waits for the connection (checks `wg0`, up to ~60 seconds)
@@ -106,7 +106,7 @@ Location: `/usr/local/bin/network-diagnostic`
 
 Two modes:
 - `--basic`: Public IP + geolocation only
-- `--full` (default): Complete diagnostics including interfaces, iptables rules, DNS, routes, WireGuard status, and kernel version
+- `--full` (default): Complete diagnostics including interfaces, iptables rules, DNS, routes, WireGuard status, the active WireGuard engine (kernel vs userspace `wireguard-go`), and kernel version
 
 ## Data Files
 
@@ -129,7 +129,9 @@ Located in `/usr/local/share/nordvpn/data/`:
 
 ## Connection Status
 
-WireGuard is a silent protocol with no management socket. Status comes from the kernel:
+WireGuard is a silent protocol with no management socket. Status comes from the engine
+(kernel module, or the `wireguard-go` UAPI socket at `/var/run/wireguard/wg0.sock` when the
+userspace fallback is active — `wg` handles both transparently):
 
 - `wg show wg0` — peer endpoint, last handshake, transfer counters
 - `is_vpn_connected()` checks only that the `wg0` link exists; a real connection also needs a
