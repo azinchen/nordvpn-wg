@@ -83,8 +83,25 @@ Docker subnets are **not** auto-allowed. If inter-container communication is nee
 
 **Check:**
 1. **NET_ADMIN capability:** Ensure `--cap-add=NET_ADMIN` is set.
-2. **Kernel compatibility:** The container auto-detects nft vs legacy. Check logs for `[ENTRYPOINT] Using IPv4 backend:` to see which was selected.
+2. **Kernel compatibility:** The container auto-detects nft vs legacy. Check logs for `[ENTRYPOINT] Using iptables backend:` to see which was selected.
 3. **Host iptables/WireGuard modules:** Some minimal hosts (e.g., certain NAS devices) may lack required kernel modules.
+
+### Tunnel torn down right after `iptables-restore` (Synology and similar NAS)
+
+**Symptoms:** During startup, `wg-quick` fails and removes the interface, ending in a timeout:
+
+```
+[#] iptables-restore -n
+iptables-restore v1.8.13 (nf_tables): Could not fetch rule set generation id: Invalid argument
+[#] ip link delete dev wg0
+[SERVICE-NORDVPN] VPN connection timeout
+```
+
+(or with the legacy backend: `unable to initialize table 'raw'`, `Extension comment revision 0 not supported`)
+
+**Cause:** The host kernel can't load the netfilter modules behind `wg-quick`'s anti-leak rules (common on Synology DSM). `wg-quick` treats the failure as fatal and rolls the tunnel back.
+
+**Fix:** Make sure you run a version with backend binding (the entrypoint repoints `iptables-restore` at the selected backend). If it still fails with both backends, set `ALLOW_MISSING_IPTABLES_RULES=true` — restore failures are then logged as warnings and startup continues; the container's own default-DROP kill switch stays active. See [Firewall Backends](Firewall-Backends).
 
 ### `wg-quick` fails to set routing / `src_valid_mark`
 
@@ -130,7 +147,7 @@ Key log messages:
 
 | Log message | Meaning |
 |------------|---------|
-| `[ENTRYPOINT] Using IPv4 backend: ...` | Firewall backend selected |
+| `[ENTRYPOINT] Using iptables backend: ...` | Firewall backend selected |
 | `[VPN-CONFIG] Selected server ...` | Selected VPN server |
 | `[SERVICE-NORDVPN] VPN connected successfully` | `wg0` came up (verify with a handshake) |
 | `[SERVICE-NORDVPN] VPN connection timeout` | Tunnel didn't establish in time |

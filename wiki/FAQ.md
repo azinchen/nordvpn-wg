@@ -57,7 +57,7 @@ The kill switch blocks all traffic except `NETWORK` CIDRs and NordVPN API IPs. I
 Yes. The image supports `arm/v6`, `arm/v7`, and `arm64`. Docker pulls the correct architecture automatically. WireGuard support requires a reasonably recent kernel (5.6+ has it built in; older kernels need the `wireguard` module).
 
 **Q: Does this work on Synology / QNAP NAS?**
-Generally yes, but some NAS devices have older kernels or limited iptables/WireGuard support. The container auto-detects nft vs legacy backends. Check logs for `[ENTRYPOINT] Using IPv4 backend:` to verify.
+Generally yes, but some NAS devices have older kernels or limited iptables/WireGuard support. The container auto-detects nft vs legacy backends and binds all firewall tools (including `wg-quick`) to the selected one — check logs for `[ENTRYPOINT] Using iptables backend:` to verify. If the tunnel is still torn down because the kernel can't load the modules behind `wg-quick`'s extra rules, set `ALLOW_MISSING_IPTABLES_RULES=true` — see [Firewall Backends](Firewall-Backends).
 
 **Q: What's the difference between Docker Hub and GHCR images?**
 They are identical. Use whichever registry is more convenient: `azinchen/nordvpn-wg` (Docker Hub) or `ghcr.io/azinchen/nordvpn-wg` (GitHub Container Registry).
