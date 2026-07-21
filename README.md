@@ -120,6 +120,7 @@ services:
 | **NORDVPNAPI<wbr>_IP** | API bootstrap IPs (semicolon‑separated). Default: `104.16.208.203;104.19.159.190` |
 | **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect. Default: `false` |
 | **HEALTHCHECK<wbr>_ENABLED** | Enable the Docker `HEALTHCHECK` probe (checks `wg0` + connectivity via `CHECK_CONNECTION_URL`). When `false`, the container always reports healthy. Default: `false` |
+| **ALLOW<wbr>_MISSING<wbr>_IPTABLES<wbr>_RULES** | Tolerate failures applying wg-quick's anti-leak iptables rules — needed on hosts whose kernel lacks the required netfilter modules (e.g. Synology DSM), where the tunnel would otherwise be torn down. The container's own default-DROP kill switch stays active. See [Firewall Backends][wiki-firewall]. Default: `false` |
 
 ## Issues
 
