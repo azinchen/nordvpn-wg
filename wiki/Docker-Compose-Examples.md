@@ -166,4 +166,4 @@ services:
 - Use `depends_on` to ensure the VPN starts before dependent services.
 - Services that should **not** use the VPN can use `network_mode: host` or a separate Docker network.
 - When the VPN container restarts, all dependent containers must also be restarted. See [Updating and Maintenance](Updating-and-Maintenance#why-dependent-containers-must-restart).
-- WireGuard needs only `NET_ADMIN` plus the `net.ipv4.conf.all.src_valid_mark=1` sysctl so `wg-quick` can set its routing policy. `/dev/net/tun` and `SYS_ADMIN` are **not** required (kernel WireGuard, no userspace fallback) — see [Permissions](Permissions). If your host blocks the sysctl, `privileged: true` works as a last resort.
+- WireGuard needs only `NET_ADMIN` plus the `net.ipv4.conf.all.src_valid_mark=1` sysctl so `wg-quick` can set its routing policy. `SYS_ADMIN` is **not** required, and `/dev/net/tun` is not needed with kernel WireGuard. On hosts without the WireGuard kernel module the container falls back to userspace `wireguard-go` — that case needs `devices: ["/dev/net/tun"]` — see [Permissions](Permissions). If your host blocks the sysctl, `privileged: true` works as a last resort.

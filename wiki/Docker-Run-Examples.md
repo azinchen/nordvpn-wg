@@ -39,7 +39,7 @@ docker run -d --name api-service --net=container:vpn \
 
 ## Key Points
 
-- **`--cap-add=NET_ADMIN`** and **`--sysctl net.ipv4.conf.all.src_valid_mark=1`** are always required. `/dev/net/tun` and `SYS_ADMIN` are not needed (kernel WireGuard) — see [Permissions](Permissions).
+- **`--cap-add=NET_ADMIN`** and **`--sysctl net.ipv4.conf.all.src_valid_mark=1`** are always required. `SYS_ADMIN` is never needed. `/dev/net/tun` is not needed with kernel WireGuard; add `--device /dev/net/tun` only on hosts without the WireGuard kernel module, where the container falls back to userspace `wireguard-go` — see [Permissions](Permissions).
 - **Ports** must be published on the VPN container (`-p` on the `vpn` container), not on the application containers.
 - Application containers connect via `--net=container:vpn`.
 - For GitHub Container Registry, replace `azinchen/nordvpn-wg` with `ghcr.io/azinchen/nordvpn-wg`.

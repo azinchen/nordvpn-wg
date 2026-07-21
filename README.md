@@ -31,6 +31,7 @@ WireGuard (NordLynx) client docker container that routes other containers' traff
 - **🧭 Custom DNS** — Resolve through the tunnel; override with `DNS=...` ([details][wiki-dns])
 - **📵 IPv6 Firewall** — Built-in chains default to DROP ([details][wiki-ipv6])
 - **🧱 iptables Compatibility** — Auto-selects nft or legacy backend ([details][wiki-firewall])
+- **🧬 Userspace Fallback** — Automatic `wireguard-go` fallback on kernels without the WireGuard module ([details][wiki-permissions])
 - **🚪 VPN Gateway Mode** — Route downstream networks out through the tunnel with `FORWARD_FROM=...` ([details][wiki-gateway])
 
 > **📖 [Full documentation on the Wiki][wiki-home]** — configuration guides, examples, troubleshooting, FAQ, and architecture.
@@ -57,7 +58,7 @@ Also available from GitHub Container Registry: `ghcr.io/azinchen/nordvpn-wg`
 ### Requirements
 
 - Docker with `--cap-add=NET_ADMIN` and `--sysctl net.ipv4.conf.all.src_valid_mark=1` (or `privileged: true`)
-- A Linux kernel with WireGuard support — 5.6+ (built in) or the `wireguard` module loaded on the host. This image uses kernel WireGuard (no userspace fallback), so `/dev/net/tun` is **not** required.
+- A Linux kernel with WireGuard support — 5.6+ (built in) or the `wireguard` module loaded on the host. On kernels **without** the module, the container automatically falls back to userspace WireGuard (`wireguard-go`); that fallback additionally requires `--device /dev/net/tun` (not needed when the kernel module is available) and is slower than kernel WireGuard.
 - A **NordVPN access token** (not your regular account login)
 
 ### Getting a Token
@@ -162,6 +163,7 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [wiki-dns]: https://github.com/azinchen/nordvpn-wg/wiki/Custom-DNS
 [wiki-ipv6]: https://github.com/azinchen/nordvpn-wg/wiki/IPv6-Configuration
 [wiki-firewall]: https://github.com/azinchen/nordvpn-wg/wiki/Firewall-Backends
+[wiki-permissions]: https://github.com/azinchen/nordvpn-wg/wiki/Permissions
 [wiki-gateway]: https://github.com/azinchen/nordvpn-wg/wiki/VPN-Gateway-Mode
 [wiki-compose]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Compose-Examples
 [wiki-run]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Run-Examples

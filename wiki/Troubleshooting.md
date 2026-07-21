@@ -8,7 +8,7 @@
 1. **Token:** Verify `TOKEN` is a valid, unexpired NordVPN access token. `CRITICAL: TOKEN is not set` or `could not obtain WireGuard private key from NordVPN API` means the token is missing/invalid. See [Getting a Token](https://github.com/azinchen/nordvpn-wg#getting-a-token).
 2. **Logs:** `docker logs vpn` — look for the `[VPN-CONFIG]` and `[SERVICE-NORDVPN]` lines.
 3. **API access:** The container needs HTTPS access to NordVPN API IPs during bootstrap. Behind a corporate proxy/firewall, ensure TCP/443 to the `NORDVPNAPI_IP` addresses is allowed.
-4. **Kernel WireGuard:** The image uses the host's kernel WireGuard module (no userspace fallback, so `/dev/net/tun` is not needed). Ensure the host kernel is 5.6+ or has the `wireguard` module loaded.
+4. **WireGuard engine:** The image prefers the host's kernel WireGuard module (5.6+ built in, or the `wireguard` module loaded). On kernels without it, the container falls back to userspace `wireguard-go` — that fallback needs `--device /dev/net/tun`, otherwise startup fails. Look for `Falling back to slow userspace implementation` in the logs, and check the active engine with `network-diagnostic` (`WireGuard Engine` line). See [Permissions](Permissions).
 5. **Capabilities:** WireGuard needs `NET_ADMIN` plus the `net.ipv4.conf.all.src_valid_mark=1` sysctl (or `privileged: true`) so `wg-quick` can set its routing policy. `SYS_ADMIN` is not required.
 
 ### `VPN connected successfully` but no traffic

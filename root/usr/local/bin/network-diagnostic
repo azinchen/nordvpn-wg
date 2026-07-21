@@ -203,6 +203,24 @@ TRUSTED_PORT=""
 PROTO="wireguard"
 LPORT="?"
 
+# Determine which WireGuard engine carries the tunnel. Userspace wireguard-go
+# always exposes a UAPI socket for its interface; the kernel module does not.
+WG_ENGINE="unknown"
+if ip link show "$DEV_IF" >/dev/null 2>&1; then
+    if [ -S "/var/run/wireguard/${DEV_IF}.sock" ]; then
+        WG_ENGINE="userspace (wireguard-go)"
+    else
+        WG_ENGINE="kernel"
+    fi
+else
+    # No tunnel yet - report what this host could use
+    if [ -e /sys/module/wireguard ]; then
+        WG_ENGINE="kernel (module loaded, tunnel down)"
+    elif command -v wireguard-go >/dev/null 2>&1; then
+        WG_ENGINE="wireguard-go available (fallback, tunnel down)"
+    fi
+fi
+
 # Try to get WireGuard status
 get_wireguard_status
 
@@ -227,6 +245,7 @@ else
     VPN_STATUS="Disconnected - No $DEV_IF interface or wg not available"
 fi
 echo "VPN Status            : $VPN_STATUS"
+echo "WireGuard Engine      : $WG_ENGINE"
 echo "Device                : $DEV_IF (type=$DEV_TYPE)"
 echo "Common Name           : $COMMON_NAME"
 echo "Ifconfig Local        : $IFCONF_LOCAL"
