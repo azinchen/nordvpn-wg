@@ -21,6 +21,8 @@ nordvpnapi_ip="${NORDVPNAPI_IP:-104.16.208.203;104.19.159.190}"
 network="${NETWORK:-}"
 forward_from="${FORWARD_FROM:-}"
 dns="${DNS:-103.86.96.100;103.86.99.100}"
+gateway_dns="${GATEWAY_DNS:-off}"
+gateway_dns_server="${GATEWAY_DNS_SERVER:-}"
 
 # Interfaces. tun_if must match the basename of $wgfile (wg-quick derives
 # the interface name from the config file name).

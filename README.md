@@ -117,6 +117,8 @@ services:
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPT<wbr>_INTERVAL** | Seconds between retries. Default: `10` |
 | **NETWORK** | LAN/inter‑container CIDRs to allow; semicolon‑separated. Default: none |
 | **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Semicolon‑separated. Default: none |
+| **GATEWAY<wbr>_DNS** | DNS interception for `FORWARD_FROM` clients: `redirect` (DNAT port 53 to the `DNS` resolvers, through the tunnel), `local` (DNAT port 53 to this container, for a co‑located resolver such as AdGuard Home), `forward` (DNAT port 53 to `GATEWAY_DNS_SERVER`, reached directly over the uplink — **not** through the tunnel), `off`. See [VPN Gateway Mode][wiki-gateway]. Default: `off` |
+| **GATEWAY<wbr>_DNS<wbr>_SERVER** | External IPv4 resolver for `GATEWAY_DNS=forward` (e.g. an AdGuard Home on your LAN). Default: none |
 | **NORDVPNAPI<wbr>_IP** | API bootstrap IPs (semicolon‑separated). Default: `104.16.208.203;104.19.159.190` |
 | **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect. Default: `false` |
 | **HEALTHCHECK<wbr>_ENABLED** | Enable the Docker `HEALTHCHECK` probe (checks `wg0` + connectivity via `CHECK_CONNECTION_URL`). When `false`, the container always reports healthy. Default: `false` |
