@@ -22,6 +22,11 @@ network="${NETWORK:-}"
 forward_from="${FORWARD_FROM:-}"
 dns="${DNS:-103.86.96.100;103.86.99.100}"
 
+# Interfaces. tun_if must match the basename of $wgfile (wg-quick derives
+# the interface name from the config file name).
+wan_if="eth0"
+tun_if="wg0"
+
 # Common file paths
 wgfile="/etc/wireguard/wg0.conf"
 countriesfile="/usr/local/share/nordvpn/data/countries.json"
@@ -57,9 +62,9 @@ run6_critical() {
     fi
 }
 
-# Check if VPN is connected by checking for wg0 interface
+# Check if VPN is connected by checking for the tunnel interface
 is_vpn_connected() {
-    if ip link show wg0 >/dev/null 2>&1; then
+    if ip link show "$tun_if" >/dev/null 2>&1; then
         return 0
     else
         return 1
@@ -67,8 +72,8 @@ is_vpn_connected() {
 }
 
 # Apply the WireGuard configuration currently in $wgfile: refresh the single
-# eth0 pinhole for the server endpoint, (re)bring the wg0 interface, and point
-# resolv.conf at the VPN DNS. Expects vpn-config to have written $wgfile.
+# uplink pinhole for the server endpoint, (re)bring the tunnel interface, and
+# point resolv.conf at the VPN DNS. Expects vpn-config to have written $wgfile.
 # Shared by the service start path and vpn-reconnect so the bring-up logic
 # lives in one place. $1 = log tag. Returns non-zero only if $wgfile has no
 # Endpoint (i.e. nothing to bring up).
@@ -84,17 +89,17 @@ apply_wireguard_config() {
     endpoint_value="$(echo "$endpoint_line" | sed 's/.*= *//; s/^[[:space:]]*//; s/[[:space:]]*$//')"
     r_ip="$(echo "$endpoint_value" | cut -d: -f1 | sed 's,^\[,,; s,\]$,,')"
 
-    # Refresh the eth0 pinhole for the (possibly new) server. Flushing first
+    # Refresh the uplink pinhole for the (possibly new) server. Flushing first
     # keeps the chain from accumulating stale server IPs across reconnects.
     run4 -F VPN-SERVER
-    if run4 -A VPN-SERVER -o eth0 -d "${r_ip}" -j ACCEPT; then
-        log "$_sn" "Pinhole added: VPN-SERVER -> ${r_ip} (eth0)"
+    if run4 -A VPN-SERVER -o "$wan_if" -d "${r_ip}" -j ACCEPT; then
+        log "$_sn" "Pinhole added: VPN-SERVER -> ${r_ip} (${wan_if})"
     fi
 
     # Swap the interface. This down/up is the only window without a tunnel.
     log "$_sn" "Launching WireGuard..."
-    ip link show wg0 >/dev/null 2>&1 && wg-quick down wg0 || true
-    wg-quick up wg0
+    ip link show "$tun_if" >/dev/null 2>&1 && wg-quick down "$tun_if" || true
+    wg-quick up "$tun_if"
 
     # Configure DNS through the tunnel. Docker's embedded resolver (127.0.0.11)
     # is unreachable behind the kill switch, so resolv.conf is written directly

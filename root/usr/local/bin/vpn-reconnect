@@ -39,5 +39,5 @@ if is_vpn_connected; then
     exit 0
 fi
 
-log_error "$SCRIPT_NAME" "wg0 not present after reconnect"
+log_error "$SCRIPT_NAME" "${tun_if} not present after reconnect"
 exit 1
