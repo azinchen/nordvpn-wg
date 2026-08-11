@@ -290,9 +290,15 @@ if [ -n "$country" ]; then
             locations_count=$((locations_count + 1))
         fi
         if is_specific_server "$value"; then
-            servers="$servers$(handle_specific_server "$value")"
+            # `|| true` so an unknown/retired hostname doesn't kill the script
+            # under `set -e`; handle_specific_server already logs the failure
+            # and the loop continues with the remaining values.
+            servers="$servers$(handle_specific_server "$value" || true)"
         elif [ -n "$value" ]; then
-            countryid=$(getcountryid "$value")
+            # `|| true` so an unknown country (e.g. user passing a US state code)
+            # doesn't silently kill the script under `set -e`; the -z branch
+            # below logs the warning and the loop continues.
+            countryid=$(getcountryid "$value" || true)
             if [ -n "$countryid" ]; then
                 # Build curl parameters
                 curl_params="$tech_filter --data-urlencode filters[country_id]=$countryid"
@@ -327,8 +333,12 @@ if [ -n "$city" ]; then
             locations_count=$((locations_count + 1))
         fi
         if is_specific_server "$value"; then
-            servers="$servers$(handle_specific_server "$value")"
+            # `|| true` so an unknown/retired hostname doesn't kill the script
+            # under `set -e`; handle_specific_server already logs the failure
+            # and the loop continues with the remaining values.
+            servers="$servers$(handle_specific_server "$value" || true)"
         elif [ -n "$value" ]; then
+            # See COUNTRY loop above for the rationale behind `|| true`.
             cityid=$(getcityid "$value" || true)
             if [ -n "$cityid" ]; then
                 # Build curl parameters
