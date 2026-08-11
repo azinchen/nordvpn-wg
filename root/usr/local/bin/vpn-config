@@ -247,8 +247,13 @@ if [ -z "${TOKEN:-}" ]; then
 fi
 
 log "$SCRIPT_NAME" "Fetching WireGuard private key from NordVPN API using TOKEN"
-private_key="$(nord_api_curl "v1/users/services/credentials" -u "token:${TOKEN}" 2>/dev/null \
+# Pass the token via a 0600 curl config file, not -u on the command line,
+# so it never appears in /proc/*/cmdline or ps output
+curlcfg="$(mktemp /run/xt/curl-auth.XXXXXX)"
+printf 'user = "token:%s"\n' "$TOKEN" > "$curlcfg"
+private_key="$(nord_api_curl "v1/users/services/credentials" -K "$curlcfg" 2>/dev/null \
     | jq -r '.nordlynx_private_key // empty' 2>/dev/null || echo "")"
+rm -f "$curlcfg"
 
 if [ -z "$private_key" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: could not obtain WireGuard private key from NordVPN API (check TOKEN)"
