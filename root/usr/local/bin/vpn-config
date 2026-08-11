@@ -226,6 +226,7 @@ nord_api_curl()
 
     oldIFS="$IFS"; IFS=',;'; _rc=1
     for _ip in $nordvpnapi_ip; do
+        _ip="$(trim "$_ip")"
         [ -n "$_ip" ] || continue
 
         curl -sG --connect-timeout 10 --max-time 30 \
@@ -284,6 +285,7 @@ if [ -n "$country" ]; then
     # Convert semicolon/comma separated list to space separated
     oldIFS="$IFS"; IFS=',;'
     for value in $country; do
+        value="$(trim "$value")"
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
@@ -320,6 +322,7 @@ if [ -n "$city" ]; then
     # Convert semicolon/comma separated list to space separated
     oldIFS="$IFS"; IFS=',;'
     for value in $city; do
+        value="$(trim "$value")"
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
