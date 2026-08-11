@@ -45,9 +45,20 @@ trim() {
     printf '%s' "$_t"
 }
 
+# Best-effort by design: always returns 0 so plain call sites under `set -e`
+# never abort the caller. Use run4_check when the caller needs the real status.
 run4() {
     if ! ${IPT} "$@" 2>/dev/null; then
         log "BACKEND" "(IPv4) skipped: $*"
+    fi
+}
+
+# Like run4 but propagates the iptables exit status, for callers that branch
+# on whether the rule was actually added.
+run4_check() {
+    if ! ${IPT} "$@" 2>/dev/null; then
+        log "BACKEND" "(IPv4) skipped: $*"
+        return 1
     fi
 }
 
@@ -104,8 +115,10 @@ apply_wireguard_config() {
     # Refresh the uplink pinhole for the (possibly new) server. Flushing first
     # keeps the chain from accumulating stale server IPs across reconnects.
     run4 -F VPN-SERVER
-    if run4 -A VPN-SERVER -o "$wan_if" -d "${r_ip}" -j ACCEPT; then
+    if run4_check -A VPN-SERVER -o "$wan_if" -d "${r_ip}" -j ACCEPT; then
         log "$_sn" "Pinhole added: VPN-SERVER -> ${r_ip} (${wan_if})"
+    else
+        log_warning "$_sn" "Warning: failed to add firewall pinhole for ${r_ip} - connection to this server may be blocked"
     fi
 
     # Swap the interface. This down/up is the only window without a tunnel.
