@@ -7,7 +7,7 @@ A NordVPN **access token**. Pass it as `TOKEN` and the container reads your acco
 No. You need an access token generated from your Nord Account: [Nord Account Dashboard](https://my.nordaccount.com/) → NordVPN → Manual setup → generate an access token.
 
 **Q: Does the token expire? Is it stored?**
-The token is read at connect time to fetch your WireGuard key from the API; the key itself is never written to disk and is re-fetched on every (re)connect. The WireGuard key is persistent on your account, but the access token has the expiry you chose when generating it — keep it valid (or update `TOKEN` and restart) so reconnects keep working.
+The token is read at connect time to fetch your WireGuard key from the API; the key is written only to the container-private `/etc/wireguard/wg0.conf` (root-owned, mode 0600), removed when the service stops, and re-fetched on every (re)connect — it is never logged and never stored in the image or a volume. The WireGuard key is persistent on your account, but the access token has the expiry you chose when generating it — keep it valid (or update `TOKEN` and restart) so reconnects keep working.
 
 ## Features
 

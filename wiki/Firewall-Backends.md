@@ -33,7 +33,7 @@ When nft isn't usable and the legacy backend is selected:
 
 ## ALLOW_MISSING_IPTABLES_RULES
 
-Some NAS kernels (e.g. Synology DSM 4.4.x) cannot load the netfilter modules behind `wg-quick`'s anti-leak rules with **either** backend — typically `iptable_raw` and the `comment`/`addrtype`/`CONNMARK` extensions. On such hosts `iptables-restore` fails no matter what, `wg-quick` treats that as fatal, and the tunnel is rolled back:
+Some NAS kernels (e.g. Synology DSM hosts on kernel 4.4.x) cannot load the netfilter modules behind `wg-quick`'s anti-leak rules with **either** backend — typically `iptable_raw` and the `comment`/`addrtype`/`CONNMARK` extensions. On such hosts `iptables-restore` fails no matter what, `wg-quick` treats that as fatal, and the tunnel is rolled back:
 
 ```
 [#] iptables-restore -n

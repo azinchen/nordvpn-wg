@@ -151,7 +151,7 @@ Key log messages:
 | `[VPN-CONFIG] Selected server ...` | Selected VPN server |
 | `[SERVICE-NORDVPN] VPN connected successfully` | `wg0` came up (verify with a handshake) |
 | `[SERVICE-NORDVPN] VPN connection timeout` | Tunnel didn't establish in time |
-| `[HEALTHCHECK] Connection check failed` | Health check triggered reconnection |
+| `[VPN-HEALTHCHECK] All connection attempts failed, triggering VPN reconnection` | Health check triggered reconnection |
 
 ### Inspecting the Container
 
