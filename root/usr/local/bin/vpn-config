@@ -27,7 +27,6 @@ fail()
 
 log "$SCRIPT_NAME" "Starting VPN configuration"
 
-numericregex="^[0-9]+$"
 
 # Helper functions for pattern matching (sh-compatible)
 is_numeric()
@@ -271,26 +270,6 @@ handle_specific_server()
 
     log_error "$SCRIPT_NAME" "ERROR: Could not find server $hostname in NordVPN server list"
     return 1
-}
-
-nord_api_curl()
-{
-    _path="$1"
-    shift 2>/dev/null || true
-
-    oldIFS="$IFS"; IFS=',;'; _rc=1
-    for _ip in $nordvpnapi_ip; do
-        _ip="$(trim "$_ip")"
-        [ -n "$_ip" ] || continue
-
-        curl -sG --connect-timeout 10 --max-time 30 \
-             --resolve "api.nordvpn.com:443:${_ip}" \
-             "https://api.nordvpn.com/${_path}" "$@"
-        _rc=$?
-        [ $_rc -eq 0 ] && IFS="$oldIFS" && return 0
-    done
-    IFS="$oldIFS"
-    return $_rc
 }
 
 # ---- Resolve the WireGuard private key ----
