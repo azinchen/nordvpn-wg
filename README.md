@@ -162,7 +162,7 @@ Low‑level settings; the defaults work for most setups.
 | Variable | Details |
 |---|---|
 | **NORDVPNAPI<wbr>_IP** | API bootstrap IPs. Default: `104.16.208.203;104.19.159.190` |
-| **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect. Default: `false` |
+| **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect ([details][wiki-diagnostics]). Default: `false` |
 | **ALLOW<wbr>_MISSING<wbr>_IPTABLES<wbr>_RULES** | Tolerate failures applying wg-quick's anti-leak iptables rules — needed on hosts whose kernel lacks the required netfilter modules (e.g. Synology DSM), where the tunnel would otherwise be torn down. The container's own default-DROP kill switch stays active. See [Firewall Backends][wiki-firewall]. Default: `false` |
 
 ## Issues
@@ -208,6 +208,7 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [wiki-firewall]: https://github.com/azinchen/nordvpn-wg/wiki/Firewall-Backends
 [wiki-permissions]: https://github.com/azinchen/nordvpn-wg/wiki/Permissions
 [wiki-gateway]: https://github.com/azinchen/nordvpn-wg/wiki/VPN-Gateway-Mode
+[wiki-diagnostics]: https://github.com/azinchen/nordvpn-wg/wiki/Network-Diagnostics-Guide
 [wiki-compose]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Compose-Examples
 [wiki-run]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Run-Examples
 [wiki-troubleshoot]: https://github.com/azinchen/nordvpn-wg/wiki/Troubleshooting
