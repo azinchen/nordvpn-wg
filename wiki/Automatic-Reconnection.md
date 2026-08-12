@@ -17,6 +17,8 @@ Use `RECREATE_VPN_CRON` to periodically switch to a different server. This uses 
 
 When triggered, `vpn-reconnect` selects a new server and prepares the new config **while the current tunnel stays up** — the API calls and load sorting no longer count as downtime. Only then is the interface swapped, so the actual interruption is the `wg-quick` down/up itself (about 1–2 seconds). If server selection fails (for example the API is unreachable), the existing connection is kept untouched.
 
+Concurrent reconnections are serialized with a lock: if a scheduled rotation, a health-check reconnect and/or a manual `docker exec vpn vpn-reconnect` overlap, the second run logs `Another reconnection (pid N) is already in progress - skipping` and exits — they never race on the config or the interface swap.
+
 ### Making rotation effective
 
 Server selection always takes the top of the filtered pool (NordVPN's recommended order for a single location, load-sorted for multiple locations). Without further settings a scheduled rotation can therefore re-select the very server you are already on. Set `RANDOM_TOP` so rotation actually lands somewhere new:
@@ -53,7 +55,7 @@ Use the `CHECK_CONNECTION_*` variables for active health probing:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CHECK_CONNECTION_CRON` | Disabled | Cron schedule for health checks |
-| `CHECK_CONNECTION_URL` | `https://www.google.com` | URLs to probe (semicolon-separated) |
+| `CHECK_CONNECTION_URL` | `https://www.google.com` | URLs to probe (`;`- or `,`-separated, whitespace ignored) |
 | `CHECK_CONNECTION_ATTEMPTS` | `5` | Number of retry attempts |
 | `CHECK_CONNECTION_ATTEMPT_INTERVAL` | `10` | Seconds between retries |
 

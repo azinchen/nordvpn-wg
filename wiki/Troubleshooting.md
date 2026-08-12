@@ -52,6 +52,14 @@ See [Automatic Reconnection](Automatic-Reconnection#connection-health-monitoring
 
 Docker subnets are **not** auto-allowed. If inter-container communication is needed, include Docker's subnet too.
 
+### Only some NETWORK subnets are reachable
+
+**Symptoms:** With multiple CIDRs in `NETWORK` (or `FORWARD_FROM`), only the first one works; `docker exec vpn ip route` is missing routes for the others.
+
+**Cause:** Older releases did not trim whitespace in list values, so `NETWORK="10.10.0.0/16; 10.20.0.0/16"` (note the space after `;`) silently skipped every value after the first separator. Current images ignore whitespace around separators and log a warning when a route cannot be added.
+
+**Fix:** Update to the latest image, or remove the spaces after `;`/`,`.
+
 ### Torrent client stalled despite a healthy swarm
 
 **Symptoms:** qBittorrent (or another libtorrent-based client) running with `network_mode: "service:vpn"` shows torrents as **stalled** with 0 peers, while the swarm has plenty of seeds. Ordinary outbound traffic from the namespace (e.g. `curl`) works fine.
@@ -116,6 +124,8 @@ Pass the `net.ipv4.conf.all.src_valid_mark=1` sysctl (or run `privileged: true`)
 2. **Logs:** Look for `[INIT-SETUPCRON]` lines at startup — they show the parsed schedule in human-readable format.
 3. **Crontab:** `docker exec vpn cat /var/spool/cron/crontabs/root`
 
+Note: invalid `CHECK_CONNECTION_ATTEMPTS` / `CHECK_CONNECTION_ATTEMPT_INTERVAL` values (non-numeric or zero) are rejected at startup — `init-setupcron` logs an ERROR naming the variable and the container does not come up, rather than running with a broken health check.
+
 ## Diagnostics
 
 ### Built-in Network Diagnostics
@@ -156,6 +166,7 @@ Key log messages:
 ### Inspecting the Container
 
 ```bash
+docker exec vpn cat /run/xt/status.json      # selected server (name, hostname, ip, country, city, load)
 docker exec vpn wg show wg0                  # WireGuard peer/handshake/transfer
 docker exec vpn ip route                     # view routing table
 docker exec vpn iptables -S                   # check iptables rules

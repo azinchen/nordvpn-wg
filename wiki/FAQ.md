@@ -18,7 +18,7 @@ NordLynx (NordVPN's WireGuard implementation), exclusively. OpenVPN, IKEv2, SOCK
 No. NordVPN does not support inbound port forwarding. You can only access services from your LAN by publishing ports on the VPN container and setting `NETWORK` to include your LAN CIDR.
 
 **Q: How do I know which server I'm connected to?**
-Check the container logs: `docker logs vpn | grep "Selected server"`. Or run the network diagnostic: `docker exec vpn /usr/local/bin/network-diagnostic --basic`.
+Read the status file: `docker exec vpn cat /run/xt/status.json` — machine-readable JSON with the selected server's name, hostname, IP, country, city and load. Or check the container logs (`docker logs vpn | grep "Selected server"`) or run the network diagnostic: `docker exec vpn /usr/local/bin/network-diagnostic --basic`.
 
 **Q: Can I connect to a specific server?**
 Yes. Use the server hostname in `COUNTRY` or `CITY`: `-e COUNTRY=es1234` or `-e CITY=uk2567`. Specific servers get priority with `load=0`.
