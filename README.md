@@ -20,19 +20,19 @@ WireGuard (NordLynx) client docker container that routes other containers' traff
 
 ## ✨ Key Features
 
-- **🚀 Easy Setup** — Route any container's traffic through VPN with `--net=container:vpn`
-- **⚡ NordLynx (WireGuard)** — Fast, modern tunnel using NordVPN's WireGuard implementation
-- **🔑 Token-Based Setup** — Provide a NordVPN access token; the key is fetched automatically ([details][wiki-token])
-- **🌍 Smart Server Selection** — Auto-select servers by country, city, group, or specific hostname ([details][wiki-server])
-- **⚖️ Load Balancing** — Intelligent sorting by server load when multiple locations specified
-- **🔄 Auto-Reconnection** — Periodic server switching and health monitoring ([details][wiki-reconnect])
-- **🛡️ Kill Switch** — Default-deny firewall blocks all traffic when VPN is down ([details][wiki-security])
-- **🏠 Local/LAN Access** — Allow specific CIDRs with `NETWORK=...` ([details][wiki-network])
-- **🧭 Custom DNS** — Resolve through the tunnel; override with `DNS=...` ([details][wiki-dns])
-- **📵 IPv6 Firewall** — Built-in chains default to DROP ([details][wiki-ipv6])
-- **🧱 iptables Compatibility** — Auto-selects nft or legacy backend ([details][wiki-firewall])
-- **🧬 Userspace Fallback** — Automatic `wireguard-go` fallback on kernels without the WireGuard module ([details][wiki-permissions])
-- **🚪 VPN Gateway Mode** — Route downstream subnets through the tunnel with `FORWARD_FROM` ([details][wiki-gateway])
+- **🚀 Easy Setup** — Route any container through the VPN with `--net=container:vpn`
+- **⚡ NordLynx (WireGuard)** — Fast, modern tunnel to NordVPN's WireGuard servers
+- **🔑 Token-Based Setup** — One access token; the key is fetched for you ([details][wiki-token])
+- **🌍 Smart Server Selection** — Filter by country, city, group, or hostname ([details][wiki-server])
+- **⚖️ Load Balancing** — Prefers the least-loaded servers across locations
+- **🔄 Auto-Reconnection** — Scheduled server rotation and health checks ([details][wiki-reconnect])
+- **🛡️ Kill Switch** — Default-deny firewall: no VPN, no traffic ([details][wiki-security])
+- **🏠 Local/LAN Access** — Open specific CIDRs with `NETWORK` ([details][wiki-network])
+- **🧭 Custom DNS** — Tunnel DNS by default; override with `DNS` ([details][wiki-dns])
+- **📵 IPv6 Firewall** — IPv6 chains default to DROP ([details][wiki-ipv6])
+- **🧱 iptables Compatibility** — Auto-selects the nft or legacy backend ([details][wiki-firewall])
+- **🧬 Userspace Fallback** — `wireguard-go` when the kernel lacks WireGuard ([details][wiki-permissions])
+- **🚪 VPN Gateway Mode** — Route downstream subnets via `FORWARD_FROM` ([details][wiki-gateway])
 
 > **📖 [Full documentation on the Wiki][wiki-home]** — configuration guides, examples, troubleshooting, FAQ, and architecture.
 
