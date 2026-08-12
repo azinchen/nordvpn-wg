@@ -43,23 +43,15 @@ jobs:
           - name: "CITIES"
             path: "wiki/Cities-List.md"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: '[.[] | . as $parent | .cities[] | . as $city | {country: $parent.name, code: $parent.code, cid: $parent.id, city: ($city.name + (if ($virtual | index($city.id)) then " *" else "" end)), cityid: $city.id, lat: $city.latitude, lon: $city.longitude}] | sort_by(.country, .city) | .[] | "\(.country) | \(.code) | \(.cid) | \(.city) | \(.cityid) | [\(.lat),\(.lon)](https://www.google.com/maps?q=\(.lat),\(.lon))"'
-            header: "Country | Code | ID | City | ID | Map"
           - name: "COUNTRIES"
             path: "wiki/Countries-List.md"
             url: "https://api.nordvpn.com/v1/servers/countries"
-            jq_filter: 'sort_by(.name) | .[] | . as $c | "\($c.name)\(if ($virtual | index($c.id)) then " **" elif ($partial | index($c.id)) then " *" else "" end) | \($c.code) | \($c.id)"'
-            header: "Country | Code | ID"
           - name: "TECHNOLOGIES"
             path: "wiki/Technologies-List.md"
             url: "https://api.nordvpn.com/v1/technologies"
-            jq_filter: '.[] | [.name, .identifier, .id] | "\(.[0]) | \(.[1]) | \(.[2])"'
-            header: "Technology | Identifier | ID"
           - name: "GROUPS"
             path: "wiki/Groups-List.md"
             url: "https://api.nordvpn.com/v1/servers/groups"
-            jq_filter: '.[] | [.title, .identifier, .id] | "\(.[0]) | \(.[1]) | \(.[2])"'
-            header: "Group | Identifier | ID"
     
     steps:
       - name: Checkout
@@ -69,38 +61,123 @@ jobs:
         id: update-file
         shell: bash
         run: |
-          # Build the table body. CITIES and COUNTRIES additionally mark virtual
-          # locations (servers NordVPN advertises but whose physical hardware is
-          # hosted elsewhere) and get an explanatory legend at the top. The virtual
-          # flag lives on the /v1/servers endpoint (specifications ->
-          # virtual_location), not on /v1/servers/countries.
-          LEGEND=""
-          if [ "${{ matrix.file.name }}" == "CITIES" ]; then
-            LEGEND=$'> Cities marked with `*` are virtual locations: NordVPN advertises a server at this location but its physical hardware is hosted elsewhere.\n\n'
-            # limit=0 returns the full server list (no cap); omitting limit defaults to only 100.
-            VIRTUAL_IDS=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
-              | jq -c '[.[] | select(any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true")) | .locations[0].country.city.id] | unique')
-            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" '${{ matrix.file.jq_filter }}')
-          elif [ "${{ matrix.file.name }}" == "COUNTRIES" ]; then
-            LEGEND=$'> Countries marked with `**` host only virtual servers (advertised by NordVPN at this location but whose physical hardware is hosted elsewhere); countries marked with `*` host a mix of virtual and physical servers. Unmarked countries host only physical servers.\n\n'
-            # limit=0 returns the full server list (no cap); omitting limit defaults to only 100.
-            # Classify each country by whether all, some, or none of its servers are virtual.
-            CLASSIFY=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
-              | jq -c '[.[] | {cid: .locations[0].country.id, v: (any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true"))}] | group_by(.cid) | map({cid: .[0].cid, total: length, virt: (map(select(.v)) | length)}) | {virtual_only: ([.[] | select(.virt==.total) | .cid] | unique), partial: ([.[] | select(.virt>0 and .virt<.total) | .cid] | unique)}')
-            VIRTUAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.virtual_only // []')
-            PARTIAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.partial // []')
-            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" --argjson partial "${PARTIAL_IDS:-[]}" '${{ matrix.file.jq_filter }}')
-          else
-            BODY=$(curl -s "${{ matrix.file.url }}" | jq -r '${{ matrix.file.jq_filter }}')
+          FOOTER="_Generated from the NordVPN API; this page reflects the server lists baked into the latest released image._"
+
+          case "${{ matrix.file.name }}" in
+            COUNTRIES)
+              COUNTRIES_JSON=$(curl -s "https://api.nordvpn.com/v1/servers/countries")
+              CLASSIFY=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
+                | jq -c '[.[] | {cid: .locations[0].country.id, v: (any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true"))}] | group_by(.cid) | map({cid: .[0].cid, total: length, virt: (map(select(.v)) | length)}) | {virtual_only: ([.[] | select(.virt==.total) | .cid] | unique), partial: ([.[] | select(.virt>0 and .virt<.total) | .cid] | unique)}')
+              VIRTUAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.virtual_only // []')
+              PARTIAL_IDS=$(echo "${CLASSIFY:-{\}}" | jq -c '.partial // []')
+              BODY=$(echo "$COUNTRIES_JSON" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" --argjson partial "${PARTIAL_IDS:-[]}" 'sort_by(.name) | .[] | . as $c | "| \($c.code | explode | map(. + 127397) | implode) | \($c.name) | \($c.code) | \($c.id) | \(if ($virtual | index($c.id)) then "🌐 Virtual" elif ($partial | index($c.id)) then "⚡ Mixed" else "✅ Physical" end) |"')
+              TOTAL=$(echo "$COUNTRIES_JSON" | jq 'length')
+              VCNT=$(echo "$COUNTRIES_JSON" | jq --argjson v "${VIRTUAL_IDS:-[]}" '[.[] | select(.id as $i | $v | index($i))] | length')
+              PCNT=$(echo "$COUNTRIES_JSON" | jq --argjson p "${PARTIAL_IDS:-[]}" '[.[] | select(.id as $i | $p | index($i))] | length')
+              STATS="${TOTAL} countries ($((TOTAL - VCNT - PCNT)) physical, ${PCNT} mixed, ${VCNT} virtual-only)"
+              INTRO='Values for the `COUNTRY` variable — name, code, or ID all work: `-e COUNTRY="United States;CA;228"`'
+              NOTE='> 🌐 **Virtual**: NordVPN advertises servers at this location but the physical hardware is hosted elsewhere · ⚡ **Mixed**: both physical and virtual servers.'
+              HEADER='| Flag | Country | Code | ID | Servers |'
+              LINKS='See [Server Selection](Server-Selection) · [Cities List](Cities-List) · [Groups List](Groups-List) · [Technologies List](Technologies-List)'
+              ;;
+            CITIES)
+              COUNTRIES_JSON=$(curl -s "https://api.nordvpn.com/v1/servers/countries")
+              VIRTUAL_IDS=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" \
+                | jq -c '[.[] | select(any(.specifications[]?; .identifier=="virtual_location" and .values[0].value=="true")) | .locations[0].country.city.id] | unique')
+              BODY=$(echo "$COUNTRIES_JSON" | jq -r --argjson virtual "${VIRTUAL_IDS:-[]}" '[.[] | . as $parent | .cities[] | . as $city | {flag: ($parent.code | explode | map(. + 127397) | implode), country: $parent.name, code: $parent.code, city: $city.name, cityid: $city.id, virt: (if ($virtual | index($city.id)) then "🌐 Virtual" else "✅ Physical" end), lat: ($city.latitude + 0), lon: ($city.longitude + 0)}] | sort_by(.country, .city) | .[] | "| \(.flag) | \(.country) | \(.code) | \(.city) | \(.cityid) | \(.virt) | [📍](https://www.google.com/maps?q=\(.lat),\(.lon)) |"')
+              TOTAL=$(echo "$COUNTRIES_JSON" | jq '[.[].cities[]] | length')
+              CCNT=$(echo "$COUNTRIES_JSON" | jq 'length')
+              STATS="${TOTAL} cities in ${CCNT} countries"
+              INTRO='Values for the `CITY` variable — name or ID: `-e CITY="Amsterdam;8971718"`'
+              NOTE='> 🌐 **Virtual**: NordVPN advertises servers at this location but the physical hardware is hosted elsewhere.'
+              HEADER='| Flag | Country | Code | City | City ID | Servers | Map |'
+              LINKS='See [Server Selection](Server-Selection) · [Countries List](Countries-List) · [Groups List](Groups-List) · [Technologies List](Technologies-List)'
+              ;;
+            TECHNOLOGIES)
+              TECH_JSON=$(curl -s "https://api.nordvpn.com/v1/technologies")
+              ACTIVE=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" | jq -c '[.[].technologies[].identifier] | unique')
+              SUPP_BODY=$(echo "$TECH_JSON" | jq -r --argjson active "${ACTIVE:-[]}" '.[] | select(.identifier as $i | ($i == "wireguard_udp") and ($active | index($i))) | "| \(.name) | \(.identifier) | \(.id) |"')
+              OTHER_BODY=$(echo "$TECH_JSON" | jq -r --argjson active "${ACTIVE:-[]}" '.[] | select(.identifier as $i | (($i == "wireguard_udp") and ($active | index($i))) | not) | "| \(.name) | \(.identifier) | \(.id) | \(if (.identifier == "wireguard_udp") then "no servers in the fleet" else "non-WireGuard" end) |"')
+              TOTAL=$(echo "$TECH_JSON" | jq 'length')
+              SUPP=$(echo "$TECH_JSON" | jq --argjson active "${ACTIVE:-[]}" '[.[] | select(.identifier as $i | ($i == "wireguard_udp") and ($active | index($i)))] | length')
+              STATS="${TOTAL} technologies (${SUPP} used by this image)"
+              PAGE_BODY="NordVPN technology reference. This image is WireGuard-only: it always connects with NordLynx and has no \`TECHNOLOGY\` variable.
+
+          ## Used by this image
+
+          | Technology | Identifier | ID |
+          |------------|------------|----|
+          ${SUPP_BODY}
+
+          ## Other technologies
+
+          Not usable with this image — for OpenVPN (including XOR obfuscation) see the sibling [nordvpn](https://github.com/azinchen/nordvpn) project.
+
+          <details>
+          <summary>Show all ($((TOTAL - SUPP)))</summary>
+
+          | Technology | Identifier | ID | Why not |
+          |------------|------------|----|---------|
+          ${OTHER_BODY}
+
+          </details>"
+              LINKS='See [Server Selection](Server-Selection) · [Countries List](Countries-List) · [Cities List](Cities-List) · [Groups List](Groups-List)'
+              ;;
+            GROUPS)
+              GROUPS_JSON=$(curl -s "https://api.nordvpn.com/v1/servers/groups")
+              ACTIVE=$(curl -s "https://api.nordvpn.com/v1/servers?limit=0" | jq -c '[.[].groups[].id] | unique')
+              CAT_BODY=$(echo "$GROUPS_JSON" | jq -r --argjson act "${ACTIVE:-[]}" '.[] | select(.type.identifier=="legacy_group_category") | .id as $i | "| \(.title) | \(.identifier) | \($i) | \(if ($act | index($i)) then "✅" else "—" end) |"')
+              REG_BODY=$(echo "$GROUPS_JSON" | jq -r --argjson act "${ACTIVE:-[]}" '.[] | select(.type.identifier=="regions") | .id as $i | "| \(.title) | \(.identifier) | \($i) | \(if ($act | index($i)) then "✅" else "—" end) |"')
+              TOTAL=$(echo "$GROUPS_JSON" | jq 'length')
+              WITH=$(echo "$GROUPS_JSON" | jq --argjson act "${ACTIVE:-[]}" '[.[] | select(.id as $i | $act | index($i))] | length')
+              STATS="${TOTAL} groups (${WITH} with servers)"
+              PAGE_BODY="Values for the \`GROUP\` variable — title, identifier, or ID: \`-e GROUP=\"P2P\"\`
+
+          > ✅ = the group currently has servers in the fleet · — = no servers (internal or retired groups).
+
+          ## Server categories
+
+          > Obfuscated (XOR) groups are OpenVPN-only and cannot be used with this WireGuard image; Dedicated IP requires \`GROUP=legacy_dedicated_ip\`. See [Server Groups](Server-Groups).
+
+          | Group | Identifier | ID | Servers |
+          |-------|------------|----|---------|
+          ${CAT_BODY}
+
+          ## Regions
+
+          | Group | Identifier | ID | Servers |
+          |-------|------------|----|---------|
+          ${REG_BODY}"
+              LINKS='See [Server Groups](Server-Groups) · [Countries List](Countries-List) · [Cities List](Cities-List) · [Technologies List](Technologies-List)'
+              ;;
+            *)
+              echo "unknown page: $NAME" >&2; exit 1 ;;
+          esac
+
+          # Single-table pages assemble the standard layout; sectioned pages
+          # (GROUPS, TECHNOLOGIES) build PAGE_BODY themselves in their case branch
+          if [ -z "${PAGE_BODY:-}" ]; then
+              SEP=$(echo "$HEADER" | sed 's/[^|]/-/g')
+              PAGE_BODY="${INTRO}
+
+          ${NOTE}
+
+          ${HEADER}
+          ${SEP}
+          ${BODY}"
           fi
 
-          # Generate new content without timestamp. No H1: the wiki page title
-          # comes from the filename.
-          NEW_CONTENT="${LEGEND}${{ matrix.file.header }}
-          $(echo "${{ matrix.file.header }}" | sed 's/[^|]/-/g')
-          ${BODY}"
-          
-          # Check if file exists and extract existing content without timestamp
+          # Everything below the timestamp/stats line; used for change detection
+          NEW_CONTENT="${PAGE_BODY}
+
+          ---
+          ${FOOTER}
+
+          ${LINKS}"
+
+
+          # Check if file exists and extract existing content without the
+          # timestamp/stats line
           if [ -f "${{ matrix.file.path }}" ]; then
             FIRST_LINE=$(head -1 "${{ matrix.file.path }}")
             if [[ $FIRST_LINE == "_Last updated:"* ]]; then
@@ -114,7 +191,7 @@ jobs:
           
           # Update file if content changed or force update is enabled
           if [ "${{ github.event.inputs.force_update }}" == "true" ] || [ "$NEW_CONTENT" != "$EXISTING_CONTENT" ]; then
-            echo "_Last updated: $(date +%Y-%m-%d). Generated from the NordVPN API; this page reflects the server lists baked into the latest released image._" > "${{ matrix.file.path }}"
+            echo "_Last updated: $(date +%Y-%m-%d) · ${STATS}_" > "${{ matrix.file.path }}"
             echo "" >> "${{ matrix.file.path }}"
             echo "$NEW_CONTENT" >> "${{ matrix.file.path }}"
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -132,8 +209,8 @@ jobs:
         shell: bash
         run: |
           # Get added and removed lines
-          ADDED=$(git diff --no-color ${{ matrix.file.path }} | grep -E '^\+' | grep -vE '^(\+\+\+|\+_Last updated:|\+---|\+$|\+Country \||\+Technology \||\+Group \|)' | sed 's/^+//' || true)
-          REMOVED=$(git diff --no-color ${{ matrix.file.path }} | grep -E '^-' | grep -vE '^(---|\-_Last updated:|\----|\-$|\-Country \||\-Technology \||\-Group \|)' | sed 's/^-//' || true)
+          ADDED=$(git diff --no-color ${{ matrix.file.path }} | grep -E '^\+' | grep -vE '^(\+\+\+|\+_Last updated:|\+---|\+\|-|\+$|\+\| Flag \||\+\| Technology \||\+\| Group \|)' | sed 's/^+//' || true)
+          REMOVED=$(git diff --no-color ${{ matrix.file.path }} | grep -E '^-' | grep -vE '^(---|\-_Last updated:|\----|\-\|-|\-$|\-\| Flag \||\-\| Technology \||\-\| Group \|)' | sed 's/^-//' || true)
           
           # Count changes properly (handle empty strings)
           [ -n "$ADDED" ] && ADDED_COUNT=$(echo "$ADDED" | wc -l | tr -d ' ') || ADDED_COUNT=0
