@@ -102,6 +102,8 @@ services:
 
 ## Environment Variables
 
+> **List values** (countries, cities, CIDRs, URLs, IPs) accept `;` or `,` as separators; whitespace around separators is ignored.
+
 ### Credentials
 
 NordVPN **access token** — see [Getting a Token](#getting-a-token) above.
@@ -116,8 +118,8 @@ Pick which servers to connect to; filters combine to narrow the pool. See [Serve
 
 | Variable | Details |
 |---|---|
-| **COUNTRY** | Filter by countries: names, codes, IDs, or server hostnames ([list][nordvpn-countries]). Semicolon‑separated. |
-| **CITY** | Filter by cities: names, IDs, or server hostnames ([list][nordvpn-cities]). Semicolon‑separated. |
+| **COUNTRY** | Filter by countries: names, codes, IDs, or server hostnames ([list][nordvpn-countries]). |
+| **CITY** | Filter by cities: names, IDs, or server hostnames ([list][nordvpn-cities]). |
 | **GROUP** | Filter by server group ([list][nordvpn-groups]). |
 | **RANDOM_TOP** | Randomize top N servers. Default: `0` |
 
@@ -127,7 +129,7 @@ DNS resolution through the tunnel. See [Custom DNS][wiki-dns].
 
 | Variable | Details |
 |---|---|
-| **DNS** | DNS servers written to `resolv.conf` (resolution goes through the tunnel); semicolon‑ or comma‑separated. Default: `103.86.96.100;103.86.99.100` |
+| **DNS** | DNS servers written to `resolv.conf` (resolution goes through the tunnel). Default: `103.86.96.100;103.86.99.100` |
 
 ### Reconnection & Health Monitoring
 
@@ -137,7 +139,7 @@ Rotate servers on a schedule and verify the tunnel actually works. See [Automati
 |---|---|
 | **RECREATE<wbr>_VPN<wbr>_CRON** | Server switching schedule (cron). Default: disabled |
 | **CHECK<wbr>_CONNECTION<wbr>_CRON** | Health monitoring schedule (cron). Default: disabled |
-| **CHECK<wbr>_CONNECTION<wbr>_URL** | URLs to test connectivity; semicolon‑separated. Default: `https://www.google.com` |
+| **CHECK<wbr>_CONNECTION<wbr>_URL** | URLs to test connectivity. Default: `https://www.google.com` |
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPTS** | Connection test retry count. Default: `5` |
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPT<wbr>_INTERVAL** | Seconds between retries. Default: `10` |
 | **HEALTHCHECK<wbr>_ENABLED** | Enable the Docker `HEALTHCHECK` probe (checks `wg0` + connectivity via `CHECK_CONNECTION_URL`). When `false`, the container always reports healthy. Default: `false` |
@@ -148,8 +150,8 @@ Open the kill‑switch firewall for LAN access and downstream routing. See [Loca
 
 | Variable | Details |
 |---|---|
-| **NETWORK** | LAN/inter‑container CIDRs to allow; semicolon‑separated. Default: none |
-| **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Traffic must arrive already SNATed into these nets. Semicolon‑separated. Default: none |
+| **NETWORK** | LAN/inter‑container CIDRs to allow. Default: none |
+| **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Traffic must arrive already SNATed into these nets. Default: none |
 | **GATEWAY<wbr>_DNS** | DNS interception for `FORWARD_FROM` clients: `redirect` (DNAT port 53 to the VPN resolvers from `DNS`, through the tunnel), `local` (DNAT port 53 to this container, for a co‑located resolver such as AdGuard Home), `forward` (DNAT port 53 to `GATEWAY_DNS_SERVER`, reached directly over the uplink — **not** through the tunnel), `off`. Default: `off` |
 | **GATEWAY<wbr>_DNS<wbr>_SERVER** | External IPv4 resolver(s) for `GATEWAY_DNS=forward` (e.g. an AdGuard Home on your LAN). With a list, the first resolver answering a DNS probe at startup is used. Default: none |
 
@@ -159,7 +161,7 @@ Low‑level settings; the defaults work for most setups.
 
 | Variable | Details |
 |---|---|
-| **NORDVPNAPI<wbr>_IP** | API bootstrap IPs (semicolon‑separated). Default: `104.16.208.203;104.19.159.190` |
+| **NORDVPNAPI<wbr>_IP** | API bootstrap IPs. Default: `104.16.208.203;104.19.159.190` |
 | **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect. Default: `false` |
 | **ALLOW<wbr>_MISSING<wbr>_IPTABLES<wbr>_RULES** | Tolerate failures applying wg-quick's anti-leak iptables rules — needed on hosts whose kernel lacks the required netfilter modules (e.g. Synology DSM), where the tunnel would otherwise be torn down. The container's own default-DROP kill switch stays active. See [Firewall Backends][wiki-firewall]. Default: `false` |
 
