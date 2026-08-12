@@ -37,3 +37,12 @@ If you're new, start with the [README](https://github.com/azinchen/nordvpn-wg#re
 - **[FAQ](FAQ)** — Frequently asked questions
 - **[Supported Platforms](Supported-Platforms)** — Available architectures and Raspberry Pi notes
 - **[Architecture and Internals](Architecture-and-Internals)** — How the s6-overlay stages, scripts, and firewall work under the hood
+
+### Server Lists
+
+Auto-generated from the NordVPN API; these pages reflect the lists baked into the latest released image.
+
+- **[Countries List](Countries-List)** — country names, codes, and IDs for `COUNTRY`
+- **[Cities List](Cities-List)** — city names and IDs for `CITY`
+- **[Groups List](Groups-List)** — server group titles and identifiers for `GROUP`
+- **[Technologies List](Technologies-List)** — NordVPN technology reference (this image always uses NordLynx/WireGuard)
