@@ -226,6 +226,7 @@ nord_api_curl()
 
     oldIFS="$IFS"; IFS=',;'; _rc=1
     for _ip in $nordvpnapi_ip; do
+        _ip="$(trim "$_ip")"
         [ -n "$_ip" ] || continue
 
         curl -sG --connect-timeout 10 --max-time 30 \
@@ -246,8 +247,13 @@ if [ -z "${TOKEN:-}" ]; then
 fi
 
 log "$SCRIPT_NAME" "Fetching WireGuard private key from NordVPN API using TOKEN"
-private_key="$(nord_api_curl "v1/users/services/credentials" -u "token:${TOKEN}" 2>/dev/null \
+# Pass the token via a 0600 curl config file, not -u on the command line,
+# so it never appears in /proc/*/cmdline or ps output
+curlcfg="$(mktemp /run/xt/curl-auth.XXXXXX)"
+printf 'user = "token:%s"\n' "$TOKEN" > "$curlcfg"
+private_key="$(nord_api_curl "v1/users/services/credentials" -K "$curlcfg" 2>/dev/null \
     | jq -r '.nordlynx_private_key // empty' 2>/dev/null || echo "")"
+rm -f "$curlcfg"
 
 if [ -z "$private_key" ]; then
     log_error "$SCRIPT_NAME" "CRITICAL: could not obtain WireGuard private key from NordVPN API (check TOKEN)"
@@ -284,13 +290,20 @@ if [ -n "$country" ]; then
     # Convert semicolon/comma separated list to space separated
     oldIFS="$IFS"; IFS=',;'
     for value in $country; do
+        value="$(trim "$value")"
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
         if is_specific_server "$value"; then
-            servers="$servers$(handle_specific_server "$value")"
+            # `|| true` so an unknown/retired hostname doesn't kill the script
+            # under `set -e`; handle_specific_server already logs the failure
+            # and the loop continues with the remaining values.
+            servers="$servers$(handle_specific_server "$value" || true)"
         elif [ -n "$value" ]; then
-            countryid=$(getcountryid "$value")
+            # `|| true` so an unknown country (e.g. user passing a US state code)
+            # doesn't silently kill the script under `set -e`; the -z branch
+            # below logs the warning and the loop continues.
+            countryid=$(getcountryid "$value" || true)
             if [ -n "$countryid" ]; then
                 # Build curl parameters
                 curl_params="$tech_filter --data-urlencode filters[country_id]=$countryid"
@@ -320,12 +333,17 @@ if [ -n "$city" ]; then
     # Convert semicolon/comma separated list to space separated
     oldIFS="$IFS"; IFS=',;'
     for value in $city; do
+        value="$(trim "$value")"
         if [ -n "$value" ]; then
             locations_count=$((locations_count + 1))
         fi
         if is_specific_server "$value"; then
-            servers="$servers$(handle_specific_server "$value")"
+            # `|| true` so an unknown/retired hostname doesn't kill the script
+            # under `set -e`; handle_specific_server already logs the failure
+            # and the loop continues with the remaining values.
+            servers="$servers$(handle_specific_server "$value" || true)"
         elif [ -n "$value" ]; then
+            # See COUNTRY loop above for the rationale behind `|| true`.
             cityid=$(getcityid "$value" || true)
             if [ -n "$cityid" ]; then
                 # Build curl parameters
