@@ -1,8 +1,13 @@
 #!/bin/sh
 # shellcheck shell=sh
 
-# Reuse backend selected by entrypoint
+# Reuse backend selected by entrypoint. Default the backends afterwards so
+# scripts running under `set -u` fail with a clear log line instead of an
+# "IPT: parameter not set" abort when backend.env is missing (e.g. a manual
+# docker exec after /run was cleared).
 [ -r /run/xt/backend.env ] && . /run/xt/backend.env
+IPT="${IPT:-iptables}"
+IP6T="${IP6T:-}"
 
 # Create lowercase copies of environment variables
 to_bool() { case "${1:-}" in true|1) echo "true" ;; *) echo "false" ;; esac; }
@@ -122,9 +127,15 @@ apply_wireguard_config() {
     fi
 
     # Swap the interface. This down/up is the only window without a tunnel.
+    # The explicit failure check matters: callers invoke this function in a
+    # conditional context (if/||), which disables `set -e` inside it, so a
+    # failed wg-quick would otherwise fall through and return success.
     log "$_sn" "Launching WireGuard..."
     ip link show "$tun_if" >/dev/null 2>&1 && wg-quick down "$tun_if" || true
-    wg-quick up "$tun_if"
+    if ! wg-quick up "$tun_if"; then
+        log_error "$_sn" "CRITICAL: wg-quick up $tun_if failed"
+        return 1
+    fi
 
     # Configure DNS through the tunnel. Docker's embedded resolver (127.0.0.11)
     # is unreachable behind the kill switch, so resolv.conf is written directly

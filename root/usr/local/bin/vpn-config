@@ -41,14 +41,33 @@ is_numeric()
 is_specific_server()
 {
     case "$1" in
-        [a-zA-Z][a-zA-Z][0-9]*)
-            # Check if it's exactly 2 letters followed by numbers
-            prefix=$(echo "$1" | cut -c1-2)
-            suffix=$(echo "$1" | cut -c3-)
-            case "$prefix" in
-                [a-zA-Z][a-zA-Z]) ;;
-                *) return 1 ;;
+        # SOCKS pattern: socks-xx{num} (e.g., socks-nl1, socks-se8)
+        socks-[a-zA-Z][a-zA-Z][0-9]*)
+            suffix=$(echo "$1" | sed 's/^socks-[a-zA-Z][a-zA-Z]//')
+            case "$suffix" in
+                ''|*[!0-9]*) return 1 ;;
+                *) return 0 ;;
             esac
+            ;;
+        # Onion pattern: xx-onion{num} (e.g., nl-onion6, ch-onion2)
+        [a-zA-Z][a-zA-Z]-onion[0-9]*)
+            suffix=$(echo "$1" | sed 's/^[a-zA-Z][a-zA-Z]-onion//')
+            case "$suffix" in
+                ''|*[!0-9]*) return 1 ;;
+                *) return 0 ;;
+            esac
+            ;;
+        # Cross-country pattern: xx-yy{num} (e.g., ca-us100, uk-fr17)
+        [a-zA-Z][a-zA-Z]-[a-zA-Z][a-zA-Z][0-9]*)
+            suffix=$(echo "$1" | sed 's/^[a-zA-Z][a-zA-Z]-[a-zA-Z][a-zA-Z]//')
+            case "$suffix" in
+                ''|*[!0-9]*) return 1 ;;
+                *) return 0 ;;
+            esac
+            ;;
+        # Standard pattern: xx{num} (e.g., us5063, uk1784)
+        [a-zA-Z][a-zA-Z][0-9]*)
+            suffix=$(echo "$1" | cut -c3-)
             case "$suffix" in
                 ''|*[!0-9]*) return 1 ;;
                 *) return 0 ;;
@@ -206,17 +225,52 @@ getgrouptitle()
 handle_specific_server()
 {
     value=$1
-    
-    # Convert to lowercase using tr instead of ${value,,}
+
     hostname="$(echo "$value" | tr '[:upper:]' '[:lower:]').nordvpn.com"
-    ip="$(host -t A "$hostname" | awk '{print $4}')"
-    # Extract country code (first 2 chars) and number part
-    country_code=$(echo "$value" | cut -c1-2)
-    country_num=$(echo "$value" | cut -c3-)
-    name="$(getcountryname "$country_code") #$country_num"
-    constructed_json=$(printf '{"name":"%s","hostname":"%s","load":0,"station":"%s"}' "$name" "$hostname" "$ip")
-    
-    printf '%s' "$constructed_json"
+
+    # The server is looked up via the NordVPN API (pinned IPs), never DNS:
+    # plain DNS is blocked by the default-deny firewall before the tunnel is
+    # up, and only the API response carries the WireGuard public key the
+    # [Peer] section needs.
+    # Note: all log calls use >&2 to avoid polluting stdout (captured by caller via $(...))
+
+    # Extract country code prefix from hostname pattern
+    case "$value" in
+        socks-*) cc=$(echo "$value" | cut -c7-8) ;;
+        *) cc=$(echo "$value" | cut -c1-2) ;;
+    esac
+    cc=$(echo "$cc" | tr '[:lower:]' '[:upper:]')
+
+    # Try to find country ID for optimized query (smaller response)
+    country_id=$(getcountryid "$cc" 2>/dev/null || echo "")
+
+    server_json=""
+    if [ -n "$country_id" ]; then
+        log "$SCRIPT_NAME" "Querying servers filtered by country code $cc (id=$country_id)" >&2
+        server_json=$(nord_api_curl "v1/servers" \
+            --data-urlencode "filters[country_id]=$country_id" \
+            --data-urlencode "limit=0" 2>/dev/null \
+            | jq -c --arg H "$hostname" '.[] | select(.hostname == $H)' 2>/dev/null \
+            | head -n 1 || echo "")
+    fi
+
+    # Fallback: query all servers if country code not found or country-filtered query didn't match
+    if [ -z "$server_json" ] || [ "$server_json" = "null" ]; then
+        log "$SCRIPT_NAME" "Querying all servers (country code $cc not matched or server not in country)" >&2
+        server_json=$(nord_api_curl "v1/servers" \
+            --data-urlencode "limit=0" 2>/dev/null \
+            | jq -c --arg H "$hostname" '.[] | select(.hostname == $H)' 2>/dev/null \
+            | head -n 1 || echo "")
+    fi
+
+    if [ -n "$server_json" ] && [ "$server_json" != "null" ]; then
+        log "$SCRIPT_NAME" "Found server $hostname via API (station: $(echo "$server_json" | jq -r '.station'))" >&2
+        printf '%s' "$server_json"
+        return 0
+    fi
+
+    log_error "$SCRIPT_NAME" "ERROR: Could not find server $hostname in NordVPN server list"
+    return 1
 }
 
 nord_api_curl()
@@ -379,15 +433,26 @@ fi
 # If no servers found, fallback to default recommended servers
 if [ "$poollength" -eq 0 ]; then
     log "$SCRIPT_NAME" "No servers found for specified criteria, requesting default recommended servers"
-    
-    # Build curl parameters for fallback
+
+    # Build curl parameters for fallback. GROUP is kept on the first attempt:
+    # when only GROUP is set (no COUNTRY/CITY), this path IS the primary
+    # query, not a fallback.
     curl_params="$tech_filter"
     if [ -n "$group_filter" ]; then
         curl_params="$curl_params $group_filter"
     fi
-    
+
     servers=$(eval "nord_api_curl \"v1/servers/recommendations\" $curl_params 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
-    
+
+    # Second stage: a group with no NordLynx servers (e.g. an OpenVPN-only
+    # group) yields an empty response forever - retry once without the group
+    # filter so the container still comes up on the recommended pool instead
+    # of failing hard.
+    if [ -z "$servers" ] && [ -n "$group_filter" ]; then
+        log_warning "$SCRIPT_NAME" "No servers in group \"$group\" support WireGuard - retrying without the group filter"
+        servers=$(eval "nord_api_curl \"v1/servers/recommendations\" $tech_filter 2>/dev/null | jq -c '.[]' 2>/dev/null || echo \"\"")
+    fi
+
     if [ -n "$servers" ]; then
         log "$SCRIPT_NAME" "Default recommended servers: $(echo "$servers" | jq -s 'length') servers received"
         echo "$servers" | jq -r '[.name, .hostname, .load, .locations[0].country.name, .locations[0].country.city.name] | "\(.[1]): \(.[2])% load - \(.[3]), \(.[4]) (\(.[0]))"'
@@ -428,14 +493,21 @@ if [ "$poollength" -eq 0 ]; then
     fail
 fi
 
-serverip=$(echo "$servers" | jq -r '.station' | head -n 1)
-name=$(echo "$servers" | jq -r '.name' | head -n 1)
-hostname=$(echo "$servers" | jq -r '.hostname' | head -n 1)
-serverkey=$(echo "$servers" | jq -r '.technologies[] | select(.id == 35) | .metadata[] | select(.name == "public_key") | .value' | head -n 1)
+# Take the first server of the pool ONCE and extract every field from that
+# same JSON object. Extracting each field from the whole stream with
+# `head -n 1` looks equivalent, but is not for the key: a first server
+# without a WireGuard entry would emit no key line, so `head -n 1` would
+# silently return the key of the NEXT server - an endpoint/key mismatch
+# that can never complete a handshake.
+selected=$(echo "$servers" | head -n 1)
+serverip=$(echo "$selected" | jq -r '.station')
+name=$(echo "$selected" | jq -r '.name')
+hostname=$(echo "$selected" | jq -r '.hostname')
+serverkey=$(echo "$selected" | jq -r '.technologies[] | select(.id == 35) | .metadata[] | select(.name == "public_key") | .value' | head -n 1)
 
 # Extract location information
-country_name=$(echo "$servers" | jq -r '.locations[0].country.name' | head -n 1)
-city_name=$(echo "$servers" | jq -r '.locations[0].country.city.name' | head -n 1)
+country_name=$(echo "$selected" | jq -r '.locations[0].country.name')
+city_name=$(echo "$selected" | jq -r '.locations[0].country.city.name')
 log "$SCRIPT_NAME" "Selected server \"$name\" hostname=\"$hostname\" ip=\"$serverip\" location=\"$country_name, $city_name\""
 
 if [ -z "$serverkey" ] || [ "$serverkey" = "null" ]; then
@@ -487,7 +559,7 @@ sync
 # Written only after the config is in place, so the file always describes the
 # server the (next) connection actually uses. Best-effort: a write failure
 # must not break configuration.
-load="$(echo "$servers" | jq -r '.load // 0' | head -n 1 || true)"
+load="$(echo "$selected" | jq -r '.load // 0' || true)"
 if jq -n \
     --arg name "$name" \
     --arg hostname "$hostname" \
