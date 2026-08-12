@@ -20,19 +20,19 @@ WireGuard (NordLynx) client docker container that routes other containers' traff
 
 ## ✨ Key Features
 
-- **🚀 Easy Setup** — Route any container's traffic through VPN with `--net=container:vpn`
-- **⚡ NordLynx (WireGuard)** — Fast, modern tunnel using NordVPN's WireGuard implementation
-- **🔑 Token-Based Setup** — Provide a NordVPN access token; the key is fetched automatically ([details][wiki-token])
-- **🌍 Smart Server Selection** — Auto-select servers by country, city, group, or specific hostname ([details][wiki-server])
-- **⚖️ Load Balancing** — Intelligent sorting by server load when multiple locations specified
-- **🔄 Auto-Reconnection** — Periodic server switching and health monitoring ([details][wiki-reconnect])
-- **🛡️ Kill Switch** — Default-deny firewall blocks all traffic when VPN is down ([details][wiki-security])
-- **🏠 Local/LAN Access** — Allow specific CIDRs with `NETWORK=...` ([details][wiki-network])
-- **🧭 Custom DNS** — Resolve through the tunnel; override with `DNS=...` ([details][wiki-dns])
-- **📵 IPv6 Firewall** — Built-in chains default to DROP ([details][wiki-ipv6])
-- **🧱 iptables Compatibility** — Auto-selects nft or legacy backend ([details][wiki-firewall])
-- **🧬 Userspace Fallback** — Automatic `wireguard-go` fallback on kernels without the WireGuard module ([details][wiki-permissions])
-- **🚪 VPN Gateway Mode** — Route downstream networks out through the tunnel with `FORWARD_FROM=...` ([details][wiki-gateway])
+- **🚀 Easy Setup** — Route any container through the VPN with `--net=container:vpn`
+- **⚡ NordLynx (WireGuard)** — Fast, modern tunnel to NordVPN's WireGuard servers
+- **🔑 Token-Based Setup** — One access token; the key is fetched for you ([details][wiki-token])
+- **🌍 Smart Server Selection** — Filter by country, city, group, or hostname ([details][wiki-server])
+- **⚖️ Load Balancing** — Prefers the least-loaded servers across locations
+- **🔄 Auto-Reconnection** — Scheduled server rotation and health checks ([details][wiki-reconnect])
+- **🛡️ Kill Switch** — Default-deny firewall: no VPN, no traffic ([details][wiki-security])
+- **🏠 Local/LAN Access** — Open specific CIDRs with `NETWORK` ([details][wiki-network])
+- **🧭 Custom DNS** — Tunnel DNS by default; override with `DNS` ([details][wiki-dns])
+- **📵 IPv6 Firewall** — IPv6 chains default to DROP ([details][wiki-ipv6])
+- **🧱 iptables Compatibility** — Auto-selects the nft or legacy backend ([details][wiki-firewall])
+- **🧬 Userspace Fallback** — `wireguard-go` when the kernel lacks WireGuard ([details][wiki-permissions])
+- **🚪 VPN Gateway Mode** — Route downstream subnets via `FORWARD_FROM` ([details][wiki-gateway])
 
 > **📖 [Full documentation on the Wiki][wiki-home]** — configuration guides, examples, troubleshooting, FAQ, and architecture.
 
@@ -87,7 +87,7 @@ services:
       - RECREATE_VPN_CRON=0 */6 * * *
       - NETWORK=192.168.1.0/24
     ports:
-      - "8080:8080"
+      - "8080:80"                  # host:container — use your app's listening port
     restart: unless-stopped
 
   app:
@@ -102,26 +102,67 @@ services:
 
 ## Environment Variables
 
+> **List values** (countries, cities, CIDRs, URLs, IPs) accept `;` or `,` as separators; whitespace around separators is ignored.
+
+### Credentials
+
+NordVPN **access token** — see [Getting a Token](#getting-a-token) above.
+
 | Variable | Details |
 |---|---|
 | **TOKEN** | **Required** — NordVPN access token; used to fetch your WireGuard key from the API. |
-| **COUNTRY** | Filter by countries: names, codes, IDs, or server hostnames ([list][nordvpn-countries]). Semicolon‑separated. |
-| **CITY** | Filter by cities: names, IDs, or server hostnames ([list][nordvpn-cities]). Semicolon‑separated. |
+
+### Server Selection
+
+Pick which servers to connect to; filters combine to narrow the pool. See [Server Selection][wiki-server].
+
+| Variable | Details |
+|---|---|
+| **COUNTRY** | Filter by countries: names, codes, IDs, or server hostnames ([list][nordvpn-countries]). |
+| **CITY** | Filter by cities: names, IDs, or server hostnames ([list][nordvpn-cities]). |
 | **GROUP** | Filter by server group ([list][nordvpn-groups]). |
 | **RANDOM_TOP** | Randomize top N servers. Default: `0` |
-| **DNS** | DNS servers written to `resolv.conf` (resolution goes through the tunnel); semicolon‑ or comma‑separated. Default: `103.86.96.100;103.86.99.100` |
+
+### Tunnel & DNS
+
+DNS resolution through the tunnel. See [Custom DNS][wiki-dns].
+
+| Variable | Details |
+|---|---|
+| **DNS** | DNS servers written to `resolv.conf` (resolution goes through the tunnel). Default: `103.86.96.100;103.86.99.100` |
+
+### Reconnection & Health Monitoring
+
+Rotate servers on a schedule and verify the tunnel actually works. See [Automatic Reconnection][wiki-reconnect].
+
+| Variable | Details |
+|---|---|
 | **RECREATE<wbr>_VPN<wbr>_CRON** | Server switching schedule (cron). Default: disabled |
 | **CHECK<wbr>_CONNECTION<wbr>_CRON** | Health monitoring schedule (cron). Default: disabled |
-| **CHECK<wbr>_CONNECTION<wbr>_URL** | URLs to test connectivity; semicolon‑separated. Default: `https://www.google.com` |
+| **CHECK<wbr>_CONNECTION<wbr>_URL** | URLs to test connectivity. Default: `https://www.google.com` |
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPTS** | Connection test retry count. Default: `5` |
 | **CHECK<wbr>_CONNECTION<wbr>_ATTEMPT<wbr>_INTERVAL** | Seconds between retries. Default: `10` |
-| **NETWORK** | LAN/inter‑container CIDRs to allow; semicolon‑separated. Default: none |
-| **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Semicolon‑separated. Default: none |
-| **GATEWAY<wbr>_DNS** | DNS interception for `FORWARD_FROM` clients: `redirect` (DNAT port 53 to the VPN resolvers from `DNS`, through the tunnel), `local` (DNAT port 53 to this container, for a co‑located resolver such as AdGuard Home), `forward` (DNAT port 53 to `GATEWAY_DNS_SERVER`, reached directly over the uplink — **not** through the tunnel), `off`. See [VPN Gateway Mode][wiki-gateway]. Default: `off` |
-| **GATEWAY<wbr>_DNS<wbr>_SERVER** | External IPv4 resolver(s) for `GATEWAY_DNS=forward` (e.g. an AdGuard Home on your LAN). With a list, the first resolver answering a DNS probe at startup is used. Default: none |
-| **NORDVPNAPI<wbr>_IP** | API bootstrap IPs (semicolon‑separated). Default: `104.16.208.203;104.19.159.190` |
-| **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect. Default: `false` |
 | **HEALTHCHECK<wbr>_ENABLED** | Enable the Docker `HEALTHCHECK` probe (checks `wg0` + connectivity via `CHECK_CONNECTION_URL`). When `false`, the container always reports healthy. Default: `false` |
+
+### Local Network & VPN Gateway
+
+Open the kill‑switch firewall for LAN access and downstream routing. See [Local Network Access][wiki-network] and [VPN Gateway Mode][wiki-gateway].
+
+| Variable | Details |
+|---|---|
+| **NETWORK** | LAN/inter‑container CIDRs to allow. Default: none |
+| **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Traffic must arrive already SNATed into these nets. Default: none |
+| **GATEWAY<wbr>_DNS** | DNS interception for `FORWARD_FROM` clients: `redirect` (DNAT port 53 to the VPN resolvers from `DNS`, through the tunnel), `local` (DNAT port 53 to this container, for a co‑located resolver such as AdGuard Home), `forward` (DNAT port 53 to `GATEWAY_DNS_SERVER`, reached directly over the uplink — **not** through the tunnel), `off`. Default: `off` |
+| **GATEWAY<wbr>_DNS<wbr>_SERVER** | External IPv4 resolver(s) for `GATEWAY_DNS=forward` (e.g. an AdGuard Home on your LAN). With a list, the first resolver answering a DNS probe at startup is used. Default: none |
+
+### Advanced
+
+Low‑level settings; the defaults work for most setups.
+
+| Variable | Details |
+|---|---|
+| **NORDVPNAPI<wbr>_IP** | API bootstrap IPs. Default: `104.16.208.203;104.19.159.190` |
+| **NETWORK<wbr>_DIAGNOSTIC<wbr>_ENABLED** | Enable network diagnostics on connect ([details][wiki-diagnostics]). Default: `false` |
 | **ALLOW<wbr>_MISSING<wbr>_IPTABLES<wbr>_RULES** | Tolerate failures applying wg-quick's anti-leak iptables rules — needed on hosts whose kernel lacks the required netfilter modules (e.g. Synology DSM), where the tunnel would otherwise be torn down. The container's own default-DROP kill switch stays active. See [Firewall Backends][wiki-firewall]. Default: `false` |
 
 ## Issues
@@ -167,6 +208,7 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [wiki-firewall]: https://github.com/azinchen/nordvpn-wg/wiki/Firewall-Backends
 [wiki-permissions]: https://github.com/azinchen/nordvpn-wg/wiki/Permissions
 [wiki-gateway]: https://github.com/azinchen/nordvpn-wg/wiki/VPN-Gateway-Mode
+[wiki-diagnostics]: https://github.com/azinchen/nordvpn-wg/wiki/Network-Diagnostics-Guide
 [wiki-compose]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Compose-Examples
 [wiki-run]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Run-Examples
 [wiki-troubleshoot]: https://github.com/azinchen/nordvpn-wg/wiki/Troubleshooting
