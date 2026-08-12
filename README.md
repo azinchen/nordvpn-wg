@@ -151,9 +151,9 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [multiarch-badge]: https://img.shields.io/badge/multi--arch-386%20%7C%20amd64%20%7C%20arm%2Fv6%20%7C%20arm%2Fv7%20%7C%20arm64%20%7C%20ppc64le%20%7C%20s390x%20%7C%20riscv64-blue?logo=docker&logoColor=white
 
 <!-- Links: Reference lists -->
-[nordvpn-cities]: https://github.com/azinchen/nordvpn-wg/blob/main/CITIES.md
-[nordvpn-countries]: https://github.com/azinchen/nordvpn-wg/blob/main/COUNTRIES.md
-[nordvpn-groups]: https://github.com/azinchen/nordvpn-wg/blob/main/GROUPS.md
+[nordvpn-cities]: https://github.com/azinchen/nordvpn-wg/wiki/Cities-List
+[nordvpn-countries]: https://github.com/azinchen/nordvpn-wg/wiki/Countries-List
+[nordvpn-groups]: https://github.com/azinchen/nordvpn-wg/wiki/Groups-List
 
 <!-- Links: Wiki -->
 [wiki-home]: https://github.com/azinchen/nordvpn-wg/wiki

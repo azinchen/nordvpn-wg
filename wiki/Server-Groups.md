@@ -17,7 +17,7 @@ The `GROUP` environment variable filters the NordVPN server fleet by specialty. 
 | Asia Pacific | `asia_pacific` | Regional |
 | Africa, the Middle East and India | `africa_the_middle_east_and_india` | Regional |
 
-You can also use the human-readable names (e.g., `GROUP=Double VPN`) or numeric IDs. The full list is in [GROUPS.md](https://github.com/azinchen/nordvpn-wg/blob/main/GROUPS.md).
+You can also use the human-readable names (e.g., `GROUP=Double VPN`) or numeric IDs. The full list is in [Groups List](Groups-List).
 
 When `GROUP` is not set, the API returns servers from the default recommended pool (equivalent to `legacy_standard`).
 

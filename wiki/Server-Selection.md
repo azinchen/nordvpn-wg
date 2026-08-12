@@ -47,9 +47,9 @@ Specific servers are:
 **Invalid formats** (will be treated as country/city names): `usa1` (3 letters), `u1` (1 letter), `us` (no digits).
 
 Reference lists:
-- [Countries](https://github.com/azinchen/nordvpn-wg/blob/main/COUNTRIES.md)
-- [Cities](https://github.com/azinchen/nordvpn-wg/blob/main/CITIES.md)
-- [Groups](https://github.com/azinchen/nordvpn-wg/blob/main/GROUPS.md)
+- [Countries](Countries-List)
+- [Cities](Cities-List)
+- [Groups](Groups-List)
 
 ## Selection Behavior
 
