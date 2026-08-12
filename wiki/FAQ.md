@@ -7,7 +7,7 @@ A NordVPN **access token**. Pass it as `TOKEN` and the container reads your acco
 No. You need an access token generated from your Nord Account: [Nord Account Dashboard](https://my.nordaccount.com/) → NordVPN → Manual setup → generate an access token.
 
 **Q: Does the token expire? Is it stored?**
-The token is read at connect time to fetch your WireGuard key from the API; the key itself is never written to disk and is re-fetched on every (re)connect. The WireGuard key is persistent on your account, but the access token has the expiry you chose when generating it — keep it valid (or update `TOKEN` and restart) so reconnects keep working.
+The token is read at connect time to fetch your WireGuard key from the API; the key is written only to the container-private `/etc/wireguard/wg0.conf` (root-owned, mode 0600), removed when the service stops, and re-fetched on every (re)connect — it is never logged and never stored in the image or a volume. The WireGuard key is persistent on your account, but the access token has the expiry you chose when generating it — keep it valid (or update `TOKEN` and restart) so reconnects keep working.
 
 ## Features
 
@@ -18,10 +18,10 @@ NordLynx (NordVPN's WireGuard implementation), exclusively. OpenVPN, IKEv2, SOCK
 No. NordVPN does not support inbound port forwarding. You can only access services from your LAN by publishing ports on the VPN container and setting `NETWORK` to include your LAN CIDR.
 
 **Q: How do I know which server I'm connected to?**
-Check the container logs: `docker logs vpn | grep "Selected server"`. Or run the network diagnostic: `docker exec vpn /usr/local/bin/network-diagnostic --basic`.
+Read the status file: `docker exec vpn cat /run/xt/status.json` — machine-readable JSON with the selected server's name, hostname, IP, country, city and load. Or check the container logs (`docker logs vpn | grep "Selected server"`) or run the network diagnostic: `docker exec vpn /usr/local/bin/network-diagnostic --basic`.
 
 **Q: Can I connect to a specific server?**
-Yes. Use the server hostname in `COUNTRY` or `CITY`: `-e COUNTRY=es1234` or `-e CITY=uk2567`. Specific servers get priority with `load=0`.
+Yes. Use the server hostname in `COUNTRY` or `CITY`: `-e COUNTRY=es1234` or `-e CITY=uk2567`. The server is looked up through the NordVPN API; list it as the only value to guarantee it is selected. See [Server Selection](Server-Selection#specific-server-hostname-format).
 
 ## Networking
 

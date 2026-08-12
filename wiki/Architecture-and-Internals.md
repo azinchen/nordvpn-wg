@@ -11,7 +11,9 @@ entrypoint (container start)
   ├─ init-setupcron      Configure cron jobs from RECREATE_VPN_CRON / CHECK_CONNECTION_CRON
   │
   ├─ svc-nordvpn         Main WireGuard service (long-running)
-  └─ svc-cron            Cron daemon (long-running)
+  └─ svc-cron            Cron daemon (long-running; starts only after svc-nordvpn is
+                         launched, so cron can never fire a reconnect or health check
+                         before the first connection attempt)
 ```
 
 ## Key Scripts
@@ -42,9 +44,12 @@ isn't usable in its network namespace (the probe in step 1 decides this).
 Location: `/usr/local/bin/backend-functions`
 
 Sourced by every script. Provides the environment-variable defaults (including `dns`, `network`, `forward_from`, `nordvpnapi_ip`) and:
-- `run4()` / `run6()` — Execute iptables commands with logging (non-fatal)
+- `run4()` / `run6()` — Execute iptables commands with logging (non-fatal, always return 0)
+- `run4_check()` — Like `run4` but propagates the iptables exit status, for callers that branch on whether a rule was actually added
 - `run4_critical()` / `run6_critical()` — Execute or sleep forever on failure
+- `trim()` — Strips whitespace around tokens split from `;`/`,` lists
 - `is_vpn_connected()` — Checks for the `wg0` interface
+- `apply_wireguard_config()` — Shared bring-up: refreshes the `VPN-SERVER` pinhole for the endpoint in `wg0.conf`, swaps the interface with `wg-quick` down/up, and writes `/etc/resolv.conf` from `$dns`; used by both the service start path and `vpn-reconnect`
 - `log()` / `log_error()` / `log_warning()` — Timestamped logging
 - `parse_cron()` — Converts cron expressions to human-readable descriptions
 
@@ -54,16 +59,27 @@ Location: `/usr/local/bin/vpn-config`
 
 1. Fetches your NordLynx (WireGuard) **private key** from the NordVPN API using `TOKEN`
    (`v1/users/services/credentials`), via pinned API IPs (no DNS). The key is not cached —
-   it is re-fetched on every connect.
+   it is re-fetched on every connect. The token is handed to `curl` through a short-lived
+   0600 config file (`-K`), never on the command line.
 2. Resolves COUNTRY/CITY/GROUP to numeric IDs using the JSON data files
 3. Builds the NordVPN API query (always filtered to NordLynx, tech id 35); CITY uses the
    `country_city_id` filter
 4. Fetches the server list using pinned API IPs (no DNS)
-5. Detects specific server hostnames and gives them `load=0`
-6. Sorts by load (multi-location) or keeps API order (single location)
+5. Detects specific server hostnames (`us1234`, `ca-us100`, `nl-onion6`, `socks-nl1`) and
+   looks each up through the API by hostname — again via pinned IPs, no DNS — so the pool
+   entry carries the server's real address, load, and WireGuard public key. Unknown or
+   retired hostnames are skipped with a warning instead of aborting selection.
+6. Sorts by load (multi-location) or keeps API order (single location). If the pool is
+   empty, falls back to the recommended pool — first still honoring `GROUP` (with only
+   `GROUP` set this is the primary query), then once more without the group filter if the
+   group has no NordLynx servers.
 7. Applies `RANDOM_TOP` if set
 8. Writes the selected server's WireGuard config to `/etc/wireguard/wg0.conf` (private key,
-   `Address`, `[Peer]` endpoint + public key, `AllowedIPs = 0.0.0.0/0`, `PersistentKeepalive = 25`)
+   `Address`, `[Peer]` endpoint + public key, `AllowedIPs = 0.0.0.0/0`, `PersistentKeepalive = 25`),
+   atomically via a temp file. With `--fail-fast` (used by `vpn-reconnect`) a fatal error
+   exits non-zero instead of blocking forever, leaving the existing config untouched.
+9. Publishes the selection as machine-readable JSON to `/run/xt/status.json`
+   (best-effort — a write failure never breaks configuration)
 
 ### `svc-nordvpn/run` — WireGuard launcher
 
@@ -93,13 +109,19 @@ Location: `/usr/local/bin/vpn-healthcheck`
 2. Retries `CHECK_CONNECTION_ATTEMPTS` times with configurable interval
 3. If all fail, calls `vpn-reconnect`
 
-### `vpn-reconnect` — Service restart
+### `vpn-reconnect` — Prepare-then-swap reconnection
 
 Location: `/usr/local/bin/vpn-reconnect`
 
-1. Stops `svc-nordvpn` via s6-rc
-2. Waits briefly
-3. Restarts `svc-nordvpn` (which re-fetches the key and picks a new server)
+1. Takes an atomic `mkdir` lock (`/run/xt/vpn-reconnect.lock`) so overlapping triggers —
+   `RECREATE_VPN_CRON`, a health-check reconnect, a manual run — never race; a second
+   invocation logs "Another reconnection (pid N) is already in progress" and exits, and a
+   lock whose owner died mid-run is taken over
+2. Runs `vpn-config --fail-fast` **while the current tunnel stays up** — the API calls and
+   load sorting don't count as downtime, and a failed selection keeps the existing
+   connection and config untouched
+3. Applies the new config via `apply_wireguard_config`: refreshes the firewall pinhole and
+   swaps the interface. The only downtime is the `wg-quick` down/up itself (~1–2 s)
 
 ### `network-diagnostic` — Debug tool
 
@@ -157,9 +179,18 @@ The `init-firewall` service then:
 - Enables connection tracking (ESTABLISHED/RELATED)
 - Sets up MASQUERADE on the `wg0` (VPN) interface
 - Creates a `VPN-SERVER` chain and jumps eth0 UDP/51820 to it
-- Adds NordVPN API IP exceptions (TCP/443 only) from `NORDVPNAPI_IP`
-- If `NETWORK` is set, adds static routes and bidirectional allow rules for those CIDRs
+- Adds NordVPN API IP exceptions (TCP/443 only) from `NORDVPNAPI_IP`, and pins a host
+  route for each API IP out `eth0` — `wg-quick`'s `suppress_prefixlength` rule lets these
+  main-table routes win, so the API stays reachable even when the tunnel is dead and
+  `vpn-reconnect` can always recover
+- If `NETWORK` is set, adds static routes (a failure logs a warning naming the value) and
+  bidirectional allow rules for those CIDRs
 - If `FORWARD_FROM` is set, opens `FORWARD` for those CIDRs over `wg0` (see [VPN Gateway Mode](VPN-Gateway-Mode))
+- If `GATEWAY_DNS` is enabled, installs the client-DNS interception NAT rules for the
+  `FORWARD_FROM` sources: port-53 DNAT to the tunnel resolvers (`redirect`), to the
+  container itself (`local`), or to `GATEWAY_DNS_SERVER` (`forward` — including the
+  startup probe that picks the first candidate answering a DNS query, plus the hairpin
+  MASQUERADE and pinned host route that keep the resolver reachable over the uplink)
 
 ### Phase 3 — svc-nordvpn (per-connection pinhole)
 

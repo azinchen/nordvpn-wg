@@ -1,6 +1,6 @@
 The `GROUP` environment variable filters the NordVPN server fleet by specialty. Each group is a separate set of servers with different capabilities. Only **one** group can be set at a time.
 
-> **NordLynx only:** this container connects with NordLynx (WireGuard). Server lookups are always filtered to NordLynx-capable servers. Groups that historically exist only for OpenVPN (e.g. **Obfuscated / XOR**) have no NordLynx servers — selecting them returns nothing and the container falls back to the recommended pool.
+> **NordLynx only:** this container connects with NordLynx (WireGuard). Server lookups are always filtered to NordLynx-capable servers. Groups that historically exist only for OpenVPN (e.g. **Obfuscated / XOR**) have no NordLynx servers — selecting them returns nothing and the container falls back to the recommended pool without the group filter, logging a warning (`No servers in group ... support WireGuard - retrying without the group filter`).
 
 ## Quick Reference
 

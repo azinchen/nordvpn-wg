@@ -15,7 +15,7 @@ This page describes the container's firewall behavior, kill switch, and network 
 
 ## Rule Precedence
 
-1. **Bootstrap-only (when VPN is down & before first connect):** Allow HTTPS only to the **NordVPN API IPs from `NORDVPNAPI_IP`** used by the image's bootstrap script.
+1. **API access (always):** Allow HTTPS only to the **NordVPN API IPs from `NORDVPNAPI_IP`**. This pinhole (plus a pinned host route out the uplink) is deliberately permanent, not bootstrap-only: it is what lets `vpn-reconnect` reach the API to fetch a new key and server list when the tunnel is dead.
 2. **Exceptions:** If destination matches `NETWORK` (CIDR), allow (bypass/LAN), regardless of VPN state.
 3. **VPN path:** If VPN is **up** and traffic is not an exception, allow only via the VPN interface.
 4. **Default-deny:** Otherwise, block.
@@ -34,7 +34,7 @@ The NordVPN access token passed via the `TOKEN` environment variable is:
 - Visible via `docker inspect` on the container
 - Visible in the process environment
 
-The token is used only to fetch your WireGuard key from the NordVPN API; it is never written to the WireGuard config. Still, to reduce exposure:
+The token is used only to fetch your WireGuard key from the NordVPN API; it is never written to the WireGuard config, and it is passed to `curl` via a short-lived 0600 config file (`-K`) rather than on the command line, so it does not appear in `ps` output or `/proc/*/cmdline`. Still, to reduce exposure:
 - Use a `.env` file with `env_file:` in Docker Compose (keeps the token out of `docker-compose.yml`)
 - Avoid passing the token directly on the `docker run` command line (visible in process listings)
 - Generate the token with a sensible expiry and rotate it if it may have leaked

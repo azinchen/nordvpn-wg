@@ -39,26 +39,46 @@ Produces a comprehensive report covering all sections below.
 ### Header & VPN Status
 
 ```
+================================================================
 WireGuard DIAG (full) : 2026-03-22T16:30:00+00:00
-VPN Status            : CONNECTED
+Kernel                : 6.8.0-45-generic
+VPN Status            : Connected
+WireGuard Engine      : kernel
+Device                : wg0 (type=wireguard)
+Common Name           : de1234.nordvpn.com
+Ifconfig Local        : 10.5.0.2
+Peer IP               : 10.5.0.1
+Peer Endpoint         : 203.0.113.10:51820
+Proto/Local Port      : udp/51820
 ```
 
-VPN status is derived from the `wg0` interface and its peer endpoint.
+`VPN Status` reports `Connected` when the `wg0` interface exists and the `wg` tool is
+available — it does not by itself prove traffic flows (see the Quick verdicts below for
+the handshake check).
+
+### Project Configuration
+
+- `### Project configuration (effective)` — the effective values of every configuration
+  variable (`COUNTRY`, `CITY`, `GROUP`, `DNS`, `NETWORK`, `FORWARD_FROM`, `GATEWAY_DNS`,
+  the `CHECK_CONNECTION_*` set, …) plus the selected firewall backend
 
 ### WireGuard & Connection Info
 
 - `### ip addr show wg0` — tunnel interface address
 - `### wg show` — peer public key, endpoint, last handshake, transfer counters, listening port
 - `### wg0.conf` — the generated config (private key redacted in logs)
+- `### wg0 interface stats (ip -s link)` — packet/byte/error counters
+- `### WireGuard fwmark (wg0)` — the fwmark WireGuard tags its own traffic with
 
 The peer endpoint reported by `wg show` is the VPN server you're connected to.
 
 ### System Network State
 
 - `### ip link (up)` — link states
-- `### ip route (main)` — main routing table
+- `### ip route (main table)` — main routing table
 - `### ip rule` — policy routing rules (WireGuard installs an fwmark rule)
 - `### ip route table 51820` — the WireGuard routing table (default via wg0)
+- `### ip route show table all` — every routing table (IPv4 and IPv6)
 - `### ip route get <test IP>` — which interface a packet to the internet uses (should be wg0)
 
 ### Firewall Rules
@@ -74,6 +94,7 @@ The peer endpoint reported by `wg show` is the VPN server you're connected to.
 ### DNS
 
 - `### DNS configuration` — contents of `/etc/resolv.conf`
+- `### DNS resolution test` — an actual lookup through the configured resolvers
 - `### DNS servers geolocation` — geolocation lookup for each nameserver
 - `### resolver identity via <ns>` — identity probe of the active resolver
 
@@ -81,7 +102,10 @@ The peer endpoint reported by `wg show` is the VPN server you're connected to.
 
 - `### Ping checks` — IPv4/IPv6 reachability
 - `### Short trace to <test IP>` — first hop should be the VPN
-- `### Quick verdicts` — summary checks
+- `### Quick verdicts` — summary checks: whether the route to the internet goes via `wg0`,
+  and **handshake freshness** — `[warn] No WireGuard handshake yet (peer unreachable,
+  stale endpoint, or rate-limited)` flags the classic "interface up, `0 B received`"
+  NordLynx failure, and a handshake older than ~3 minutes is reported as stale
 
 ## IP Resolution Fallback
 

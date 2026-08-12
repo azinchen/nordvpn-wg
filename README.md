@@ -68,7 +68,7 @@ Also available from GitHub Container Registry: `ghcr.io/azinchen/nordvpn-wg`
 3. Generate a new **access token** and copy it
 4. Pass it as `TOKEN` — the container reads your NordLynx (WireGuard) key from the NordVPN API on every connect
 
-> **Note**: The token is different from your regular NordVPN login. It is used only to fetch your WireGuard key; the key is never written to disk. See the [wiki][wiki-token] for the API one-liner if you prefer to inspect it yourself.
+> **Note**: The token is different from your regular NordVPN login. It is used only to fetch your WireGuard key; the key lives only in the container-private WireGuard config (root-owned, mode 0600), is removed when the service stops, and is re-fetched on every connect — it is never logged and never stored in the image or a volume. See the [wiki][wiki-token] for the API one-liner if you prefer to inspect it yourself.
 
 ## Docker Compose Example
 
@@ -120,7 +120,7 @@ Pick which servers to connect to; filters combine to narrow the pool. See [Serve
 |---|---|
 | **COUNTRY** | Filter by countries: names, codes, IDs, or server hostnames ([list][nordvpn-countries]). |
 | **CITY** | Filter by cities: names, IDs, or server hostnames ([list][nordvpn-cities]). |
-| **GROUP** | Filter by server group ([list][nordvpn-groups]). |
+| **GROUP** | Filter by server group ([list][nordvpn-groups], [details][wiki-groups]). |
 | **RANDOM_TOP** | Randomize top N servers. Default: `0` |
 
 ### Tunnel & DNS
@@ -200,6 +200,7 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [wiki-home]: https://github.com/azinchen/nordvpn-wg/wiki
 [wiki-token]: https://github.com/azinchen/nordvpn-wg/wiki/FAQ#credentials
 [wiki-server]: https://github.com/azinchen/nordvpn-wg/wiki/Server-Selection
+[wiki-groups]: https://github.com/azinchen/nordvpn-wg/wiki/Server-Groups
 [wiki-reconnect]: https://github.com/azinchen/nordvpn-wg/wiki/Automatic-Reconnection
 [wiki-security]: https://github.com/azinchen/nordvpn-wg/wiki/Security-Model#traffic-control--kill-switch
 [wiki-network]: https://github.com/azinchen/nordvpn-wg/wiki/Local-Network-Access

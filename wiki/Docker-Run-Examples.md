@@ -17,7 +17,7 @@ docker run -d --name app --net=container:vpn nginx
 docker run -d --name vpn \
            --cap-add=NET_ADMIN \
            --sysctl net.ipv4.conf.all.src_valid_mark=1 \
-           -p 8080:8080 \
+           -p 8080:80 \
            -p 9091:9091 \
            -e TOKEN=your_nordvpn_token_here \
            -e COUNTRY="Germany;NL;202" \

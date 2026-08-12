@@ -17,8 +17,8 @@ services:
       - RECREATE_VPN_CRON=0 */6 * * *
       - NETWORK=192.168.1.0/24
     ports:
-      - "8080:8080"
-      - "3000:3000"
+      - "8080:80"                  # nginx webapp (host:container)
+      - "3000:3000"                # node api-service
     restart: unless-stopped
 
   webapp:
@@ -64,10 +64,11 @@ services:
       - RECREATE_VPN_CRON=0 */4 * * *
       - CHECK_CONNECTION_CRON=*/5 * * * *
       - CHECK_CONNECTION_URL=https://1.1.1.1;https://8.8.8.8
+      - HEALTHCHECK_ENABLED=true   # real health status, so service_healthy below gates on it
       - NETWORK=192.168.1.0/24;172.20.0.0/16
     ports:
-      - "8080:8080"
-      - "3000:3000"
+      - "8080:80"                  # nginx webapp (host:container)
+      - "3000:3000"                # node api-service
       - "9000:9000"
       - "6379:6379"
     restart: unless-stopped
