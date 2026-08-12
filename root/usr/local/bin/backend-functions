@@ -38,7 +38,6 @@ tun_if="wg0"
 wgfile="/etc/wireguard/wg0.conf"
 countriesfile="/usr/local/share/nordvpn/data/countries.json"
 groupsfile="/usr/local/share/nordvpn/data/groups.json"
-technologiesfile="/usr/local/share/nordvpn/data/technologies.json"
 
 # Strip leading/trailing whitespace from a list token. Values like
 # "10.0.0.0/16; 10.1.0.0/16" split on IFS=',;' keep the space, which then
@@ -48,6 +47,30 @@ trim() {
     _t="${_t#"${_t%%[![:space:]]*}"}"
     _t="${_t%"${_t##*[![:space:]]}"}"
     printf '%s' "$_t"
+}
+
+# Query the NordVPN API via the predefined bootstrap IPs - the only endpoints
+# allowed through the default-deny firewall before the tunnel is up, so DNS is
+# deliberately not used. NORDVPNAPI_IP overrides the defaults. Extra arguments
+# are passed to curl.
+nord_api_curl()
+{
+    _path="$1"
+    shift 2>/dev/null || true
+
+    oldIFS="$IFS"; IFS=',;'; _rc=1
+    for _ip in $nordvpnapi_ip; do
+        _ip="$(trim "$_ip")"
+        [ -n "$_ip" ] || continue
+
+        curl -sG --connect-timeout 10 --max-time 30 \
+             --resolve "api.nordvpn.com:443:${_ip}" \
+             "https://api.nordvpn.com/${_path}" "$@"
+        _rc=$?
+        [ $_rc -eq 0 ] && IFS="$oldIFS" && return 0
+    done
+    IFS="$oldIFS"
+    return $_rc
 }
 
 # Best-effort by design: always returns 0 so plain call sites under `set -e`

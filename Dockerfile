@@ -107,8 +107,6 @@ RUN echo "**** install security fix packages ****" && \
         iptables=1.8.13-r0 \
         iptables-legacy=1.8.13-r0 \
         jq=1.8.1-r0 \
-        shadow=4.18.0-r1 \
-        shadow-login=4.18.0-r1 \
         wireguard-tools=1.0.20260223-r0 \
         wireguard-go=0.0.20250522-r9 \
         bind-tools=9.20.26-r0 \

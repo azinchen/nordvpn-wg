@@ -139,7 +139,6 @@ Located in `/usr/local/share/nordvpn/data/`:
 |------|---------|
 | `countries.json` | Country name/code/ID mappings |
 | `groups.json` | Server group definitions |
-| `technologies.json` | VPN technology definitions |
 
 > **Origin of these files:** They are generated from the NordVPN public API (`https://api.nordvpn.com/`), not maintained by hand, and are refreshed automatically by the [`maintenance-updates`](https://github.com/azinchen/nordvpn-wg/actions/workflows/maintenance-updates.yml) GitHub Actions workflow, which opens a pull request when NordVPN changes its API schema. **Do not edit them by hand** — manual changes are overwritten the next time the workflow runs.
 
