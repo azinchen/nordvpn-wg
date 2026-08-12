@@ -6,9 +6,9 @@ permissions:
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   schedule:
     - cron: '0 4 * * 1'  # Weekly, Mondays at 4 AM UTC
   workflow_dispatch:
