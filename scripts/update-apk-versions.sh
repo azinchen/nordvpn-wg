@@ -46,6 +46,28 @@ extract_new_version()
     echo "$version"
 }
 
+# Architectures the image is built for (PLATFORMS in ci-build-deploy.yml),
+# mapped to Alpine repository architecture names.
+BUILD_ARCHES="x86 x86_64 armhf armv7 aarch64 ppc64le s390x riscv64"
+
+# Print the build architectures where pkg=version is NOT available in repo.
+# Empty output means the version exists everywhere; used to hold back updates
+# that Alpine has not yet built for all architectures we ship.
+missing_arches_for_version()
+{
+    local pkg="$1" repo="$2" version="$3"
+    local missing=""
+    for arch in $BUILD_ARCHES; do
+        [ "$arch" = "x86_64" ] && continue    # source of $version, already known
+        local v
+        v=$(extract_new_version "https://pkgs.alpinelinux.org/package/v${ALPINE_BRANCH}/${repo}/${arch}/${pkg}")
+        if [ "$v" != "$version" ]; then
+            missing="$missing $arch"
+        fi
+    done
+    echo "$missing"
+}
+
 # --- 4. Initialize variables to track updates ---
 UPDATED_PACKAGES=""
 TOTAL_PACKAGES=0
@@ -84,6 +106,13 @@ update_package_with_tracking() {
     fi
 
     if [ "$current_version" != "$new_version" ]; then
+        # Hold back the bump until Alpine has built it for every architecture
+        # we ship - x86_64 availability alone can break the multi-arch build
+        missing=$(missing_arches_for_version "$pkg" "$repo" "$new_version")
+        if [ -n "$missing" ]; then
+            echo "  ⚠ $new_version not yet available on:$missing - keeping $current_version"
+            return
+        fi
         echo "  Updating '$pkg' from $current_version to $new_version (found in $repo repo)"
         sed -i "s/${pkg}=${current_version}/${pkg}=${new_version}/g" "$DOCKERFILE"
         UPDATED_COUNT=$((UPDATED_COUNT + 1))
