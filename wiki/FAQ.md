@@ -21,7 +21,7 @@ No. NordVPN does not support inbound port forwarding. You can only access servic
 Read the status file: `docker exec vpn cat /run/xt/status.json` — machine-readable JSON with the selected server's name, hostname, IP, country, city and load. Or check the container logs (`docker logs vpn | grep "Selected server"`) or run the network diagnostic: `docker exec vpn /usr/local/bin/network-diagnostic --basic`.
 
 **Q: Can I connect to a specific server?**
-Yes. Use the server hostname in `COUNTRY` or `CITY`: `-e COUNTRY=es1234` or `-e CITY=uk2567`. Specific servers get priority with `load=0`.
+Yes. Use the server hostname in `COUNTRY` or `CITY`: `-e COUNTRY=es1234` or `-e CITY=uk2567`. The server is looked up through the NordVPN API; list it as the only value to guarantee it is selected. See [Server Selection](Server-Selection#specific-server-hostname-format).
 
 ## Networking
 

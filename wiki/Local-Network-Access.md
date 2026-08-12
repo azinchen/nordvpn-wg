@@ -16,7 +16,7 @@ docker run -d --cap-add=NET_ADMIN \
            azinchen/nordvpn-wg
 ```
 
-Multiple CIDRs are semicolon-separated:
+Multiple CIDRs are separated by `;` or `,` (whitespace around separators is ignored):
 
 ```bash
 -e NETWORK="192.168.1.0/24;172.20.0.0/16;10.0.0.0/8"
@@ -26,7 +26,7 @@ Multiple CIDRs are semicolon-separated:
 
 When `NETWORK` is set, the `init-firewall` script:
 
-1. Adds a **static route** for each CIDR via the default gateway (so traffic bypasses the VPN tunnel)
+1. Adds a **static route** for each CIDR via the default gateway (so traffic bypasses the VPN tunnel); a route that cannot be added logs a warning naming the value instead of being skipped silently
 2. Adds **bidirectional iptables rules** allowing traffic to/from those CIDRs
 3. These rules apply **regardless of VPN state** — they remain active even if the VPN drops
 
@@ -67,7 +67,7 @@ services:
       - TOKEN=your_nordvpn_token_here
       - NETWORK=192.168.1.0/24;172.20.0.0/16
     ports:
-      - "8080:8080"
+      - "8080:80"                  # host:container — use your app's listening port
     restart: unless-stopped
 
   app:
