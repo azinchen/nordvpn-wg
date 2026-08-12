@@ -465,5 +465,27 @@ fi
 mv "${wgfile}.tmp" "$wgfile"
 sync
 
+# Publish the selection as machine-readable JSON for monitoring/dashboards.
+# Written only after the config is in place, so the file always describes the
+# server the (next) connection actually uses. Best-effort: a write failure
+# must not break configuration.
+load="$(echo "$servers" | jq -r '.load // 0' | head -n 1 || true)"
+if jq -n \
+    --arg name "$name" \
+    --arg hostname "$hostname" \
+    --arg ip "$serverip" \
+    --arg technology "wireguard" \
+    --arg country "$country_name" \
+    --arg city "$city_name" \
+    --argjson load "${load:-0}" \
+    --arg selected_at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+    '{name: $name, hostname: $hostname, ip: $ip, technology: $technology,
+      country: $country, city: $city, load: $load,
+      selected_at: $selected_at}' > /run/xt/status.json 2>/dev/null; then
+    chmod 0644 /run/xt/status.json 2>/dev/null || true
+else
+    log_warning "$SCRIPT_NAME" "Could not write /run/xt/status.json"
+fi
+
 log "$SCRIPT_NAME" "VPN configuration completed"
 exit 0

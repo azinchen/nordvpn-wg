@@ -127,6 +127,7 @@ Located in `/usr/local/share/nordvpn/data/`:
 |------|---------|
 | `/run/xt/backend.env` | Selected iptables backend (IPT, IP6T) |
 | `/etc/wireguard/wg0.conf` | Current server's WireGuard config (private key, peer, endpoint) |
+| `/run/xt/status.json` | Last selected server as JSON (name, hostname, ip, technology, country, city, load, selected_at) — world-readable, for monitoring, e.g. `docker exec vpn cat /run/xt/status.json` |
 
 ## Connection Status
 
