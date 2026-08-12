@@ -87,7 +87,7 @@ services:
       - RECREATE_VPN_CRON=0 */6 * * *
       - NETWORK=192.168.1.0/24
     ports:
-      - "8080:8080"
+      - "8080:80"                  # host:container — use your app's listening port
     restart: unless-stopped
 
   app:
