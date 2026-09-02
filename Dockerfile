@@ -49,7 +49,7 @@ ARG IMAGE_VERSION=N/A \
 RUN echo "**** install security fix packages ****" && \
     echo "**** install mandatory packages ****" && \
     apk --no-cache --no-progress add \
-        jq=1.8.1-r0 \
+        jq=1.8.2-r0 \
         && \
     echo "**** end run statement ****"
 
@@ -106,7 +106,7 @@ RUN echo "**** install security fix packages ****" && \
         curl=8.21.0-r0 \
         iptables=1.8.13-r0 \
         iptables-legacy=1.8.13-r0 \
-        jq=1.8.1-r0 \
+        jq=1.8.2-r0 \
         wireguard-tools=1.0.20260223-r0 \
         wireguard-go=0.0.20250522-r9 \
         bind-tools=9.20.26-r0 \
