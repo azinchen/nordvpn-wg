@@ -129,9 +129,14 @@ update_package_with_tracking() {
 }
 
 # --- 6. Loop Over All Packages and Update ---
-echo "$packages" | while IFS= read -r package; do
+# Feed the loop from a here-document, not a pipe: a piped `while` runs in a
+# subshell, so TOTAL_PACKAGES/UPDATED_COUNT/UPDATED_PACKAGES set inside it
+# would be lost and the summary would always report "0 of 0 checked".
+while IFS= read -r package; do
     update_package_with_tracking "$package"
-done
+done <<EOF
+$packages
+EOF
 
 # --- 7. Output summary ---
 echo "=== UPDATE SUMMARY ==="
