@@ -109,7 +109,7 @@ RUN echo "**** install security fix packages ****" && \
         jq=1.8.2-r0 \
         wireguard-tools=1.0.20260223-r0 \
         wireguard-go=0.0.20250522-r10 \
-        bind-tools=9.20.27-r0 \
+        bind-tools=9.20.29-r0 \
         && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
