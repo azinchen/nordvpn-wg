@@ -27,6 +27,8 @@ network="${NETWORK:-}"
 forward_from="${FORWARD_FROM:-}"
 gateway_dns="${GATEWAY_DNS:-off}"
 gateway_dns_server="${GATEWAY_DNS_SERVER:-}"
+ttl_set="${TTL_SET:-}"
+ttl_inc="${TTL_INC:-}"
 dns="${DNS:-103.86.96.100;103.86.99.100}"
 
 # Interfaces. tun_if must match the basename of $wgfile (wg-quick derives

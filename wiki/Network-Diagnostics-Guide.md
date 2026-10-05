@@ -84,6 +84,7 @@ The peer endpoint reported by `wg show` is the VPN server you're connected to.
 ### Firewall Rules
 
 - `### iptables -S (filter)` and `### iptables -t nat -S` — IPv4 rules
+- `### iptables -t mangle -S` — IPv4 mangle rules, printed only when `TTL_SET` / `TTL_INC` is set
 - `### ip6tables -S` / nat — IPv6 rules (if available)
 - Detects whether nft or legacy backend is in use
 

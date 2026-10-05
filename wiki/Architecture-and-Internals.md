@@ -184,6 +184,9 @@ The `init-firewall` service then:
   `vpn-reconnect` can always recover
 - If `NETWORK` is set, adds static routes (a failure logs a warning naming the value) and
   bidirectional allow rules for those CIDRs
+- If `TTL_SET` / `TTL_INC` are set, adds the mangle rules that rewrite the TTL of traffic
+  leaving via `wg0` / arriving on `eth0`. Fatal on an invalid value or a rule the kernel
+  refuses. See [VPN Gateway Mode](VPN-Gateway-Mode#ttl-tuning-ttl_set--ttl_inc)
 - If `FORWARD_FROM` is set, opens `FORWARD` for those CIDRs over `wg0` (see [VPN Gateway Mode](VPN-Gateway-Mode))
 - If `GATEWAY_DNS` is enabled, installs the client-DNS interception NAT rules for the
   `FORWARD_FROM` sources: port-53 DNAT to the tunnel resolvers (`redirect`), to the
@@ -207,4 +210,5 @@ FORWARD chain: ACCEPT ESTABLISHED,RELATED → [FORWARD_FROM CIDRs over wg0] → 
 VPN-SERVER chain: [temporary rule for the current VPN server IP]
 
 NAT/POSTROUTING: MASQUERADE on wg0
+MANGLE (only with TTL_SET / TTL_INC): POSTROUTING TTL --ttl-set on wg0, PREROUTING TTL --ttl-inc on eth0
 ```

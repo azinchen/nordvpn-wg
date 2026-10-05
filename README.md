@@ -154,6 +154,8 @@ Open the kill‑switch firewall for LAN access and downstream routing. See [Loca
 | **FORWARD<wbr>_FROM** | Downstream CIDRs allowed to route OUT through the tunnel (gateway mode). Traffic must arrive already SNATed into these nets. Default: none |
 | **GATEWAY<wbr>_DNS** | DNS interception for `FORWARD_FROM` clients: `redirect` (DNAT port 53 to the VPN resolvers from `DNS`, through the tunnel), `local` (DNAT port 53 to this container, for a co‑located resolver such as AdGuard Home), `forward` (DNAT port 53 to `GATEWAY_DNS_SERVER`, reached directly over the uplink — **not** through the tunnel), `off`. Default: `off` |
 | **GATEWAY<wbr>_DNS<wbr>_SERVER** | External IPv4 resolver(s) for `GATEWAY_DNS=forward` (e.g. an AdGuard Home on your LAN). With a list, the first resolver answering a DNS probe at startup is used. Default: none |
+| **TTL<wbr>_SET** | Rewrite the TTL of traffic leaving through the tunnel (e.g. `64`); normalizes the value the VPN exit sees and hides every hop behind this container from client traceroutes ([details][wiki-ttl]). Integer `1`–`255`. Default: unset |
+| **TTL<wbr>_INC** | Increment the TTL of traffic arriving on `eth0` (e.g. `1`), cancelling this container's own decrement so it disappears from client traceroutes ([details][wiki-ttl]). Needs `FORWARD_FROM`. Integer `1`–`255`. Default: unset |
 
 ### Advanced
 
@@ -209,6 +211,7 @@ Check the **[Troubleshooting][wiki-troubleshoot]** and **[FAQ][wiki-faq]** wiki 
 [wiki-firewall]: https://github.com/azinchen/nordvpn-wg/wiki/Firewall-Backends
 [wiki-permissions]: https://github.com/azinchen/nordvpn-wg/wiki/Permissions
 [wiki-gateway]: https://github.com/azinchen/nordvpn-wg/wiki/VPN-Gateway-Mode
+[wiki-ttl]: https://github.com/azinchen/nordvpn-wg/wiki/VPN-Gateway-Mode#ttl-tuning-ttl_set--ttl_inc
 [wiki-diagnostics]: https://github.com/azinchen/nordvpn-wg/wiki/Network-Diagnostics-Guide
 [wiki-compose]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Compose-Examples
 [wiki-run]: https://github.com/azinchen/nordvpn-wg/wiki/Docker-Run-Examples
