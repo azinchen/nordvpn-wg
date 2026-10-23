@@ -98,7 +98,7 @@ ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install security fix packages ****" && \
     apk --no-cache --no-progress add \
-        c-ares=1.34.8-r0 \
+        c-ares=1.34.9-r0 \
         && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
@@ -108,8 +108,8 @@ RUN echo "**** install security fix packages ****" && \
         iptables-legacy=1.8.13-r0 \
         jq=1.8.2-r0 \
         wireguard-tools=1.0.20260223-r0 \
-        wireguard-go=0.0.20250522-r10 \
-        bind-tools=9.20.29-r0 \
+        wireguard-go=0.0.20250522-r11 \
+        bind-tools=9.20.30-r0 \
         && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
