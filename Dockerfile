@@ -1,5 +1,5 @@
 # s6 overlay builder
-FROM alpine:3.24.2 AS s6-builder
+FROM alpine:3.24.3 AS s6-builder
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -41,7 +41,7 @@ RUN echo "**** install security fix packages ****" && \
     tar -C /s6/ -Jxpf /tmp/s6-overlay-symlinks-arch.tar.xz
 
 # rootfs builder
-FROM alpine:3.24.2 AS rootfs-builder
+FROM alpine:3.24.3 AS rootfs-builder
 
 ARG IMAGE_VERSION=N/A \
     BUILD_DATE=N/A
@@ -79,7 +79,7 @@ RUN chmod +x /rootfs/usr/local/bin/* || true && \
 COPY --from=s6-builder /s6/ /rootfs/
 
 # Main image
-FROM alpine:3.24.2
+FROM alpine:3.24.3
 
 ARG TARGETPLATFORM
 ARG IMAGE_VERSION=N/A \
@@ -98,7 +98,7 @@ ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000
 
 RUN echo "**** install security fix packages ****" && \
     apk --no-cache --no-progress add \
-        c-ares=1.34.8-r0 \
+        c-ares=1.34.9-r0 \
         && \
     echo "**** install mandatory packages ****" && \
     echo "Target platform: ${TARGETPLATFORM}" && \
@@ -108,8 +108,8 @@ RUN echo "**** install security fix packages ****" && \
         iptables-legacy=1.8.13-r0 \
         jq=1.8.2-r0 \
         wireguard-tools=1.0.20260223-r0 \
-        wireguard-go=0.0.20250522-r10 \
-        bind-tools=9.20.29-r0 \
+        wireguard-go=0.0.20250522-r11 \
+        bind-tools=9.20.30-r0 \
         && \
     echo "**** cleanup ****" && \
     rm -rf /tmp/* && \
