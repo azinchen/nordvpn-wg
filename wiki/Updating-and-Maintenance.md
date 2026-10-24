@@ -24,3 +24,7 @@ Consider using [azinchen/update-docker-containers](https://github.com/azinchen/u
 ## Why Dependent Containers Must Restart
 
 Containers that use `network_mode: "service:vpn"` share the VPN container's network namespace. When the VPN container is recreated, a new namespace is created. Dependent containers still reference the old (now dead) namespace and lose all network connectivity until they are restarted.
+
+This applies to **recreating** the container (image update, `docker compose up --force-recreate`). A plain `docker restart vpn` keeps the namespace, and server rotations via `RECREATE_VPN_CRON` or health checks only swap `wg0` inside it — dependent containers are unaffected by those (libtorrent-based clients should be bound to `wg0` so they follow the swap; see [Troubleshooting](Troubleshooting#torrent-client-stalled-despite-a-healthy-swarm)). See [Automatic Reconnection](Automatic-Reconnection).
+
+Release notes for each version are on the [Releases](https://github.com/azinchen/nordvpn-wg/releases) page; if something breaks after an update, start with [Troubleshooting](Troubleshooting).

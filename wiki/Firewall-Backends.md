@@ -54,3 +54,5 @@ Setting `ALLOW_MISSING_IPTABLES_RULES=true` makes restore failures non-fatal: a 
 - Mixing nft and legacy rules in the same namespace causes unpredictable behavior — the entrypoint prevents this
 
 No manual configuration is needed for backend selection. `ALLOW_MISSING_IPTABLES_RULES` is the only opt-in, for kernels that cannot support `wg-quick`'s rules at all.
+
+The selected backend is exported to `/run/xt/backend.env` and reused by every other script; see [Architecture and Internals](Architecture-and-Internals#entrypoint--backend-selection--default-deny) for the probing logic and [Security Model](Security-Model) for the rules built on top of it.

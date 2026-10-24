@@ -112,6 +112,16 @@ The peer endpoint reported by `wg show` is the VPN server you're connected to.
 
 The diagnostic tool uses a fallback to determine your public IP from more than one service, each with a short timeout, so a single slow/unreachable provider doesn't block the report.
 
+## Status File
+
+Independently of the diagnostic tool, `vpn-config` publishes the selected server as JSON at `/run/xt/status.json` (world-readable) on every connect and rotation — handy for monitoring scripts and dashboards:
+
+```bash
+docker exec vpn cat /run/xt/status.json
+```
+
+Fields: `name`, `hostname`, `ip`, `technology`, `country`, `city`, `load` and `selected_at` (UTC). The file describes the server the current (or next) connection uses; the full list of runtime files is in [Architecture and Internals](Architecture-and-Internals#state-files).
+
 ## Using Diagnostics for Troubleshooting
 
 | Symptom | What to check in diagnostic output |
@@ -122,4 +132,4 @@ The diagnostic tool uses a fallback to determine your public IP from more than o
 | Traffic not tunneled | `ip route get` — should resolve via `wg0` |
 | Firewall issues | iptables dump — look for missing ACCEPT rules on wg0 |
 
-See also: [Troubleshooting](Troubleshooting)
+See also: [Troubleshooting](Troubleshooting) · [Architecture and Internals](Architecture-and-Internals#network-diagnostic--debug-tool)

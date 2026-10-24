@@ -81,7 +81,19 @@ Docker subnets are **not** auto-allowed. If inter-container communication is nee
 
 **Cause:** `NETWORK` CIDRs are always allowed, regardless of VPN state. If you set `NETWORK=0.0.0.0/0`, **all traffic bypasses the VPN**.
 
-**Fix:** Keep `NETWORK` as narrow as possible — only include your LAN subnet and any Docker networks that need direct access.
+**Fix:** Keep `NETWORK` as narrow as possible — only include your LAN subnet and any Docker networks that need direct access. See [Security Model](Security-Model#kill-switch-limitations).
+
+### Gateway clients (`FORWARD_FROM`) have no connectivity
+
+**Symptoms:** Containers routed through this one with `FORWARD_FROM` cannot reach the internet, while the VPN container itself can.
+
+**Check:**
+1. **IP forwarding:** `net.ipv4.ip_forward=1` must be set on the VPN container (`--sysctl` / `sysctls:`) **and** on the downstream container.
+2. **Source addresses:** downstream traffic must arrive already SNATed into a `FORWARD_FROM` CIDR. `docker exec vpn iptables -L FORWARD -n -v` should show the packet counter rising on the `-s <cidr> -o wg0` rule.
+3. **Client DNS:** with `GATEWAY_DNS` set, look for `[INIT-FIREWALL] Intercepting client DNS:` at startup. A `GATEWAY_DNS=... ignored: FORWARD_FROM is not set` warning means interception is off.
+4. **Fatal settings:** an invalid `GATEWAY_DNS`, `TTL_SET` or `TTL_INC` value stops the container with a `CRITICAL ERROR` log line instead of running with the topology exposed.
+
+See [VPN Gateway Mode](VPN-Gateway-Mode).
 
 ## Firewall & Permissions
 
@@ -162,6 +174,9 @@ Key log messages:
 | `[SERVICE-NORDVPN] VPN connected successfully` | `wg0` came up (verify with a handshake) |
 | `[SERVICE-NORDVPN] VPN connection timeout` | Tunnel didn't establish in time |
 | `[VPN-HEALTHCHECK] All connection attempts failed, triggering VPN reconnection` | Health check triggered reconnection |
+| `[VPN-RECONNECT] Another reconnection (pid N) is already in progress - skipping` | Two triggers overlapped; harmless, the first one wins |
+| `[INIT-FIREWALL] CRITICAL ERROR: ...` | Invalid `GATEWAY_DNS`, `TTL_SET` or `TTL_INC` value; the container sleeps instead of starting |
+| `[!] Missing WireGuard kernel module. Falling back to slow userspace implementation.` | Kernel has no WireGuard; `wireguard-go` is used (needs `/dev/net/tun`) |
 
 ### Inspecting the Container
 
@@ -173,3 +188,5 @@ docker exec vpn iptables -S                   # check iptables rules
 docker exec vpn cat /etc/resolv.conf          # active DNS servers
 docker exec vpn env | sort                    # check environment
 ```
+
+The meaning of every file under `/run/xt/` is listed in [Architecture and Internals](Architecture-and-Internals#state-files).

@@ -1,4 +1,4 @@
-This page describes how the container works internally. Useful for contributors, debugging, and understanding the boot sequence.
+This page describes how the container works internally. Useful for contributors, debugging, and understanding the boot sequence. How the image is built and released is covered in [Building and CI](Building-and-CI).
 
 ## Boot Sequence
 
@@ -16,6 +16,8 @@ entrypoint (container start)
                          before the first connection attempt)
 ```
 
+One more piece runs outside the s6 service tree: the **Docker `HEALTHCHECK`** — the image declares `HEALTHCHECK CMD /usr/local/bin/vpn-healthcheck-probe` (every 60 s, 15 s timeout, 60 s start period, 3 retries). Docker runs it independently of s6. See [`vpn-healthcheck-probe`](#vpn-healthcheck-probe--docker-healthcheck).
+
 ## Key Scripts
 
 ### `entrypoint` — Backend selection & default-deny
@@ -28,7 +30,8 @@ Location: `/usr/local/bin/entrypoint`
 4. If legacy is selected and nft tables already contain rules, flushes nft tables to avoid mixed stacks
 5. Exports selected backends (`IPT`, `IP6T`) to `/run/xt/backend.env`
 6. Sets `INPUT`, `OUTPUT`, `FORWARD` to `DROP` on both IPv4 and IPv6
-7. Allows loopback traffic
+7. Flushes any pre-existing filter and NAT rules for both families
+8. Allows loopback traffic
 
 Backend preference:
 
@@ -48,6 +51,8 @@ Sourced by every script. Provides the environment-variable defaults (including `
 - `run4_check()` — Like `run4` but propagates the iptables exit status, for callers that branch on whether a rule was actually added
 - `run4_critical()` / `run6_critical()` — Execute or sleep forever on failure
 - `trim()` — Strips whitespace around tokens split from `;`/`,` lists
+- `to_bool()` — Normalizes boolean variables (`true`/`1` → `true`, anything else → `false`)
+- `nord_api_curl()` — Queries the NordVPN API via the bootstrap IPs (`NORDVPNAPI_IP`), trying each in turn; no DNS dependency
 - `is_vpn_connected()` — Checks for the `wg0` interface
 - `apply_wireguard_config()` — Shared bring-up: refreshes the `VPN-SERVER` pinhole for the endpoint in `wg0.conf`, swaps the interface with `wg-quick` down/up, and writes `/etc/resolv.conf` from `$dns`; used by both the service start path and `vpn-reconnect`
 - `log()` / `log_error()` / `log_warning()` — Timestamped logging
@@ -86,9 +91,9 @@ Location: `/usr/local/bin/vpn-config`
 Location: `/etc/s6-overlay/s6-rc.d/svc-nordvpn/run`
 
 1. Calls `vpn-config` to generate `wg0.conf`
-2. Adds a temporary pinhole in the `VPN-SERVER` chain for the server IP (UDP/51820 on eth0)
-3. Brings the tunnel up with `wg-quick up wg0` (kernel WireGuard when available; on kernels without the module `wg-quick` automatically launches userspace `wireguard-go`, which needs `/dev/net/tun` — see [Permissions](Permissions))
-4. Writes `/etc/resolv.conf` from `$dns` (Docker's embedded resolver is unreachable behind
+2. Calls `apply_wireguard_config`, which adds a temporary pinhole in the `VPN-SERVER` chain for the server IP (UDP/51820 on eth0),
+3. brings the tunnel up with `wg-quick up wg0` (kernel WireGuard when available; on kernels without the module `wg-quick` automatically launches userspace `wireguard-go`, which needs `/dev/net/tun` — see [Permissions](Permissions)), and
+4. writes `/etc/resolv.conf` from `$dns` (Docker's embedded resolver is unreachable behind
    the kill switch)
 5. Waits for the connection (checks `wg0`, up to ~60 seconds)
 6. Optionally runs network diagnostics (`NETWORK_DIAGNOSTIC_ENABLED`)
@@ -108,6 +113,20 @@ Location: `/usr/local/bin/vpn-healthcheck`
 1. Sends HTTP requests to the configured URL(s)
 2. Retries `CHECK_CONNECTION_ATTEMPTS` times with configurable interval
 3. If all fail, calls `vpn-reconnect`
+
+Runs from cron (`CHECK_CONNECTION_CRON`). WireGuard has no management socket, so the tunnel is judged by real HTTP requests only.
+
+### `vpn-healthcheck-probe` — Docker HEALTHCHECK
+
+Location: `/usr/local/bin/vpn-healthcheck-probe`
+
+The command behind the image's `HEALTHCHECK` instruction. Unlike `vpn-healthcheck` it is observational only: no retry loop, no sleep, and it never calls `vpn-reconnect`.
+
+1. Exits `0` (healthy) immediately unless `HEALTHCHECK_ENABLED=true`
+2. Fails if `wg0` does not exist
+3. Sends one short HEAD request (5 s timeout) per `CHECK_CONNECTION_URL` entry; healthy on the first 2xx/3xx answer, unhealthy otherwise
+
+Docker's `--retries` absorbs transient blips. See [Docker Health Status](Automatic-Reconnection#docker-health-status).
 
 ### `vpn-reconnect` — Prepare-then-swap reconnection
 
@@ -131,6 +150,8 @@ Two modes:
 - `--basic`: Public IP + geolocation only
 - `--full` (default): Complete diagnostics including interfaces, iptables rules, DNS, routes, WireGuard status, the active WireGuard engine (kernel vs userspace `wireguard-go`), and kernel version
 
+See [Network Diagnostics Guide](Network-Diagnostics-Guide).
+
 ## Data Files
 
 Located in `/usr/local/share/nordvpn/data/`:
@@ -149,6 +170,9 @@ Located in `/usr/local/share/nordvpn/data/`:
 | `/run/xt/backend.env` | Selected iptables backend (IPT, IP6T) |
 | `/etc/wireguard/wg0.conf` | Current server's WireGuard config (private key, peer, endpoint) |
 | `/run/xt/status.json` | Last selected server as JSON (name, hostname, ip, technology, country, city, load, selected_at) — world-readable, for monitoring, e.g. `docker exec vpn cat /run/xt/status.json` |
+| `/run/xt/vpn-reconnect.lock/` | Lock directory serializing concurrent reconnections (holds the owner's `pid`) |
+| `/var/spool/cron/crontabs/root` | Crontab written by `init-setupcron` from `RECREATE_VPN_CRON` / `CHECK_CONNECTION_CRON` |
+| `/etc/resolv.conf` | Rewritten from `DNS` by `apply_wireguard_config` on every connect |
 
 ## Connection Status
 
@@ -202,13 +226,25 @@ When connecting:
 
 ## Firewall Chain Structure
 
-```
-INPUT chain:  ACCEPT lo → ACCEPT ESTABLISHED,RELATED → [NETWORK CIDRs] → DROP
-OUTPUT chain: ACCEPT lo → ACCEPT ESTABLISHED,RELATED → ACCEPT wg0 → VPN-SERVER (eth0 udp/51820) → [NORDVPNAPI IPs] → [NETWORK CIDRs] → DROP
-FORWARD chain: ACCEPT ESTABLISHED,RELATED → [FORWARD_FROM CIDRs over wg0] → DROP
+Items in `[brackets]` exist only when the corresponding variable is set. `wg-quick` adds its own anti-leak rules (a `raw` table drop and `mangle` CONNMARK rules) on top while the tunnel is up and removes them on down.
 
-VPN-SERVER chain: [temporary rule for the current VPN server IP]
-
-NAT/POSTROUTING: MASQUERADE on wg0
-MANGLE (only with TTL_SET / TTL_INC): POSTROUTING TTL --ttl-set on wg0, PREROUTING TTL --ttl-inc on eth0
 ```
+filter/INPUT:    ACCEPT lo → ACCEPT ESTABLISHED,RELATED → [NETWORK CIDRs in eth0]
+                 → [GATEWAY_DNS=local: port 53 from FORWARD_FROM] → DROP
+filter/OUTPUT:   ACCEPT lo → ACCEPT ESTABLISHED,RELATED → ACCEPT out wg0
+                 → VPN-SERVER (udp/51820 out eth0) → [NORDVPNAPI_IP tcp/443]
+                 → [NETWORK CIDRs out eth0] → DROP
+filter/FORWARD:  [FORWARD_FROM → wg0] → [wg0 → FORWARD_FROM ESTABLISHED,RELATED]
+                 → [GATEWAY_DNS=forward: eth0 → eth0 hairpin to GATEWAY_DNS_SERVER] → DROP
+
+VPN-SERVER:      temporary rule for the current VPN server IP, refreshed on every connect
+
+nat/PREROUTING:  [GATEWAY_DNS: port 53 from FORWARD_FROM → DNAT to the DNS resolver | REDIRECT | DNAT to GATEWAY_DNS_SERVER]
+nat/POSTROUTING: MASQUERADE out wg0 → [GATEWAY_DNS=forward: MASQUERADE towards GATEWAY_DNS_SERVER]
+
+mangle:          [TTL_INC: PREROUTING in eth0 → TTL --ttl-inc] [TTL_SET: POSTROUTING out wg0 → TTL --ttl-set]
+
+IPv6 (when ip6tables is usable): INPUT/OUTPUT/FORWARD policy DROP, no exceptions — see IPv6 Configuration
+```
+
+See also [Security Model](Security-Model), [Firewall Backends](Firewall-Backends) and [IPv6 Configuration](IPv6-Configuration).

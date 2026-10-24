@@ -2,6 +2,8 @@ This image supports multiple CPU architectures. Docker will automatically pull t
 
 ## Available Architectures
 
+The images on Docker Hub and GHCR are built for the platforms listed in the CI configuration (`PLATFORMS` in `ci-build-deploy.yml`; see [Building and CI](Building-and-CI)) — every platform that both Alpine Linux and s6-overlay provide:
+
 | Architecture | Platform |
 |--------------|----------|
 | `386` | 32-bit x86 |

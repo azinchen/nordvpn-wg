@@ -51,6 +51,9 @@ Every 4–8 hours is common. Use `RECREATE_VPN_CRON` for scheduled switching and
 **Q: What happens if the VPN drops?**
 The kill switch blocks all traffic except `NETWORK` CIDRs and NordVPN API IPs. If health monitoring is configured, the container will automatically reconnect. See [Security Model](Security-Model#traffic-control--kill-switch).
 
+**Q: Can Docker or Compose see whether the tunnel is up?**
+Yes — set `HEALTHCHECK_ENABLED=true`. The image's `HEALTHCHECK` then checks `wg0` and a short request to `CHECK_CONNECTION_URL`, so `docker ps` shows `healthy`/`unhealthy` and Compose `depends_on: condition: service_healthy` waits for a working tunnel. It is observational only. See [Docker Health Status](Automatic-Reconnection#docker-health-status).
+
 ## Compatibility
 
 **Q: Does this work on Raspberry Pi?**

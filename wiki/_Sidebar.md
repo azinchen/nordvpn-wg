@@ -33,3 +33,4 @@
 - [FAQ](FAQ)
 - [Supported Platforms](Supported-Platforms)
 - [Architecture and Internals](Architecture-and-Internals)
+- [Building and CI](Building-and-CI)
