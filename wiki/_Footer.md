@@ -4,4 +4,4 @@
 
 Need OpenVPN instead? See the sibling project **[azinchen/nordvpn](https://github.com/azinchen/nordvpn)** ([wiki](https://github.com/azinchen/nordvpn/wiki)).
 
-Maintained by [Alexander Zinchenko](mailto:alexander@zinchenko.com) · Licensed under [AGPL-3.0](https://github.com/azinchen/nordvpn-wg/blob/main/LICENSE)
+Maintained by [Alexander Zinchenko](https://github.com/azinchen) · Licensed under [AGPL-3.0](https://github.com/azinchen/nordvpn-wg/blob/main/LICENSE)
