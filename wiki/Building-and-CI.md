@@ -59,7 +59,7 @@ A stale pin breaks the build as soon as Alpine drops the old package version, wh
 | `maintenance-cleanup` | weekly schedule, manual | Prunes old GHCR and Docker Hub tags with [container-registry-pruner](https://github.com/azinchen/container-registry-pruner): release tags older than a year, development tags older than 90 days, keeping the latest per minor version; dry-run by default when run manually |
 | `wiki-publish` | tag push, manual | Mirrors the repository's `wiki/` folder into the GitHub wiki, so the published wiki always matches the latest release |
 
-Dependabot keeps the GitHub Actions versions current with weekly PRs. Platform matrix for `main` and releases: `linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64, linux/ppc64le, linux/s390x`.
+Dependabot keeps the GitHub Actions versions current with weekly PRs. Platform matrix for `main` and releases: `linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64`.
 
 ### Bot PR labels
 
