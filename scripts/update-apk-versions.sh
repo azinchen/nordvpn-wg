@@ -48,7 +48,7 @@ extract_new_version()
 
 # Architectures the image is built for (PLATFORMS in ci-build-deploy.yml),
 # mapped to Alpine repository architecture names.
-BUILD_ARCHES="x86 x86_64 armhf armv7 aarch64 ppc64le s390x riscv64"
+BUILD_ARCHES="x86 x86_64 armhf armv7 aarch64 ppc64le s390x"
 
 # Print the build architectures where pkg=version is NOT available in repo.
 # Empty output means the version exists everywhere; used to hold back updates
